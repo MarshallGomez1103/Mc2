@@ -42,6 +42,11 @@ public final class World implements Subject<BlockChange> {
                 .findFirst();
     }
 
+    /** Busca el chunk que contiene una posición absoluta del mundo. */
+    public Optional<Chunk> findChunk(Position position) {
+        return findChunk(Chunk.chunkXFor(position), Chunk.chunkZFor(position));
+    }
+
     public void placeBlock(int chunkX, int chunkZ, Block block) {
         Chunk chunk = requireChunk(chunkX, chunkZ);
         chunk.put(Objects.requireNonNull(block, "block no puede ser null"));

@@ -35,6 +35,10 @@ localY = y
 
 Una posición con `y < 0` o `y > 63` es inválida y debe rechazarse. El mismo criterio se aplica a las coordenadas locales que salgan de sus límites.
 
+`Chunk` aplica estas reglas al agregar, consultar o eliminar un bloque. Sus coordenadas `Position` son absolutas, por lo que valida el chunk horizontal con `floorDiv(x, 16)` y `floorDiv(z, 16)`.
+
+`World.findChunk(Position)` usa la misma conversión y devuelve el chunk encontrado, o un `Optional` vacío si ese chunk aún no fue creado en el mundo.
+
 ## 2. Esquema JSON de un mundo
 
 Cada archivo es un mundo y se guarda en `worlds/<id>.json`. El esquema inicial es deliberadamente directo para que Estudiante 3 pueda serializarlo sin una base de datos ni un patrón adicional.
@@ -104,6 +108,8 @@ Un ítem no se considera terminado por “verse bien”: debe cumplir su criteri
 | CT-11 | Flujo MVP | Crear → generar → guardar → cerrar → cargar conserva los cambios de colocar/eliminar. | Prueba manual guiada y evidencia en `docs/evidencias/`. |
 
 Las pruebas CT-02 a CT-09 serán automatizadas con JUnit 5 cuando se implemente cada responsabilidad. CT-10 y CT-11 son manuales porque comprueban la integración gráfica y el flujo completo.
+
+La primera suite automatizada, `WorldBlockOperationsTest`, cubre creación y consulta de un chunk, colocación de un bloque, eliminación de un bloque existente y eliminación de aire.
 
 ## 5. Responsabilidad por esta fase
 

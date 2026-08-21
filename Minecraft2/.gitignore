@@ -2,7 +2,7 @@
 out/
 target/
 worlds/
-Explicación.txt
+Explicación.md
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin

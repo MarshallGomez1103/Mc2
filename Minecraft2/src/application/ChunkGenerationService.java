@@ -12,9 +12,6 @@ import java.util.Objects;
 
 /** Coordina la creación inicial de chunks a partir del terreno y la fábrica de bloques. */
 public final class ChunkGenerationService {
-    private static final int CHUNK_WIDTH = 16;
-    private static final int CHUNK_DEPTH = 16;
-
     private final SimpleTerrainGenerator terrainGenerator;
     private final BlockFactory blockFactory;
 
@@ -27,10 +24,10 @@ public final class ChunkGenerationService {
     public Chunk generateChunk(int chunkX, int chunkZ) {
         Chunk chunk = new Chunk(chunkX, chunkZ);
 
-        for (int localX = 0; localX < CHUNK_WIDTH; localX++) {
-            for (int localZ = 0; localZ < CHUNK_DEPTH; localZ++) {
-                int worldX = chunkX * CHUNK_WIDTH + localX;
-                int worldZ = chunkZ * CHUNK_DEPTH + localZ;
+        for (int localX = 0; localX < Chunk.WIDTH; localX++) {
+            for (int localZ = 0; localZ < Chunk.DEPTH; localZ++) {
+                int worldX = chunkX * Chunk.WIDTH + localX;
+                int worldZ = chunkZ * Chunk.DEPTH + localZ;
                 populateColumn(chunk, worldX, worldZ);
             }
         }
@@ -53,7 +50,7 @@ public final class ChunkGenerationService {
     }
 
     private void populateColumn(Chunk chunk, int worldX, int worldZ) {
-        for (int y = 0; y < SimpleTerrainGenerator.CHUNK_HEIGHT; y++) {
+        for (int y = 0; y < Chunk.HEIGHT; y++) {
             BlockType type = terrainGenerator.blockTypeAt(worldX, y, worldZ);
             if (type != BlockType.AIR) {
                 chunk.addBlock(blockFactory.create(type, new Position(worldX, y, worldZ)));

@@ -18,9 +18,9 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 - [x] Implementar la generación pseudoaleatoria sencilla.
 - [x] Crear uno o pocos chunks usando `BlockFactory`.
 - [x] Distribuir césped, tierra, piedra, arena, grava, madera y hojas.
-- [ ] Definir límites y validaciones de `Chunk`.
-- [ ] Resolver el chunk correspondiente a una `Position`.
-- [ ] Probar creación, consulta, colocación y eliminación de bloques.
+- [x] Definir límites y validaciones de `Chunk`.
+- [x] Resolver el chunk correspondiente a una `Position`.
+- [x] Probar creación, consulta, colocación y eliminación de bloques.
 
 ## Estudiante 2 — jugador e interacción
 

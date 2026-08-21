@@ -7,7 +7,7 @@ import domain.block.BlockType;
  * No crea chunks ni bloques; solo determina qué tipo corresponde a una posición del mundo.
  */
 public final class SimpleTerrainGenerator {
-    public static final int CHUNK_HEIGHT = 64;
+    public static final int CHUNK_HEIGHT = Chunk.HEIGHT;
     public static final int MIN_SURFACE_HEIGHT = 18;
     public static final int MAX_SURFACE_HEIGHT = 22;
 
