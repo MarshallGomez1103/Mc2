@@ -16,7 +16,7 @@ Esta capa se organiza internamente en dos paquetes para no mezclar coordinación
 
 #### Application
 
-`WorldApplicationService` representa los casos de uso: crear, listar, cargar, guardar y eliminar mundos. Coordina `WorldStorage` y `WorldManager`, pero no decide cómo dibujar o cómo codificar JSON.
+`WorldApplicationService` representa los casos de uso: crear, listar, cargar, guardar y eliminar mundos. `ChunkGenerationService` coordina la generación de un chunk con `SimpleTerrainGenerator` y `BlockFactory`. Ninguno decide cómo dibujar o cómo codificar JSON.
 
 #### Domain
 
@@ -29,7 +29,7 @@ Contiene el vocabulario principal:
 - `Position`: coordenadas enteras.
 - `BlockChange`: dato que describe una colocación o eliminación.
 
-La generación, movimiento, gravedad, colisiones y reglas de interacción todavía no están implementados.
+La generación inicial de terreno y chunks está implementada. Movimiento, gravedad, colisiones y reglas de interacción todavía no lo están.
 
 ### 3. Persistence
 

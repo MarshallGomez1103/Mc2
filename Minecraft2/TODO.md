@@ -5,17 +5,19 @@ Este archivo enumera el trabajo que los tres estudiantes deben completar manualm
 ## Decisiones compartidas antes de programar
 
 - [ ] Completar los nombres de los tres integrantes en `README.md`.
-- [ ] Acordar ancho, alto y profundidad de cada chunk.
-- [ ] Definir cómo una posición del mundo se convierte en coordenada de chunk.
-- [ ] Acordar el esquema JSON definitivo para mundo, chunks y bloques.
-- [ ] Elegir la tecnología gráfica mínima compatible con Java e IntelliJ.
-- [ ] Establecer criterios de terminado y casos de prueba del MVP.
+- [x] Acordar ancho, alto y profundidad de cada chunk: `16 × 64 × 16`.
+- [x] Definir cómo una posición del mundo se convierte en coordenada de chunk.
+- [x] Acordar el esquema JSON definitivo para mundo, chunks y bloques.
+- [x] Elegir la tecnología gráfica mínima compatible con Java e IntelliJ: LibGDX + LWJGL3.
+- [x] Establecer criterios de terminado y casos de prueba del MVP.
+
+Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones-compartidas.md](docs/decisiones-compartidas.md).
 
 ## Estudiante 1 — mundo y generación
 
-- [ ] Implementar la generación pseudoaleatoria sencilla.
-- [ ] Crear uno o pocos chunks usando `BlockFactory`.
-- [ ] Distribuir césped, tierra, piedra, arena, grava, madera y hojas.
+- [x] Implementar la generación pseudoaleatoria sencilla.
+- [x] Crear uno o pocos chunks usando `BlockFactory`.
+- [x] Distribuir césped, tierra, piedra, arena, grava, madera y hojas.
 - [ ] Definir límites y validaciones de `Chunk`.
 - [ ] Resolver el chunk correspondiente a una `Position`.
 - [ ] Probar creación, consulta, colocación y eliminación de bloques.

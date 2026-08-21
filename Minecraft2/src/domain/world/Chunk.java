@@ -36,6 +36,11 @@ public final class Chunk {
         return Optional.ofNullable(blocks.get(position));
     }
 
+    /** Agrega un bloque durante la construcción inicial del chunk. */
+    public void addBlock(Block block) {
+        blocks.put(java.util.Objects.requireNonNull(block, "block no puede ser null").getPosition(), block);
+    }
+
     Block put(Block block) {
         return blocks.put(block.getPosition(), block);
     }

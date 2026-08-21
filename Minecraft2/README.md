@@ -65,7 +65,7 @@ patterns.factory ──> domain
 - **Persistence:** el paquete `persistence` define y realiza las operaciones locales CREATE, READ, UPDATE y DELETE.
 - **Apoyo arquitectónico:** `patterns` aloja únicamente Factory, Singleton y Observer; `bootstrap` solo conecta objetos al iniciar.
 
-La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectura.md).
+La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectura.md). Las decisiones compartidas de dimensiones, coordenadas, JSON, tecnología gráfica y pruebas están congeladas en [docs/decisiones-compartidas.md](docs/decisiones-compartidas.md).
 
 ## Patrones utilizados
 
@@ -162,18 +162,17 @@ El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 
 ## Integrantes
 
-- Estudiante 1: **pendiente de completar**.
+- Estudiante 1: **Elioth Thomas Gomez Morales**.
 - Estudiante 2: **pendiente de completar**.
 - Estudiante 3: **pendiente de completar**.
 
 ## Backlog inicial
 
-1. Acordar dimensiones, coordenadas y esquema JSON de un chunk.
-2. Completar la serialización y reconstrucción de bloques y chunks.
-3. Crear la generación pseudoaleatoria sencilla para uno o pocos chunks.
-4. Elegir e integrar la tecnología gráfica mínima.
-5. Renderizar el mundo y los ocho tipos de bloques.
-6. Implementar movimiento, colisiones, salto y gravedad.
-7. Implementar selección, colocación y eliminación de bloques por clic.
-8. Conectar observadores concretos para reaccionar a cambios visuales y de guardado.
-9. Añadir pruebas unitarias y pruebas manuales del flujo completo.
+1. Completar la serialización y reconstrucción de bloques y chunks según las decisiones acordadas.
+2. Crear la generación pseudoaleatoria sencilla para uno o pocos chunks.
+3. Integrar LibGDX con backend de escritorio LWJGL3 para renderizar el mundo.
+4. Renderizar el mundo y los ocho tipos de bloques.
+5. Implementar movimiento, colisiones, salto y gravedad.
+6. Implementar selección, colocación y eliminación de bloques por clic.
+7. Conectar observadores concretos para reaccionar a cambios visuales y de guardado.
+8. Añadir pruebas unitarias y pruebas manuales del flujo completo.
