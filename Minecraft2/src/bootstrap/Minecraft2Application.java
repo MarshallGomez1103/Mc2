@@ -1,6 +1,7 @@
 package bootstrap;
 
 import application.WorldApplicationService;
+import patterns.factory.BlockFactory;
 import persistence.JsonWorldStorage;
 import persistence.WorldStorage;
 import presentation.MainMenu;
@@ -14,7 +15,7 @@ public final class Minecraft2Application {
 
     public static void main(String[] args) {
         WorldStorage storage = new JsonWorldStorage(Path.of("worlds"));
-        WorldApplicationService worldService = new WorldApplicationService(storage);
+        WorldApplicationService worldService = new WorldApplicationService(storage, new BlockFactory());
         new MainMenu(worldService).show();
     }
 }

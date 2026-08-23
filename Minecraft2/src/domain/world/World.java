@@ -2,30 +2,76 @@ package domain.world;
 
 import domain.Position;
 import domain.block.Block;
+import domain.player.Player;
 import patterns.observer.Observer;
 import patterns.observer.Subject;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Agregado principal del mundo y origen de notificaciones de cambios de bloques. */
+/**
+ * Agregado principal del mundo y origen de notificaciones de cambios de bloques.
+ * Conserva además la identidad, la semilla, la fecha de creación y el jugador que exige
+ * el esquema JSON acordado en docs/decisiones-compartidas.md.
+ */
 public final class World implements Subject<BlockChange> {
+    /** Posición inicial del jugador; queda por encima de la superficie generada (18 a 22). */
+    public static final Position DEFAULT_SPAWN = new Position(8, 32, 8);
+
+    private static final String ID_PATTERN = "[a-zA-Z0-9_-]+";
+
+    private final String id;
     private final String name;
+    private final long seed;
+    private final Instant createdAt;
+    private final Player player;
     private final List<Chunk> chunks = new ArrayList<>();
     private final List<Observer<BlockChange>> observers = new ArrayList<>();
 
-    public World(String name) {
+    /** Constructor completo; lo usa la persistencia al reconstruir un mundo guardado. */
+    public World(String id, String name, long seed, Instant createdAt, Player player) {
+        if (id == null || !id.matches(ID_PATTERN)) {
+            throw new IllegalArgumentException(
+                    "El identificador solo puede contener letras, números, guion y guion bajo"
+            );
+        }
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("El nombre del mundo no puede estar vacío");
         }
+        this.id = id;
         this.name = name;
+        this.seed = seed;
+        this.createdAt = Objects.requireNonNull(createdAt, "createdAt no puede ser null");
+        this.player = Objects.requireNonNull(player, "player no puede ser null");
+    }
+
+    /** Constructor de conveniencia para mundos nuevos: el identificador coincide con el nombre. */
+    public World(String name, long seed, Instant createdAt) {
+        this(name, name, seed, createdAt, new Player(DEFAULT_SPAWN));
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getName() {
         return name;
+    }
+
+    public long getSeed() {
+        return seed;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
 
     public List<Chunk> getChunks() {

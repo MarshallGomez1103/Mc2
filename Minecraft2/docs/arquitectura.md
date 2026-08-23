@@ -22,7 +22,9 @@ Esta capa se organiza internamente en dos paquetes para no mezclar coordinación
 
 Contiene el vocabulario principal:
 
-- `World`: conjunto de chunks y origen de notificaciones de bloques.
+- `World`: conjunto de chunks y origen de notificaciones de bloques. Conserva también la identidad
+  del mundo (`id`, `name`), la semilla de generación, la fecha de creación y el jugador, es decir,
+  todos los datos que exige el esquema JSON acordado.
 - `Chunk`: contenedor mínimo de bloques.
 - `Block` y `BlockType`: estado básico de cada voxel.
 - `Player`: posición mínima del jugador.

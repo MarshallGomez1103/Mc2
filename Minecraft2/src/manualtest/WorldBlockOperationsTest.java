@@ -7,14 +7,19 @@ import domain.world.Chunk;
 import domain.world.World;
 import patterns.factory.BlockFactory;
 
+import java.time.Instant;
+
 /** Comprobación manual y simple de las operaciones básicas de bloques. */
 public final class WorldBlockOperationsTest {
+    private static final long FIXED_SEED = 48_271L;
+    private static final Instant FIXED_CREATION = Instant.parse("2026-08-20T20:30:00Z");
+
     private WorldBlockOperationsTest() {
     }
 
     public static void main(String[] args) {
         BlockFactory blockFactory = new BlockFactory();
-        World world = new World("test-world");
+        World world = new World("test-world", FIXED_SEED, FIXED_CREATION);
         Chunk chunk = new Chunk(0, 0);
         Position position = new Position(2, 20, 3);
         world.addChunk(chunk);

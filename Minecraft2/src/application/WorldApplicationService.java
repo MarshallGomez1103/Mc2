@@ -1,30 +1,47 @@
 package application;
 
-import domain.world.Chunk;
+import domain.world.SimpleTerrainGenerator;
 import domain.world.World;
+import patterns.factory.BlockFactory;
 import patterns.singleton.WorldManager;
 import persistence.WorldStorage;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 
 /**
  * Casos de uso relacionados con la administración de mundos.
  * No contiene entrada/salida de la interfaz de usuario.
  */
 public final class WorldApplicationService {
-    private final WorldStorage storage;
-    private final WorldManager worldManager;
+    /** Lado de la cuadrícula de chunks generada al crear un mundo: 2 × 2 = 4 chunks. */
+    private static final int DEFAULT_WORLD_CHUNKS = 2;
 
-    public WorldApplicationService(WorldStorage storage) {
+    private final WorldStorage storage;
+    private final BlockFactory blockFactory;
+    private final WorldManager worldManager;
+    private final Random seedGenerator = new Random();
+
+    public WorldApplicationService(WorldStorage storage, BlockFactory blockFactory) {
         this.storage = Objects.requireNonNull(storage, "storage no puede ser null");
+        this.blockFactory = Objects.requireNonNull(blockFactory, "blockFactory no puede ser null");
         this.worldManager = WorldManager.getInstance();
     }
 
     public void createWorld(String name) throws IOException {
-        World world = new World(name);
-        world.addChunk(new Chunk(0, 0));
+        long seed = seedGenerator.nextLong();
+        World world = new World(name, seed, Instant.now().truncatedTo(ChronoUnit.SECONDS));
+
+        // El generador depende de la semilla, así que se construye por mundo y no por servicio.
+        ChunkGenerationService generationService =
+                new ChunkGenerationService(new SimpleTerrainGenerator(seed), blockFactory);
+        generationService.generateChunks(DEFAULT_WORLD_CHUNKS, DEFAULT_WORLD_CHUNKS)
+                .forEach(world::addChunk);
+
         storage.create(world);
         worldManager.load(world);
     }

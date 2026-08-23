@@ -1,10 +1,12 @@
 package persistence;
 
+import domain.player.Player;
 import domain.world.World;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -38,8 +40,12 @@ public final class JsonWorldStorage implements WorldStorage {
             throw new IllegalArgumentException("El mundo no existe");
         }
 
-        // TODO: reconstruir chunks y bloques cuando se defina el esquema JSON final.
-        return new World(extractWorldName(Files.readString(file)));
+        // TODO: reconstruir semilla, fecha, jugador, chunks y bloques leyendo el esquema completo.
+        // ADVERTENCIA: mientras esto siga pendiente, el mundo devuelto pierde los chunks y recibe
+        // una semilla y una fecha provisionales. Cargar y volver a guardar sobrescribe la metadata
+        // real del archivo, así que no debe usarse cargar -> guardar sobre mundos que importen.
+        String worldName = extractWorldName(Files.readString(file));
+        return new World(worldName, worldName, 0L, Instant.EPOCH, new Player(World.DEFAULT_SPAWN));
     }
 
     @Override
