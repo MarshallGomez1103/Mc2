@@ -19,8 +19,13 @@ import java.util.Optional;
  * el esquema JSON acordado en docs/decisiones-compartidas.md.
  */
 public final class World implements Subject<BlockChange> {
-    /** Posición inicial del jugador; queda por encima de la superficie generada (18 a 22). */
-    public static final Position DEFAULT_SPAWN = new Position(8, 32, 8);
+    /**
+     * Posición inicial del jugador; queda por encima de la superficie generada (18 a 22),
+     * y centrada en el bloque porque {@link Player} maneja coordenadas continuas.
+     */
+    public static final double DEFAULT_SPAWN_X = 8.5;
+    public static final double DEFAULT_SPAWN_Y = 32.0;
+    public static final double DEFAULT_SPAWN_Z = 8.5;
 
     private static final String ID_PATTERN = "[a-zA-Z0-9_-]+";
 
@@ -51,7 +56,7 @@ public final class World implements Subject<BlockChange> {
 
     /** Constructor de conveniencia para mundos nuevos: el identificador coincide con el nombre. */
     public World(String name, long seed, Instant createdAt) {
-        this(name, name, seed, createdAt, new Player(DEFAULT_SPAWN));
+        this(name, name, seed, createdAt, new Player(DEFAULT_SPAWN_X, DEFAULT_SPAWN_Y, DEFAULT_SPAWN_Z));
     }
 
     public String getId() {

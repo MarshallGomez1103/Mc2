@@ -1,66 +1,77 @@
 package persistence;
 
-import domain.player.Player;
 import domain.world.World;
+import patterns.factory.BlockFactory;
 
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
- * Base de almacenamiento local en JSON.
- * La codificación y reconstrucción completas se dejan como trabajo del equipo.
+ * Almacenamiento local de mundos, un archivo JSON por mundo dentro de {@code worlds/}.
+ * Esta clase se ocupa solo del acceso a disco; el formato lo resuelve {@link WorldJsonCodec}.
  */
 public final class JsonWorldStorage implements WorldStorage {
     private static final String JSON_EXTENSION = ".json";
-    private final Path worldsDirectory;
+    private static final String TEMPORARY_EXTENSION = ".tmp";
 
-    public JsonWorldStorage(Path worldsDirectory) {
+    private final Path worldsDirectory;
+    private final BlockFactory blockFactory;
+
+    public JsonWorldStorage(Path worldsDirectory, BlockFactory blockFactory) {
         this.worldsDirectory = Objects.requireNonNull(worldsDirectory, "worldsDirectory no puede ser null");
+        this.blockFactory = Objects.requireNonNull(blockFactory, "blockFactory no puede ser null");
     }
 
     @Override
     public void create(World world) throws IOException {
-        Path file = worldFile(world.getName());
+        Path file = worldFile(world.getId());
         ensureDirectory();
         if (Files.exists(file)) {
-            throw new IllegalStateException("Ya existe un mundo con ese nombre");
+            throw new IllegalStateException("Ya existe un mundo con el identificador: " + world.getId());
         }
-        Files.writeString(file, serializeSkeleton(world));
+        writeAtomically(file, WorldJsonCodec.write(world));
     }
 
     @Override
-    public World read(String name) throws IOException {
-        Path file = worldFile(name);
+    public World read(String id) throws IOException {
+        Path file = worldFile(id);
         if (!Files.exists(file)) {
             throw new IllegalArgumentException("El mundo no existe");
         }
 
-        // TODO: reconstruir semilla, fecha, jugador, chunks y bloques leyendo el esquema completo.
-        // ADVERTENCIA: mientras esto siga pendiente, el mundo devuelto pierde los chunks y recibe
-        // una semilla y una fecha provisionales. Cargar y volver a guardar sobrescribe la metadata
-        // real del archivo, así que no debe usarse cargar -> guardar sobre mundos que importen.
-        String worldName = extractWorldName(Files.readString(file));
-        return new World(worldName, worldName, 0L, Instant.EPOCH, new Player(World.DEFAULT_SPAWN));
+        World world = WorldJsonCodec.read(readFile(file), blockFactory);
+        if (!world.getId().equals(id)) {
+            throw new InvalidWorldFileException(
+                    "El identificador del archivo no coincide con su contenido: se esperaba '"
+                            + id + "' y se encontró '" + world.getId() + "'"
+            );
+        }
+        return world;
     }
 
     @Override
     public void update(World world) throws IOException {
-        Path file = worldFile(world.getName());
+        Path file = worldFile(world.getId());
         ensureDirectory();
         if (!Files.exists(file)) {
             throw new IllegalArgumentException("El mundo no existe");
         }
-        Files.writeString(file, serializeSkeleton(world));
+        writeAtomically(file, WorldJsonCodec.write(world));
     }
 
     @Override
-    public void delete(String name) throws IOException {
-        Files.deleteIfExists(worldFile(name));
+    public void delete(String id) throws IOException {
+        if (!Files.deleteIfExists(worldFile(id))) {
+            throw new IllegalArgumentException("El mundo no existe");
+        }
     }
 
     @Override
@@ -77,42 +88,50 @@ public final class JsonWorldStorage implements WorldStorage {
         }
     }
 
+    /**
+     * Escribe primero en un archivo temporal y luego lo mueve sobre el definitivo.
+     * Así un fallo a mitad de la escritura no deja el mundo guardado a medias.
+     */
+    private void writeAtomically(Path file, String json) throws IOException {
+        Path temporary = file.resolveSibling(file.getFileName() + TEMPORARY_EXTENSION);
+        try {
+            Files.writeString(temporary, json, StandardCharsets.UTF_8);
+            try {
+                Files.move(temporary, file,
+                        StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException cause) {
+                Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException cause) {
+            try {
+                Files.deleteIfExists(temporary);
+            } catch (IOException ignored) {
+                // Prevalece el error original de escritura.
+            }
+            throw cause;
+        }
+    }
+
+    private String readFile(Path file) throws IOException {
+        try {
+            return Files.readString(file, StandardCharsets.UTF_8);
+        } catch (MalformedInputException cause) {
+            throw new InvalidWorldFileException(
+                    "El archivo del mundo está dañado: no contiene texto UTF-8 válido", cause
+            );
+        }
+    }
+
     private void ensureDirectory() throws IOException {
         Files.createDirectories(worldsDirectory);
     }
 
-    private Path worldFile(String name) {
-        if (name == null || !name.matches("[a-zA-Z0-9_-]+")) {
+    private Path worldFile(String id) {
+        if (id == null || !id.matches("[a-zA-Z0-9_-]+")) {
             throw new IllegalArgumentException(
-                    "El nombre solo puede contener letras, números, guion y guion bajo"
+                    "El identificador solo puede contener letras, números, guion y guion bajo"
             );
         }
-        return worldsDirectory.resolve(name + JSON_EXTENSION);
-    }
-
-    private String serializeSkeleton(World world) {
-        // TODO: incluir chunks y bloques cuando el equipo acuerde el esquema persistente.
-        return "{\n  \"name\": \"" + world.getName() + "\",\n  \"chunks\": []\n}\n";
-    }
-
-    private String extractWorldName(String json) throws IOException {
-        String marker = "\"name\"";
-        int markerIndex = json.indexOf(marker);
-        if (markerIndex < 0) {
-            throw new IOException("El archivo JSON del mundo no tiene un nombre válido");
-        }
-        int colonIndex = json.indexOf(':', markerIndex + marker.length());
-        if (colonIndex < 0) {
-            throw new IOException("El archivo JSON del mundo no tiene un nombre válido");
-        }
-        int startQuote = json.indexOf('"', colonIndex + 1);
-        if (startQuote < 0) {
-            throw new IOException("El archivo JSON del mundo no tiene un nombre válido");
-        }
-        int endQuote = json.indexOf('"', startQuote + 1);
-        if (endQuote < 0) {
-            throw new IOException("El archivo JSON del mundo no tiene un nombre válido");
-        }
-        return json.substring(startQuote + 1, endQuote);
+        return worldsDirectory.resolve(id + JSON_EXTENSION);
     }
 }

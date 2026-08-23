@@ -94,6 +94,9 @@ Minecraft2/
 │   ├── bootstrap/
 │   │   └── Minecraft2Application.java
 │   ├── application/
+│   │   ├── ChunkGenerationService.java
+│   │   ├── PlayerInteractionService.java
+│   │   ├── TargetedBlock.java
 │   │   └── WorldApplicationService.java
 │   ├── presentation/
 │   │   └── MainMenu.java
@@ -103,11 +106,23 @@ Minecraft2/
 │   │   │   ├── Block.java
 │   │   │   └── BlockType.java
 │   │   ├── player/
-│   │   │   └── Player.java
+│   │   │   ├── CollisionResolver.java
+│   │   │   ├── MovementInput.java
+│   │   │   ├── Player.java
+│   │   │   ├── PlayerMovementService.java
+│   │   │   └── PlayerPhysics.java
 │   │   └── world/
 │   │       ├── BlockChange.java
 │   │       ├── Chunk.java
+│   │       ├── SimpleTerrainGenerator.java
 │   │       └── World.java
+│   ├── manualtest/
+│   │   ├── BlockInteractionAndPatternsManualTest.java
+│   │   ├── CollisionManualTest.java
+│   │   ├── PlayerMovementManualTest.java
+│   │   ├── PlayerPhysicsManualTest.java
+│   │   ├── WorldBlockOperationsTest.java
+│   │   └── WorldPersistenceTest.java
 │   ├── patterns/
 │   │   ├── factory/BlockFactory.java
 │   │   ├── observer/
@@ -115,7 +130,10 @@ Minecraft2/
 │   │   │   └── Subject.java
 │   │   └── singleton/WorldManager.java
 │   └── persistence/
+│       ├── InvalidWorldFileException.java
+│       ├── JsonParser.java
 │       ├── JsonWorldStorage.java
+│       ├── WorldJsonCodec.java
 │       └── WorldStorage.java
 ├── .gitignore
 ├── Minecraft2.iml
@@ -144,19 +162,15 @@ Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Es
 
 ## Estado actual e implementación intencionalmente pendiente
 
-La navegación del menú, la coordinación de casos de uso, el CRUD básico de archivos y el JSON mínimo con nombre del mundo están conectados. El campo `chunks` se escribe vacío como marcador del esquema futuro.
+Ya funcionan de extremo a extremo: la navegación del menú y los casos de uso, la generación pseudoaleatoria del terreno, el cálculo del chunk correspondiente a cada posición con sus validaciones de límites, el movimiento con salto, gravedad y colisiones, la selección de bloques por raycast, y la persistencia JSON completa. El ciclo crear → guardar → cerrar → cargar → eliminar conserva metadatos, jugador, chunks y bloques.
 
-Quedaron pendientes de forma intencional:
+Quedan pendientes:
 
-- representación y serialización completas de chunks y bloques;
-- generación pseudoaleatoria del terreno;
-- renderizado voxel y ventana gráfica;
-- controles por teclado y ratón;
-- movimiento, colisiones, salto y gravedad;
-- cálculo del chunk correspondiente a cada posición;
-- reglas para colocar y eliminar bloques;
-- validaciones de límites y tamaño del mundo;
-- pruebas automatizadas.
+- renderizado voxel y ventana gráfica (LibGDX/LWJGL3);
+- conectar el teclado y el clic real del ratón con los casos de uso;
+- interfaz visual del menú principal, que sigue siendo de consola;
+- confirmación antes de eliminar un mundo;
+- automatizar las pruebas con JUnit 5. Por ahora las comprobaciones viven en el paquete `manualtest` y se ejecutan a mano: `WorldPersistenceTest` cubre CT-08 y CT-09, `BlockInteractionAndPatternsManualTest` cubre CT-06 y CT-07, y las de movimiento, física y colisión acompañan al jugador.
 
 El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 

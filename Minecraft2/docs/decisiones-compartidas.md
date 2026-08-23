@@ -50,7 +50,7 @@ Cada archivo es un mundo y se guarda en `worlds/<id>.json`. El esquema inicial e
   "name": "mundo_universidad",
   "seed": 48271,
   "createdAt": "2026-08-20T20:30:00Z",
-  "player": { "x": 8, "y": 32, "z": 8 },
+  "player": { "x": 8.5, "y": 32.0, "z": 8.5, "yaw": 0.0, "pitch": 0.0 },
   "chunks": [
     {
       "x": 0,
@@ -70,12 +70,12 @@ Reglas del esquema:
 - `id` es el identificador seguro del archivo: letras, números, `_` y `-`. En esta primera fase coincide con `name`; una interfaz futura podría separar nombre visible e identificador.
 - `seed` es un entero largo (`long`) y permite repetir la misma generación pseudoaleatoria.
 - `createdAt` usa fecha ISO-8601 UTC.
-- `player` conserva enteros mientras `Player` usa `Position`. Cuando se implemente movimiento continuo, se evolucionará este campo de forma explícita, con una nueva versión de esquema si hace falta.
+- `player` guarda **coordenadas continuas** (`x`, `y`, `z` como decimales) más la orientación (`yaw`, `pitch`). Esta es la evolución explícita que anunciaba la versión anterior de este documento, aplicada cuando el Estudiante 2 cambió `Player` de `Position` entera a movimiento continuo. Se conserva `schemaVersion: 1` porque todavía no existían mundos guardados con el esquema completo. La velocidad vertical y `onGround` **no** se guardan: son estado transitorio de la física y se recalculan al cargar, de modo que el jugador simplemente cae si quedó en el aire. La altura admitida es `0 ≤ y ≤ 64`, un punto más que los bloques, porque `y = 64.0` significa estar de pie sobre el bloque más alto.
 - Un chunk usa `x` y `z` como sus coordenadas de chunk. Las coordenadas de cada elemento de `blocks` son **locales** al chunk.
 - Solo se guardan bloques distintos de `AIR`; una coordenada ausente representa aire. Esto evita escribir miles de entradas vacías y coincide con la semántica de eliminar un bloque.
 - No se permiten bloques repetidos en la misma coordenada local, tipos fuera de `BlockType` ni coordenadas fuera de los límites establecidos arriba.
 
-Antes de completar `JsonWorldStorage`, el modelo debe incorporar al mundo su `id`, `seed`, fecha de creación y jugador, o definir claramente dónde se mantienen. Esa modificación pertenece a persistencia/dominio; no corresponde a la interfaz gráfica.
+Este esquema ya está implementado. `World` incorpora `id`, `seed`, `createdAt` y `player`; `WorldJsonCodec` lo escribe y lo reconstruye, y `JsonWorldStorage` se limita al acceso a disco. Las pruebas CT-08 y CT-09 se ejecutan con `manualtest.WorldPersistenceTest`.
 
 ## 3. Tecnología gráfica mínima
 

@@ -50,8 +50,8 @@ public final class WorldApplicationService {
         return storage.list();
     }
 
-    public void loadWorld(String name) throws IOException {
-        World world = storage.read(name);
+    public void loadWorld(String id) throws IOException {
+        World world = storage.read(id);
         worldManager.load(world);
     }
 
@@ -61,10 +61,10 @@ public final class WorldApplicationService {
         storage.update(current);
     }
 
-    public void deleteWorld(String name) throws IOException {
-        storage.delete(name);
+    public void deleteWorld(String id) throws IOException {
+        storage.delete(id);
         worldManager.getCurrentWorld()
-                .filter(world -> world.getName().equals(name))
+                .filter(world -> world.getId().equals(id))
                 .ifPresent(world -> worldManager.unload());
     }
 }

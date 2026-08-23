@@ -9,6 +9,8 @@ import domain.world.Chunk;
 import domain.world.World;
 import patterns.factory.BlockFactory;
 
+import java.time.Instant;
+
 /**
  * Comprobación manual de {@link CollisionResolver} (Participante 3).
  *
@@ -110,7 +112,7 @@ public final class CollisionManualTest {
     /** Piso sólido de 8x8 en (0..7, y=0, 0..7) y una pared de 3 bloques en x=5, z=3, y=1..3. */
     private static World buildTestWorld() {
         BlockFactory blockFactory = new BlockFactory();
-        World world = new World("collision-test-world");
+        World world = new World("collision-test-world", 0L, Instant.EPOCH);
         Chunk chunk = new Chunk(0, 0);
         world.addChunk(chunk);
 

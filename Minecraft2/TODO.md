@@ -36,9 +36,9 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 
 - [ ] Diseñar la interfaz visual del menú principal sin lógica de negocio.
 - [ ] Conectar las pantallas de crear, listar, cargar, guardar y eliminar.
-- [ ] Completar la escritura JSON de chunks y bloques en `JsonWorldStorage`.
-- [ ] Completar la reconstrucción del mundo desde JSON.
-- [ ] Manejar archivos dañados, nombres duplicados y errores de lectura/escritura.
+- [x] Completar la escritura JSON de chunks y bloques en `JsonWorldStorage` (`WorldJsonCodec.write`).
+- [x] Completar la reconstrucción del mundo desde JSON (`WorldJsonCodec.read`, con `JsonParser` propio).
+- [x] Manejar archivos dañados, nombres duplicados y errores de lectura/escritura (`InvalidWorldFileException`, escritura atómica; CT-09 cubre 22 casos en `manualtest.WorldPersistenceTest`).
 - [ ] Añadir confirmación antes de eliminar un mundo.
 - [ ] Probar el ciclo crear → guardar → cerrar → cargar → eliminar.
 

@@ -12,6 +12,7 @@ import patterns.factory.BlockFactory;
 import patterns.observer.Observer;
 import patterns.singleton.WorldManager;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -115,9 +116,9 @@ public final class BlockInteractionAndPatternsManualTest {
         check("(6a) WorldManager.getInstance() siempre devuelve la misma instancia (CT-07)",
                 managerRef1 == managerRef2);
 
-        World worldA = new World("ct07-world-a");
+        World worldA = new World("ct07-world-a", 0L, Instant.EPOCH);
         worldA.addChunk(new Chunk(0, 0));
-        World worldB = new World("ct07-world-b");
+        World worldB = new World("ct07-world-b", 0L, Instant.EPOCH);
         worldB.addChunk(new Chunk(0, 0));
 
         managerRef1.load(worldA);
@@ -143,7 +144,7 @@ public final class BlockInteractionAndPatternsManualTest {
     /** Piso sólido 8x8 en (0..7, y=0, 0..7) y dos bloques de pared separados en z, a la altura del ojo. */
     private static World buildTestWorld() {
         BlockFactory blockFactory = new BlockFactory();
-        World world = new World("interaction-test-world");
+        World world = new World("interaction-test-world", 0L, Instant.EPOCH);
         Chunk chunk = new Chunk(0, 0);
         world.addChunk(chunk);
 

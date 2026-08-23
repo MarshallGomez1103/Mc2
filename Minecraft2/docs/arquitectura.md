@@ -37,7 +37,7 @@ La generación inicial de terreno y chunks está implementada. Movimiento, grave
 
 `WorldStorage` declara las operaciones CREATE, READ, UPDATE, DELETE y listado. No es un DAO ni se conecta a una base de datos.
 
-`JsonWorldStorage` trabaja con la carpeta `worlds/`. Actualmente persiste un JSON mínimo y deja pendiente el esquema completo de chunks y bloques.
+`JsonWorldStorage` trabaja con la carpeta `worlds/` y se ocupa solo del acceso a disco: resolver el archivo de cada mundo, escribirlo de forma atómica (archivo temporal y luego movimiento) y traducir los fallos de entrada/salida. El formato lo resuelven dos clases de apoyo sin dependencias externas: `JsonParser`, un analizador JSON mínimo que no conoce el dominio, y `WorldJsonCodec`, que traduce en ambos sentidos entre `World` y el esquema acordado, incluida la conversión entre coordenadas absolutas y locales al chunk. Un archivo dañado o que incumple el esquema termina en `InvalidWorldFileException` con un mensaje legible; nunca se carga a medias.
 
 ## Apoyo arquitectónico
 

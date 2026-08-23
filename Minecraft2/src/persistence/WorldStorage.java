@@ -11,11 +11,11 @@ import java.util.List;
 public interface WorldStorage {
     void create(World world) throws IOException;
 
-    World read(String name) throws IOException;
+    World read(String id) throws IOException;
 
     void update(World world) throws IOException;
 
-    void delete(String name) throws IOException;
+    void delete(String id) throws IOException;
 
     List<String> list() throws IOException;
 }

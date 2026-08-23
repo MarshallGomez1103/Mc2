@@ -14,8 +14,9 @@ public final class Minecraft2Application {
     }
 
     public static void main(String[] args) {
-        WorldStorage storage = new JsonWorldStorage(Path.of("worlds"));
-        WorldApplicationService worldService = new WorldApplicationService(storage, new BlockFactory());
+        BlockFactory blockFactory = new BlockFactory();
+        WorldStorage storage = new JsonWorldStorage(Path.of("worlds"), blockFactory);
+        WorldApplicationService worldService = new WorldApplicationService(storage, blockFactory);
         new MainMenu(worldService).show();
     }
 }
