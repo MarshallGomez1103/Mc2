@@ -109,7 +109,7 @@ Un ítem no se considera terminado por “verse bien”: debe cumplir su criteri
 
 Las pruebas CT-02 a CT-09 serán automatizadas con JUnit 5 cuando se implemente cada responsabilidad. CT-10 y CT-11 son manuales porque comprueban la integración gráfica y el flujo completo.
 
-La primera suite automatizada, `WorldBlockOperationsTest`, cubre creación y consulta de un chunk, colocación de un bloque, eliminación de un bloque existente y eliminación de aire.
+`manualtest.WorldBlockOperationsTest` es una comprobación Java ejecutable que cubre creación y consulta de un chunk, colocación de un bloque, eliminación de un bloque existente y eliminación de aire.
 
 ## 5. Responsabilidad por esta fase
 
