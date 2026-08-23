@@ -24,13 +24,13 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 
 ## Estudiante 2 — jugador e interacción
 
-- [ ] Definir orientación y estado mínimo adicional del jugador.
-- [ ] Implementar adelante, atrás, izquierda y derecha.
-- [ ] Implementar salto y gravedad.
-- [ ] Añadir colisiones básicas con bloques sólidos.
-- [ ] Implementar selección de bloque mediante clic.
-- [ ] Conectar colocar y eliminar con `World.placeBlock` y `World.removeBlock`.
-- [ ] Suscribir un componente visual a `BlockChange` si resulta necesario.
+- [x] Definir orientación y estado mínimo adicional del jugador.
+- [x] Implementar adelante, atrás, izquierda y derecha.
+- [x] Implementar salto y gravedad.
+- [x] Añadir colisiones básicas con bloques sólidos.
+- [x] Implementar selección de bloque mediante clic (raycast en `PlayerInteractionService`; falta solo conectar el evento real de clic del mouse, que es integración gráfica/LibGDX y queda fuera de este plan).
+- [x] Conectar colocar y eliminar con `World.placeBlock` y `World.removeBlock`.
+- [ ] Suscribir un componente visual a `BlockChange` si resulta necesario (pendiente de la integración gráfica del equipo completo, fuera del alcance de los 4 participantes de este plan).
 
 ## Estudiante 3 — presentación y persistencia
 
