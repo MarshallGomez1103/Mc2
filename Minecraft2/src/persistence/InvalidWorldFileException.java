@@ -8,6 +8,8 @@ import java.io.IOException;
  * fallo de entrada/salida, que es lo que exige el caso de prueba CT-09.
  */
 public final class InvalidWorldFileException extends IOException {
+    private static final long serialVersionUID = 1L;
+
     public InvalidWorldFileException(String message) {
         super(message);
     }

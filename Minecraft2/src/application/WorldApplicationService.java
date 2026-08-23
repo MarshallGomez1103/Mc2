@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 
 /**
@@ -48,6 +49,11 @@ public final class WorldApplicationService {
 
     public List<String> listWorlds() throws IOException {
         return storage.list();
+    }
+
+    /** Consulta de solo lectura para que la presentación no tenga que hablar con el Singleton. */
+    public Optional<String> currentWorldName() {
+        return worldManager.getCurrentWorld().map(World::getName);
     }
 
     public void loadWorld(String id) throws IOException {

@@ -34,24 +34,24 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 
 ## Estudiante 3 — presentación y persistencia
 
-- [ ] Diseñar la interfaz visual del menú principal sin lógica de negocio.
-- [ ] Conectar las pantallas de crear, listar, cargar, guardar y eliminar.
+- [x] Diseñar la interfaz visual del menú principal sin lógica de negocio (`MainMenu` enruta y `ConsoleIO` concentra la entrada/salida; el menú gráfico con LibGDX corresponde a la integración del equipo).
+- [x] Conectar las pantallas de crear, listar, cargar, guardar y eliminar.
 - [x] Completar la escritura JSON de chunks y bloques en `JsonWorldStorage` (`WorldJsonCodec.write`).
 - [x] Completar la reconstrucción del mundo desde JSON (`WorldJsonCodec.read`, con `JsonParser` propio).
 - [x] Manejar archivos dañados, nombres duplicados y errores de lectura/escritura (`InvalidWorldFileException`, escritura atómica; CT-09 cubre 22 casos en `manualtest.WorldPersistenceTest`).
-- [ ] Añadir confirmación antes de eliminar un mundo.
-- [ ] Probar el ciclo crear → guardar → cerrar → cargar → eliminar.
+- [x] Añadir confirmación antes de eliminar un mundo (solo una respuesta afirmativa explícita borra).
+- [x] Probar el ciclo crear → guardar → cerrar → cargar → eliminar (`application.WorldLifecycleTest` y [docs/evidencias/ct-11-flujo-mvp.md](docs/evidencias/ct-11-flujo-mvp.md)).
 
 ## Integración del equipo
 
 - [ ] Renderizar uno o pocos chunks.
 - [ ] Asignar una representación visual a los ocho tipos de bloque.
 - [ ] Conectar teclado y ratón con los casos de uso correspondientes.
-- [ ] Verificar que no haya lógica del juego dentro de la interfaz.
-- [ ] Verificar que `WorldManager` siga siendo el único Singleton.
-- [ ] Verificar que no se hayan introducido patrones no permitidos.
-- [ ] Revisar que no existan dependencias circulares.
-- [ ] Añadir pruebas automatizadas para dominio, patrones y persistencia.
+- [x] Verificar que no haya lógica del juego dentro de la interfaz: `presentation` no importa `domain` ni `persistence`; solo habla con `WorldApplicationService`.
+- [x] Verificar que `WorldManager` siga siendo el único Singleton: es la única clase con instancia global; los demás constructores privados son de clases de utilidad estáticas.
+- [x] Verificar que no se hayan introducido patrones no permitidos: las únicas menciones a DAO, Command o Strategy son comentarios que explican por qué **no** se usan.
+- [x] Revisar que no existan dependencias circulares: `domain` no importa capas superiores, `application` no importa `presentation` ni `bootstrap`, y `persistence` no importa `application` ni `presentation`.
+- [ ] Añadir pruebas automatizadas para dominio, patrones y persistencia. Persistencia y flujo completo ya están en JUnit (`test/`); CT-02 a CT-07 siguen como comprobaciones ejecutables en `manualtest` y sus autores deben portarlas.
 - [ ] Actualizar README y documentación después de cada decisión de diseño.
 
 ## No hacer en esta etapa

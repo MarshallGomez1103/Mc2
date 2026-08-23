@@ -86,7 +86,10 @@ La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectur
 ```text
 Minecraft2/
 ├── docs/
+│   ├── evidencias/
+│   │   └── ct-11-flujo-mvp.md
 │   ├── arquitectura.md
+│   ├── decisiones-compartidas.md
 │   ├── factory.md
 │   ├── observer.md
 │   └── singleton.md
@@ -99,6 +102,7 @@ Minecraft2/
 │   │   ├── TargetedBlock.java
 │   │   └── WorldApplicationService.java
 │   ├── presentation/
+│   │   ├── ConsoleIO.java
 │   │   └── MainMenu.java
 │   ├── domain/
 │   │   ├── Position.java
@@ -121,8 +125,7 @@ Minecraft2/
 │   │   ├── CollisionManualTest.java
 │   │   ├── PlayerMovementManualTest.java
 │   │   ├── PlayerPhysicsManualTest.java
-│   │   ├── WorldBlockOperationsTest.java
-│   │   └── WorldPersistenceTest.java
+│   │   └── WorldBlockOperationsTest.java
 │   ├── patterns/
 │   │   ├── factory/BlockFactory.java
 │   │   ├── observer/
@@ -135,6 +138,14 @@ Minecraft2/
 │       ├── JsonWorldStorage.java
 │       ├── WorldJsonCodec.java
 │       └── WorldStorage.java
+├── test/
+│   ├── application/
+│   │   └── WorldLifecycleTest.java
+│   └── persistence/
+│       ├── InvalidWorldFileTest.java
+│       ├── JsonWorldStorageTest.java
+│       ├── WorldJsonCodecTest.java
+│       └── WorldSamples.java
 ├── .gitignore
 ├── Minecraft2.iml
 ├── pom.xml
@@ -155,7 +166,21 @@ Minecraft2/
 
 ```bash
 mvn clean package
-java -cp target/classes bootstrap.Minecraft2Application
+java -Dfile.encoding=UTF-8 -cp target/classes bootstrap.Minecraft2Application
+```
+
+`mvn clean package` compila y ejecuta la batería de pruebas JUnit, así que sirve además como comprobación de CT-01.
+
+`-Dfile.encoding=UTF-8` es necesario en Windows: sin él, Java 17 escribe en la codificación de la plataforma y los acentos del menú salen como `Opci�n`. En IntelliJ no hace falta.
+
+Las comprobaciones que todavía no están en JUnit se ejecutan una a una:
+
+```bash
+java -cp target/classes manualtest.WorldBlockOperationsTest
+java -cp target/classes manualtest.PlayerMovementManualTest
+java -cp target/classes manualtest.PlayerPhysicsManualTest
+java -cp target/classes manualtest.CollisionManualTest
+java -cp target/classes manualtest.BlockInteractionAndPatternsManualTest
 ```
 
 Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Esa carpeta está ignorada por Git.
@@ -180,13 +205,14 @@ El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 - Estudiante 2: **Jasub Sastre**.
 - Estudiante 3: **pendiente de completar**.
 
-## Backlog inicial
+## Backlog
 
-1. Completar la serialización y reconstrucción de bloques y chunks según las decisiones acordadas.
-2. Crear la generación pseudoaleatoria sencilla para uno o pocos chunks.
-3. Integrar LibGDX con backend de escritorio LWJGL3 para renderizar el mundo.
-4. Renderizar el mundo y los ocho tipos de bloques.
-5. Implementar movimiento, colisiones, salto y gravedad.
-6. Implementar selección, colocación y eliminación de bloques por clic.
-7. Conectar observadores concretos para reaccionar a cambios visuales y de guardado.
-8. Añadir pruebas unitarias y pruebas manuales del flujo completo.
+Completado: serialización y reconstrucción JSON, generación pseudoaleatoria, movimiento con salto, gravedad y colisiones, selección de bloques por raycast, y pruebas del flujo completo.
+
+Pendiente, casi todo en la fase de integración del equipo:
+
+1. Integrar LibGDX con backend de escritorio LWJGL3 para renderizar el mundo.
+2. Renderizar el mundo y los ocho tipos de bloques.
+3. Conectar teclado y ratón con `PlayerMovementService`, `CollisionResolver` y `PlayerInteractionService`, que ya existen pero todavía no tienen quien los invoque.
+4. Conectar observadores concretos para reaccionar a cambios visuales y de guardado.
+5. Portar a JUnit las comprobaciones de `manualtest` que cubren CT-02 a CT-07.

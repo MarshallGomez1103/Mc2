@@ -1,0 +1,15 @@
+# Salidas de compilación (el .gitignore de Minecraft2/ no alcanza la raíz del repositorio)
+out/
+target/
+bin/
+
+# Mundos guardados por la aplicación
+worlds/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

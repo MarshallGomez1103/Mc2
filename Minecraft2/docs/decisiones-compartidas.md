@@ -105,11 +105,24 @@ Un ítem no se considera terminado por “verse bien”: debe cumplir su criteri
 | CT-08 | JSON | Guardar y cargar conserva metadatos, jugador, chunks y bloques no-AIR. | Mundo de prueba con dos chunks y varios tipos; comparación campo a campo. |
 | CT-09 | JSON inválido | Versión desconocida, tipo inválido o coordenada fuera de rango no se cargan silenciosamente. | Archivos JSON deliberadamente erróneos y aserción de error legible. |
 | CT-10 | Render | La aplicación abre una ventana y muestra la superficie de un chunk sin excepción. | Prueba manual con captura de pantalla. |
-| CT-11 | Flujo MVP | Crear → generar → guardar → cerrar → cargar conserva los cambios de colocar/eliminar. | Prueba manual guiada y evidencia en `docs/evidencias/`. |
+| CT-11 | Flujo MVP | Crear → generar → guardar → cerrar → cargar conserva los cambios de colocar/eliminar. | Prueba automática (`application.WorldLifecycleTest`) más prueba manual guiada, con evidencia en `docs/evidencias/ct-11-flujo-mvp.md`. |
 
-Las pruebas CT-02 a CT-09 serán automatizadas con JUnit 5 cuando se implemente cada responsabilidad. CT-10 y CT-11 son manuales porque comprueban la integración gráfica y el flujo completo.
+### Estado de la automatización
 
-`manualtest.WorldBlockOperationsTest` es una comprobación Java ejecutable que cubre creación y consulta de un chunk, colocación de un bloque, eliminación de un bloque existente y eliminación de aire.
+JUnit 5 ya está configurado en `pom.xml` y las pruebas viven en `test/`, en paralelo a `src/`. `mvn clean package` las ejecuta, de modo que **CT-01 comprueba de paso todo lo que esté automatizado**.
+
+| Caso | Estado | Dónde |
+| --- | --- | --- |
+| CT-01 | automatizado | `mvn clean package` |
+| CT-02 a CT-07 | comprobaciones ejecutables en `manualtest`, pendientes de portar a JUnit por sus autores | `manualtest.WorldBlockOperationsTest`, `manualtest.PlayerMovementManualTest`, `manualtest.PlayerPhysicsManualTest`, `manualtest.CollisionManualTest`, `manualtest.BlockInteractionAndPatternsManualTest` |
+| CT-08 | automatizado | `persistence.WorldJsonCodecTest` |
+| CT-09 | automatizado | `persistence.InvalidWorldFileTest`, 26 documentos inválidos |
+| CT-10 | manual, pendiente de la integración gráfica | — |
+| CT-11 | automatizado **y** manual | `application.WorldLifecycleTest` y `docs/evidencias/ct-11-flujo-mvp.md` |
+
+`persistence.JsonWorldStorageTest` cubre además duplicados, mundos inexistentes, identificadores inválidos y la reescritura del archivo.
+
+Las clases de `manualtest` se ejecutan a mano con `java -cp target/classes manualtest.<Clase>` y siguen sirviendo como evidencia de sus responsables mientras no se porten a JUnit.
 
 ## 5. Responsabilidad por esta fase
 
