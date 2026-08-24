@@ -234,7 +234,7 @@ El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 
 - Estudiante 1: **Elioth Thomas Gomez Morales**.
 - Estudiante 2: **Jasub Sastre**.
-- Estudiante 3: **pendiente de completar**.
+- Estudiante 3: **Ethian Daniel White Ortiz**.
 
 ## Modelado UML
 
