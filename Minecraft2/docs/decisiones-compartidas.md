@@ -117,7 +117,7 @@ JUnit 5 ya está configurado en `pom.xml` y las pruebas viven en `test/`, en par
 | CT-02 a CT-07 | comprobaciones ejecutables en `manualtest`, pendientes de portar a JUnit por sus autores | `manualtest.WorldBlockOperationsTest`, `manualtest.PlayerMovementManualTest`, `manualtest.PlayerPhysicsManualTest`, `manualtest.CollisionManualTest`, `manualtest.BlockInteractionAndPatternsManualTest` |
 | CT-08 | automatizado | `persistence.WorldJsonCodecTest` |
 | CT-09 | automatizado | `persistence.InvalidWorldFileTest`, 26 documentos inválidos |
-| CT-10 | manual, pendiente de la integración gráfica | — |
+| CT-10 | cumplido | Captura y guion en `docs/evidencias/ct-10-render.md`; el cableado del Observer con la vista, en `presentation.game.VoxelGameObserverTest` |
 | CT-11 | automatizado **y** manual | `application.WorldLifecycleTest` y `docs/evidencias/ct-11-flujo-mvp.md` |
 
 `persistence.JsonWorldStorageTest` cubre además duplicados, mundos inexistentes, identificadores inválidos y la reescritura del archivo.

@@ -28,9 +28,9 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 - [x] Implementar adelante, atrás, izquierda y derecha.
 - [x] Implementar salto y gravedad.
 - [x] Añadir colisiones básicas con bloques sólidos.
-- [x] Implementar selección de bloque mediante clic (raycast en `PlayerInteractionService`; falta solo conectar el evento real de clic del mouse, que es integración gráfica/LibGDX y queda fuera de este plan).
+- [x] Implementar selección de bloque mediante clic (raycast en `PlayerInteractionService`, ya conectado al clic real del ratón desde `presentation.game.GameInput`).
 - [x] Conectar colocar y eliminar con `World.placeBlock` y `World.removeBlock`.
-- [ ] Suscribir un componente visual a `BlockChange` si resulta necesario (pendiente de la integración gráfica del equipo completo, fuera del alcance de los 4 participantes de este plan).
+- [x] Suscribir un componente visual a `BlockChange`: `VoxelGame` es observador y reconstruye la malla del chunk afectado al colocar o eliminar un bloque.
 
 ## Estudiante 3 — presentación y persistencia
 
@@ -38,15 +38,15 @@ Las decisiones, límites, esquema y pruebas acordados están en [docs/decisiones
 - [x] Conectar las pantallas de crear, listar, cargar, guardar y eliminar.
 - [x] Completar la escritura JSON de chunks y bloques en `JsonWorldStorage` (`WorldJsonCodec.write`).
 - [x] Completar la reconstrucción del mundo desde JSON (`WorldJsonCodec.read`, con `JsonParser` propio).
-- [x] Manejar archivos dañados, nombres duplicados y errores de lectura/escritura (`InvalidWorldFileException`, escritura atómica; CT-09 cubre 22 casos en `manualtest.WorldPersistenceTest`).
+- [x] Manejar archivos dañados, nombres duplicados y errores de lectura/escritura (`InvalidWorldFileException`, escritura atómica; CT-09 cubre 26 documentos inválidos en `persistence.InvalidWorldFileTest`).
 - [x] Añadir confirmación antes de eliminar un mundo (solo una respuesta afirmativa explícita borra).
 - [x] Probar el ciclo crear → guardar → cerrar → cargar → eliminar (`application.WorldLifecycleTest` y [docs/evidencias/ct-11-flujo-mvp.md](docs/evidencias/ct-11-flujo-mvp.md)).
 
 ## Integración del equipo
 
-- [ ] Renderizar uno o pocos chunks.
-- [ ] Asignar una representación visual a los ocho tipos de bloque.
-- [ ] Conectar teclado y ratón con los casos de uso correspondientes.
+- [x] Renderizar uno o pocos chunks (`presentation.game`, cuadrícula 2×2 con descarte de caras ocultas: se dibuja el 6,6 % de la geometría). Evidencia en [docs/evidencias/ct-10-render.md](docs/evidencias/ct-10-render.md).
+- [x] Asignar una representación visual a los ocho tipos de bloque (`BlockAppearance`, con sombreado por orientación de cara; el aire no se dibuja).
+- [x] Conectar teclado y ratón con los casos de uso correspondientes (`GameInput`: WASD, salto, mirar, y clic para colocar y eliminar).
 - [x] Verificar que no haya lógica del juego dentro de la interfaz: `presentation` no importa `domain` ni `persistence`; solo habla con `WorldApplicationService`.
 - [x] Verificar que `WorldManager` siga siendo el único Singleton: es la única clase con instancia global; los demás constructores privados son de clases de utilidad estáticas.
 - [x] Verificar que no se hayan introducido patrones no permitidos: las únicas menciones a DAO, Command o Strategy son comentarios que explican por qué **no** se usan.

@@ -87,6 +87,8 @@ La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectur
 Minecraft2/
 ├── docs/
 │   ├── evidencias/
+│   │   ├── ct-10-render.md
+│   │   ├── ct-10-render.png
 │   │   └── ct-11-flujo-mvp.md
 │   ├── arquitectura.md
 │   ├── decisiones-compartidas.md
@@ -103,7 +105,13 @@ Minecraft2/
 │   │   └── WorldApplicationService.java
 │   ├── presentation/
 │   │   ├── ConsoleIO.java
-│   │   └── MainMenu.java
+│   │   ├── MainMenu.java
+│   │   └── game/
+│   │       ├── BlockAppearance.java
+│   │       ├── ChunkMeshBuilder.java
+│   │       ├── GameInput.java
+│   │       ├── GameWindow.java
+│   │       └── VoxelGame.java
 │   ├── domain/
 │   │   ├── Position.java
 │   │   ├── block/
@@ -141,6 +149,8 @@ Minecraft2/
 ├── test/
 │   ├── application/
 │   │   └── WorldLifecycleTest.java
+│   ├── presentation/game/
+│   │   └── VoxelGameObserverTest.java
 │   └── persistence/
 │       ├── InvalidWorldFileTest.java
 │       ├── JsonWorldStorageTest.java
@@ -166,10 +176,28 @@ Minecraft2/
 
 ```bash
 mvn clean package
-java -Dfile.encoding=UTF-8 -cp target/classes bootstrap.Minecraft2Application
+java -Dfile.encoding=UTF-8 -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 ```
 
+Se ejecuta el jar y no `-cp target/classes`, porque ahora el proyecto depende de LibGDX: el jar generado incluye las librerías y los binarios nativos.
+
 `mvn clean package` compila y ejecuta la batería de pruebas JUnit, así que sirve además como comprobación de CT-01.
+
+### Controles del juego
+
+Desde el menú, la opción **6. Jugar** abre la ventana 3D con el mundo cargado.
+
+| Acción | Control |
+| --- | --- |
+| Moverse | W, A, S, D |
+| Saltar | Espacio |
+| Mirar | Ratón |
+| Eliminar bloque | Clic izquierdo |
+| Colocar bloque | Clic derecho |
+| Elegir material | Teclas 1 a 7 |
+| Volver al menú | ESC o cerrar la ventana |
+
+Al volver al menú, "4. Guardar mundo actual" conserva los bloques colocados y eliminados.
 
 `-Dfile.encoding=UTF-8` es necesario en Windows: sin él, Java 17 escribe en la codificación de la plataforma y los acentos del menú salen como `Opci�n`. En IntelliJ no hace falta.
 
@@ -187,15 +215,14 @@ Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Es
 
 ## Estado actual e implementación intencionalmente pendiente
 
-Ya funcionan de extremo a extremo: la navegación del menú y los casos de uso, la generación pseudoaleatoria del terreno, el cálculo del chunk correspondiente a cada posición con sus validaciones de límites, el movimiento con salto, gravedad y colisiones, la selección de bloques por raycast, y la persistencia JSON completa. El ciclo crear → guardar → cerrar → cargar → eliminar conserva metadatos, jugador, chunks y bloques.
+**El MVP está completo y es jugable.** Funcionan de extremo a extremo el menú y sus casos de uso, la generación pseudoaleatoria del terreno, el cálculo del chunk de cada posición con sus validaciones, el movimiento con salto, gravedad y colisiones, colocar y eliminar bloques apuntando con el ratón, el renderizado 3D del mundo y la persistencia JSON. El ciclo crear → jugar → guardar → cerrar → cargar conserva metadatos, jugador, chunks y bloques.
 
 Quedan pendientes:
 
-- renderizado voxel y ventana gráfica (LibGDX/LWJGL3);
-- conectar el teclado y el clic real del ratón con los casos de uso;
-- interfaz visual del menú principal, que sigue siendo de consola;
-- confirmación antes de eliminar un mundo;
-- automatizar las pruebas con JUnit 5. Por ahora las comprobaciones viven en el paquete `manualtest` y se ejecutan a mano: `WorldPersistenceTest` cubre CT-08 y CT-09, `BlockInteractionAndPatternsManualTest` cubre CT-06 y CT-07, y las de movimiento, física y colisión acompañan al jugador.
+- texturas: los bloques se dibujan con color plano y sombreado por cara, sin imágenes;
+- distancia de visión y carga dinámica de chunks: se genera y dibuja una cuadrícula fija de 2×2;
+- portar a JUnit las comprobaciones de `manualtest`, que cubren CT-02 a CT-07 y hoy se ejecutan a mano;
+- completar el nombre del tercer integrante en este README.
 
 El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 

@@ -8,7 +8,13 @@ La separación por capas evita que el menú conozca cómo se guarda un JSON y qu
 
 ### 1. Presentation
 
-`MainMenu` muestra opciones, lee texto y presenta mensajes. Solo llama a servicios de aplicación. No genera terreno, mueve al jugador ni accede directamente a archivos.
+`MainMenu` muestra opciones, lee texto y presenta mensajes, apoyándose en `ConsoleIO` para la entrada y salida. Solo llama a servicios de aplicación. No genera terreno, mueve al jugador ni accede directamente a archivos.
+
+El subpaquete `presentation.game` contiene la vista 3D: `GameWindow` abre la ventana, `VoxelGame` es el bucle de dibujo, `ChunkMeshBuilder` convierte chunks en geometría descartando las caras ocultas, `BlockAppearance` asigna color a cada tipo de bloque y `GameInput` traduce teclado y ratón.
+
+**Esta capa sí lee `domain`, y conviene entender por qué no rompe nada.** Una vista necesita consultar el modelo para dibujarlo: no se puede pintar un mundo sin mirar sus bloques. La regla real de la capa es que no contenga reglas del juego, y se sigue cumpliendo: `VoxelGame` y `GameInput` no deciden si un movimiento es válido, si un bloque se puede colocar ni cómo cae el jugador; delegan en `PlayerMovementService`, `PlayerPhysics`, `CollisionResolver` y `PlayerInteractionService`. La dirección de la dependencia sigue apuntando hacia el dominio, que es lo que importa.
+
+`VoxelGame` es además un observador concreto de `BlockChange`: cuando el jugador coloca o elimina un bloque, `World` lo notifica y la vista reconstruye solo la malla del chunk afectado. Es el uso que justifica el patrón Observer en el proyecto.
 
 ### 2. Domain / Game Logic
 
@@ -67,7 +73,7 @@ No hay referencias desde `domain` hacia `presentation`, `application` o `persist
 
 ## Reglas para continuar
 
-- Mantener la entrada y salida de usuario en `presentation`.
+- Mantener la entrada y salida de usuario en `presentation`, incluido el dibujo 3D. La vista puede leer el dominio, pero no decidir por él.
 - Colocar coordinación de casos de uso en `application`.
 - Colocar reglas del videojuego en `domain`.
 - Mantener lectura y escritura de archivos en `persistence`.

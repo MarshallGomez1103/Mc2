@@ -1,6 +1,8 @@
 package presentation;
 
 import application.WorldApplicationService;
+import domain.world.World;
+import presentation.game.GameWindow;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,13 +20,15 @@ import java.util.Optional;
 public final class MainMenu {
     private final WorldApplicationService worldService;
     private final ConsoleIO console;
+    private final GameWindow gameWindow;
 
-    public MainMenu(WorldApplicationService worldService) {
-        this(worldService, new ConsoleIO());
+    public MainMenu(WorldApplicationService worldService, GameWindow gameWindow) {
+        this(worldService, gameWindow, new ConsoleIO());
     }
 
-    public MainMenu(WorldApplicationService worldService, ConsoleIO console) {
+    public MainMenu(WorldApplicationService worldService, GameWindow gameWindow, ConsoleIO console) {
         this.worldService = Objects.requireNonNull(worldService, "worldService no puede ser null");
+        this.gameWindow = Objects.requireNonNull(gameWindow, "gameWindow no puede ser null");
         this.console = Objects.requireNonNull(console, "console no puede ser null");
     }
 
@@ -62,6 +66,10 @@ public final class MainMenu {
             }
             case "5" -> {
                 deleteScreen();
+                yield true;
+            }
+            case "6" -> {
+                playScreen();
                 yield true;
             }
             case "0" -> {
@@ -157,6 +165,24 @@ public final class MainMenu {
         }
     }
 
+    private void playScreen() {
+        console.title("Jugar");
+        Optional<World> world = worldService.currentWorld();
+        if (world.isEmpty()) {
+            console.error("No hay ningún mundo cargado. Cree uno o cargue uno antes de jugar.");
+            return;
+        }
+
+        console.info("Abriendo el mundo \"" + world.get().getName() + "\"...");
+        console.info("WASD para moverte, espacio para saltar, clic para colocar y eliminar bloques.");
+        console.info("Pulsa ESC o cierra la ventana para volver a este menú.");
+
+        gameWindow.play(world.get());
+
+        console.blank();
+        console.info("De vuelta en el menú. Usa \"4. Guardar mundo actual\" para conservar los cambios.");
+    }
+
     // ------------------------------------------------------------------ utilidades
 
     private void printHeader() {
@@ -171,6 +197,7 @@ public final class MainMenu {
                 3. Cargar mundo
                 4. Guardar mundo actual
                 5. Eliminar mundo
+                6. Jugar
                 0. Salir""");
     }
 
