@@ -1,8 +1,7 @@
-# LEEME — Participante 4 (Interacción: colocar/eliminar por clic + verificación de patrones)
+# LEEME — complemento de Estudiante 2 (Interacción: colocar/eliminar por clic + verificación de patrones)
 
-Esta entrega cierra el plan distribuido de Estudiante 2 (`plan-estudiante2-distribuido.md`).
-Integra, sin modificarlas, las entregas de los Participantes 1, 2 y 3 (ya recibidas en
-`Mc2-participante3-integrado.zip`) y agrega el trabajo del Participante 4.
+Este complemento termina la parte de interacción de Estudiante 2.
+Integra las piezas de movimiento, física y colisión ya recibidas y agrega la interacción por clic.
 
 ## Qué se agregó
 
@@ -82,8 +81,7 @@ de dar por cerrada la integración**, como confirmación final.
 
 ## Estado del plan distribuido de Estudiante 2
 
-Con esta entrega, los 4 sub-participantes están completos: `Player` + movimiento
-horizontal (P1), física vertical (P2), colisión (P3) e interacción por clic + CT-06/CT-07
-(P4). Lo único que queda fuera de este plan, por diseño, es la integración gráfica real
+Con esta entrega queda completa la parte de Estudiante 2: `Player` + movimiento
+horizontal, física vertical, colisión e interacción por clic + CT-06/CT-07. Lo único que queda fuera de este plan, por diseño, es la integración gráfica real
 (LibGDX/LWJGL3: teclado, mouse, renderizado), que corresponde a la fase de "Integración
 del equipo" del `TODO.md` general, no a Estudiante 2.

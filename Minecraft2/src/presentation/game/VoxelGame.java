@@ -58,6 +58,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private PerspectiveCamera camera;
     private ModelBatch modelBatch;
     private Environment environment;
+    private BlockTextureAtlas textureAtlas;
     private ChunkMeshBuilder meshBuilder;
     private GameInput input;
 
@@ -91,7 +92,8 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 1f, 1f, 1f, 1f));
 
         modelBatch = new ModelBatch();
-        meshBuilder = new ChunkMeshBuilder(world);
+        textureAtlas = new BlockTextureAtlas();
+        meshBuilder = new ChunkMeshBuilder(world, textureAtlas);
         input = new GameInput(interactionService);
 
         hudBatch = new SpriteBatch();
@@ -274,6 +276,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         disposeQuietly(hudBatch);
         disposeQuietly(font);
         disposeQuietly(shapeRenderer);
+        disposeQuietly(textureAtlas);
     }
 
     private static void disposeQuietly(com.badlogic.gdx.utils.Disposable disposable) {

@@ -4,13 +4,12 @@ import com.badlogic.gdx.graphics.Color;
 import domain.block.BlockType;
 
 /**
- * Representación visual de los ocho tipos de bloque: un color base por material y un
- * sombreado según hacia dónde mira la cara.
+ * Tintado y sombreado por orientación de las caras de los bloques.
  *
  * <p>El sombreado no es decorativo. Con un color plano idéntico en las seis caras, un mundo de
  * cubos se ve como una mancha uniforme y no se distingue el relieve. Oscurecer los laterales y
- * la base respecto a la cara superior basta para que el terreno se lea, sin necesidad de
- * texturas ni de iluminación real.
+ * la base respecto a la cara superior conserva el relieve aun cuando cada material usa una
+ * textura del atlas.
  */
 public final class BlockAppearance {
     /** Factores de brillo por orientación de la cara. */

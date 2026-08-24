@@ -2,7 +2,7 @@
 
 Base arquitectónica de un videojuego voxel sencillo inspirado en Minecraft Classic. El repositorio contiene un punto de partida compilable en Java para que tres estudiantes desarrollen el MVP manualmente en IntelliJ IDEA.
 
-> Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas y una persistencia JSON inicial; no incluye motor gráfico, física ni generación de terreno terminados.
+> Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
 
 ## Problema
 
@@ -28,13 +28,14 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 - Movimiento hacia adelante, atrás, izquierda y derecha.
 - Salto y gravedad.
 - Colocación y eliminación de bloques mediante clic.
+- Ventana 3D con renderizado de chunks y controles básicos de teclado y ratón.
 - Persistencia local en archivos JSON.
 
 ## Fuera del alcance
 
 - Un videojuego terminado o una réplica completa de Minecraft.
 - Multijugador, red, enemigos, inventario avanzado o crafting.
-- Motor gráfico y físicas completos.
+- Texturas, carga dinámica de chunks y motor gráfico completo.
 - Base de datos.
 - Patrones distintos de Factory, Singleton y Observer.
 - Frameworks o librerías que no sean necesarios para esta base.
@@ -43,7 +44,8 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 
 - Java 17 o superior.
 - IntelliJ IDEA.
-- Maven únicamente para compilación reproducible.
+- Maven para compilación reproducible.
+- LibGDX 1.12.1 con backend LWJGL3 para la ventana y el renderizado 3D.
 - Archivos JSON locales, sin base de datos ni librería externa.
 
 ## Arquitectura
@@ -52,7 +54,8 @@ El código mantiene las tres capas solicitadas. Dentro de Domain/Game Logic se s
 
 ```text
 bootstrap ──> presentation ──> application ──> domain
-   │                                 │
+   │              │                  │
+   │              └──> presentation.game ──> domain
    ├──> persistence ──> domain       ├──> persistence
    └──> application                  └──> patterns.singleton ──> domain
 
@@ -60,7 +63,7 @@ domain.world ──> patterns.observer
 patterns.factory ──> domain
 ```
 
-- **Presentation:** el paquete `presentation` muestra el menú, captura datos y presenta resultados.
+- **Presentation:** `presentation` muestra el menú y `presentation.game` abre la ventana, traduce los controles y dibuja el mundo; las reglas se delegan hacia `application` y `domain`.
 - **Domain/Game Logic:** `application` coordina casos de uso y `domain` representa mundo, chunks, bloques, jugador y posiciones.
 - **Persistence:** el paquete `persistence` define y realiza las operaciones locales CREATE, READ, UPDATE y DELETE.
 - **Apoyo arquitectónico:** `patterns` aloja únicamente Factory, Singleton y Observer; `bootstrap` solo conecta objetos al iniciar.
@@ -94,7 +97,8 @@ Minecraft2/
 │   ├── decisiones-compartidas.md
 │   ├── factory.md
 │   ├── observer.md
-│   └── singleton.md
+│   ├── singleton.md
+│   └── uml.md
 ├── src/
 │   ├── bootstrap/
 │   │   └── Minecraft2Application.java
@@ -232,14 +236,12 @@ El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 - Estudiante 2: **Jasub Sastre**.
 - Estudiante 3: **pendiente de completar**.
 
-## Backlog
+## Modelado UML
 
-Completado: serialización y reconstrucción JSON, generación pseudoaleatoria, movimiento con salto, gravedad y colisiones, selección de bloques por raycast, y pruebas del flujo completo.
+El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el diagrama de clases obligatorio y vistas complementarias de casos de uso, patrones, componentes y secuencias, actualizadas con la ventana 3D, los controles básicos y el observador visual concreto.
 
-Pendiente, casi todo en la fase de integración del equipo:
+## Backlog de siguientes iteraciones
 
-1. Integrar LibGDX con backend de escritorio LWJGL3 para renderizar el mundo.
-2. Renderizar el mundo y los ocho tipos de bloques.
-3. Conectar teclado y ratón con `PlayerMovementService`, `CollisionResolver` y `PlayerInteractionService`, que ya existen pero todavía no tienen quien los invoque.
-4. Conectar observadores concretos para reaccionar a cambios visuales y de guardado.
-5. Portar a JUnit las comprobaciones de `manualtest` que cubren CT-02 a CT-07.
+1. Incorporar texturas a los bloques, que por ahora usan color plano y sombreado por cara.
+2. Implementar distancia de visión y carga dinámica de chunks; actualmente se genera una cuadrícula fija de 2×2.
+3. Portar a JUnit las comprobaciones de `manualtest` que cubren CT-02 a CT-07.

@@ -61,4 +61,4 @@ sin agregar nada al `pom.xml`).
 - Participante 3 (`CollisionResolver`) debe consumir `computeIntendedDeltaY`
   junto con el delta horizontal de Participante 1 para mover realmente al
   jugador y fijar `onGround` según colisión real contra el mundo.
-- Participante 4 (`PlayerInteractionService`) es independiente de esta pieza.
+- El módulo de interacción por clic (`PlayerInteractionService`) es independiente de esta pieza.

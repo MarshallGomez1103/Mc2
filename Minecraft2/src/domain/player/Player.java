@@ -110,10 +110,10 @@ public final class Player {
         return new double[] {-Math.sin(radians), Math.cos(radians)};
     }
 
-    /** Vector "hacia la derecha", perpendicular a forward, normalizado. */
+    /** Vector "hacia la derecha" de la cámara, perpendicular a forward y normalizado. */
     public double[] rightVector() {
         double radians = Math.toRadians(yaw);
-        return new double[] {Math.cos(radians), Math.sin(radians)};
+        return new double[] {-Math.cos(radians), -Math.sin(radians)};
     }
 
     private static float clampPitch(float value) {

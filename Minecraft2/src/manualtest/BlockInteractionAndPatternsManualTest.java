@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Comprobación manual de {@link PlayerInteractionService} (Participante 4) y,
+ * Comprobación manual de {@link PlayerInteractionService} (interacción por clic) y,
  * a través de ella, de los criterios de terminado que le corresponden a
  * Estudiante 2 según {@code docs/decisiones-compartidas.md}:
  *

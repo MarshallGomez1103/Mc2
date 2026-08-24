@@ -63,15 +63,15 @@ public final class GameInput {
     }
 
     /**
-     * Mirar con el ratón. Los dos signos están invertidos a propósito: mover el ratón a la
-     * derecha debe girar a la derecha, y como yaw crece hacia la izquierda hay que restarlo.
-     * Lo mismo en vertical, porque el eje Y de la pantalla crece hacia abajo.
+     * Mirar con el ratón. En la convención de la cámara, yaw creciente gira hacia la derecha,
+     * por lo que el desplazamiento horizontal se conserva. El eje Y de la pantalla crece hacia
+     * abajo, así que el desplazamiento vertical sí se invierte para conservar la mirada natural.
      */
     private void applyLook(Player player) {
         if (!Gdx.input.isCursorCatched()) {
             return;
         }
-        float deltaYaw = -Gdx.input.getDeltaX() * MOUSE_SENSITIVITY;
+        float deltaYaw = Gdx.input.getDeltaX() * MOUSE_SENSITIVITY;
         float deltaPitch = -Gdx.input.getDeltaY() * MOUSE_SENSITIVITY;
         movementService.look(player, deltaYaw, deltaPitch);
     }

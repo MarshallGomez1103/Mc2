@@ -2,7 +2,7 @@
 
 ## Intención
 
-Observer permite que componentes futuros reaccionen a la colocación o eliminación de un bloque sin introducir esas reacciones dentro de `World`.
+Observer permite que componentes reaccionen a la colocación o eliminación de un bloque sin introducir esas reacciones dentro de `World`.
 
 - `Observer<T>` recibe una notificación.
 - `Subject<T>` registra, retira y notifica observadores.
@@ -19,6 +19,8 @@ world.addObserver(change ->
 
 `World.placeBlock` emite `PLACED`. `World.removeBlock` emite `REMOVED` solo si había un bloque en la posición.
 
-## Límite actual
+## Uso actual y límites
 
-No existe un bus de eventos, cola, prioridad, procesamiento asíncrono ni jerarquía compleja de mensajes. Los observadores concretos para actualizar el renderizado o marcar un mundo como modificado quedan pendientes.
+`presentation.game.VoxelGame` es el observador concreto actual. Al abrir la ventana se registra con `world.addObserver(this)`; al recibir un `BlockChange`, marca el chunk afectado y en el siguiente fotograma reconstruye únicamente su malla. Al cerrar la ventana se retira con `world.removeObserver(this)`.
+
+No existe un bus de eventos, cola, prioridad, procesamiento asíncrono ni jerarquía compleja de mensajes. Tampoco existe todavía un observador separado para guardar automáticamente un mundo modificado.

@@ -37,7 +37,7 @@ Contiene el vocabulario principal:
 - `Position`: coordenadas enteras.
 - `BlockChange`: dato que describe una colocación o eliminación.
 
-La generación inicial de terreno y chunks está implementada. Movimiento, gravedad, colisiones y reglas de interacción todavía no lo están.
+La generación inicial de terreno y chunks está implementada. También están implementados el movimiento, gravedad, colisiones y las reglas de interacción por raycast; `GameInput` conecta esas reglas con teclado y ratón dentro de la ventana gráfica.
 
 ### 3. Persistence
 
