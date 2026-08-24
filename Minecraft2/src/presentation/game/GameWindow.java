@@ -19,10 +19,22 @@ public final class GameWindow {
     private static final int DEFAULT_HEIGHT = 720;
 
     private final PlayerInteractionService interactionService;
+    private boolean texturesEnabled = true;
 
     public GameWindow(PlayerInteractionService interactionService) {
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
+    }
+
+    /** Alterna entre el atlas visual y los colores planos originales. */
+    public boolean toggleTextures() {
+        texturesEnabled = !texturesEnabled;
+        return texturesEnabled;
+    }
+
+    /** Estado que se aplicará al abrir la siguiente ventana de juego. */
+    public boolean texturesEnabled() {
+        return texturesEnabled;
     }
 
     /** Abre la ventana y no regresa hasta que el jugador la cierra. */
@@ -35,6 +47,6 @@ public final class GameWindow {
         configuration.useVsync(true);
         configuration.setForegroundFPS(60);
 
-        new Lwjgl3Application(new VoxelGame(world, interactionService), configuration);
+        new Lwjgl3Application(new VoxelGame(world, interactionService, texturesEnabled), configuration);
     }
 }

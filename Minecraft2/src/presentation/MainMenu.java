@@ -72,6 +72,10 @@ public final class MainMenu {
                 playScreen();
                 yield true;
             }
+            case "7" -> {
+                toggleTextures();
+                yield true;
+            }
             case "0" -> {
                 console.info("Hasta luego.");
                 yield false;
@@ -183,6 +187,12 @@ public final class MainMenu {
         console.info("De vuelta en el menú. Usa \"4. Guardar mundo actual\" para conservar los cambios.");
     }
 
+    private void toggleTextures() {
+        boolean enabled = gameWindow.toggleTextures();
+        console.info("Texturas " + (enabled ? "activadas" : "desactivadas")
+                + ". Se aplicarán al abrir el juego.");
+    }
+
     // ------------------------------------------------------------------ utilidades
 
     private void printHeader() {
@@ -198,7 +208,8 @@ public final class MainMenu {
                 4. Guardar mundo actual
                 5. Eliminar mundo
                 6. Jugar
-                0. Salir""");
+                7. Texturas: %s (cambiar)
+                0. Salir""".formatted(gameWindow.texturesEnabled() ? "ACTIVADAS" : "DESACTIVADAS"));
     }
 
     /** Fallo al leer o escribir el archivo: dañado, ilegible o con un esquema que no cumple. */

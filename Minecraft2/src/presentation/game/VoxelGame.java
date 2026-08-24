@@ -50,6 +50,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     private final World world;
     private final PlayerInteractionService interactionService;
+    private final boolean texturesEnabled;
 
     /** Captura automática para la evidencia de CT-10; desactivada si no se pide. */
     private final String screenshotPath;
@@ -73,9 +74,14 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private int frame;
 
     public VoxelGame(World world, PlayerInteractionService interactionService) {
+        this(world, interactionService, true);
+    }
+
+    public VoxelGame(World world, PlayerInteractionService interactionService, boolean texturesEnabled) {
         this.world = Objects.requireNonNull(world, "world no puede ser null");
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
+        this.texturesEnabled = texturesEnabled;
         this.screenshotPath = System.getProperty("mc2.screenshot");
         this.screenshotFrame = Integer.getInteger("mc2.screenshot.frame", 5);
     }
@@ -93,7 +99,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
         modelBatch = new ModelBatch();
         textureAtlas = new BlockTextureAtlas();
-        meshBuilder = new ChunkMeshBuilder(world, textureAtlas);
+        meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
         input = new GameInput(interactionService);
 
         hudBatch = new SpriteBatch();

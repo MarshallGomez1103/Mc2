@@ -5,8 +5,9 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.MeshPartBuilder;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector2;
@@ -33,10 +34,12 @@ import java.util.Objects;
 public final class ChunkMeshBuilder {
     private final World world;
     private final BlockTextureAtlas textureAtlas;
+    private final boolean texturesEnabled;
 
-    public ChunkMeshBuilder(World world, BlockTextureAtlas textureAtlas) {
+    public ChunkMeshBuilder(World world, BlockTextureAtlas textureAtlas, boolean texturesEnabled) {
         this.world = Objects.requireNonNull(world, "world no puede ser null");
         this.textureAtlas = Objects.requireNonNull(textureAtlas, "textureAtlas no puede ser null");
+        this.texturesEnabled = texturesEnabled;
     }
 
     /** Malla de un chunk junto con cuántas caras acabó emitiendo. */
@@ -55,7 +58,9 @@ public final class ChunkMeshBuilder {
                         | VertexAttributes.Usage.Normal
                         | VertexAttributes.Usage.ColorPacked
                         | VertexAttributes.Usage.TextureCoordinates,
-                new Material(TextureAttribute.createDiffuse(textureAtlas.texture())));
+                texturesEnabled
+                        ? new Material(TextureAttribute.createDiffuse(textureAtlas.texture()))
+                        : new Material(ColorAttribute.createDiffuse(Color.WHITE)));
 
         int faces = 0;
         int blocks = 0;
@@ -114,7 +119,7 @@ public final class ChunkMeshBuilder {
         float z1 = z + 1f;
 
         Color color = BlockAppearance.colorOf(type, face);
-        TextureRegion region = textureAtlas.regionFor(type);
+        TextureRegion region = texturesEnabled ? textureAtlas.regionFor(type) : null;
         switch (face) {
             case TOP -> appendTexturedQuad(part, region, color, 0f, 1f, 0f,
                     x0, y1, z0,
@@ -155,10 +160,14 @@ public final class ChunkMeshBuilder {
             float ax, float ay, float az, float bx, float by, float bz,
             float cx, float cy, float cz, float dx, float dy, float dz
     ) {
-        short a = part.vertex(vertex(ax, ay, az, normalX, normalY, normalZ, color, region.getU(), region.getV2()));
-        short b = part.vertex(vertex(bx, by, bz, normalX, normalY, normalZ, color, region.getU2(), region.getV2()));
-        short c = part.vertex(vertex(cx, cy, cz, normalX, normalY, normalZ, color, region.getU2(), region.getV()));
-        short d = part.vertex(vertex(dx, dy, dz, normalX, normalY, normalZ, color, region.getU(), region.getV()));
+        float u = region == null ? 0f : region.getU();
+        float u2 = region == null ? 0f : region.getU2();
+        float v = region == null ? 0f : region.getV();
+        float v2 = region == null ? 0f : region.getV2();
+        short a = part.vertex(vertex(ax, ay, az, normalX, normalY, normalZ, color, u, v2));
+        short b = part.vertex(vertex(bx, by, bz, normalX, normalY, normalZ, color, u2, v2));
+        short c = part.vertex(vertex(cx, cy, cz, normalX, normalY, normalZ, color, u2, v));
+        short d = part.vertex(vertex(dx, dy, dz, normalX, normalY, normalZ, color, u, v));
         part.rect(a, b, c, d);
     }
 
