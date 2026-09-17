@@ -1,14 +1,43 @@
 # Minecraft 2
 
-Base arquitectónica de un videojuego voxel sencillo inspirado en Minecraft Classic. El repositorio contiene un punto de partida compilable en Java para que tres estudiantes desarrollen el MVP manualmente en IntelliJ IDEA.
+Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; el Corte 2 está en fase de preparación para revisión.
 
 > Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
+
+## Estado del proyecto
+
+### Corte 1 — Completado
+
+Menú de consola, crear/listar/cargar/guardar/eliminar mundos, generación inicial de
+cuatro chunks, bloques, jugador, cámara, movimiento, salto, gravedad, colisiones,
+raycast e interacción, renderizado 3D y persistencia JSON. Incluye Factory,
+Singleton, Observer y texturas de bloques ON/OFF. Baseline: 41 pruebas JUnit.
+
+### Corte 2 — En desarrollo
+
+Planificado para Corte 2: generación procedural 2.0 (PLAINS, DESERT, MOUNTAINS y
+estructura/VILLAGE mínima), Enemy AI con Zombie, FSM + A*, hordas, dificultad
+NORMAL/VERY_HARD y opciones de enemigos/texturas de enemigos ON/OFF.
+Calidad planificada: unit tests, integración, TDD de ZombieStateMachine,
+mutation testing (~80% en scope seleccionado) y load/performance testing
+BASELINE, PEAK, STRESS y ENDURANCE/RESISTANCE.
+
+Estas capacidades **no están implementadas todavía**. La preparación solo añade
+vocabulario compartido y documentación. No se crean ramas ni commits antes de revisión.
+Los zombies serán estado de sesión y no se guardarán en JSON.
+
+Mapa maestro: [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md).
+Backlog: [TODO.md](TODO.md). Acuerdos: [docs/corte2/arquitectura-corte2.md](docs/corte2/arquitectura-corte2.md).
+
+### Corte 3
+
+Pendiente de definición.
 
 ## Problema
 
 El equipo necesita iniciar un videojuego voxel sin mezclar la interfaz, las reglas del mundo y el acceso a archivos. Una base sin separación de responsabilidades dificultaría que tres personas trabajen en paralelo y que el proyecto evolucione sin dependencias circulares.
 
-## Objetivo
+## Objetivo original del Corte 1
 
 Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 
@@ -18,7 +47,7 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 - operaciones CRUD conceptuales para mundos guardados como JSON;
 - un menú principal de consola desde el cual conectar los casos de uso.
 
-## Alcance del MVP
+## Alcance del MVP — Corte 1 completado
 
 - Menú principal.
 - Crear, listar, cargar, guardar y eliminar mundos.
@@ -31,13 +60,15 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 - Ventana 3D con renderizado de chunks y controles básicos de teclado y ratón.
 - Persistencia local en archivos JSON.
 
-## Fuera del alcance
+## Fuera del alcance del Corte 2
 
 - Un videojuego terminado o una réplica completa de Minecraft.
-- Multijugador, red, enemigos, inventario avanzado o crafting.
-- Texturas, carga dinámica de chunks y motor gráfico completo.
+- Multijugador, agente LLM, survival completo, inventario complejo o crafting.
+- Mundo infinito/streaming y carga dinámica de chunks; motor gráfico completo.
+- ECS, behavior trees, machine learning, redes neuronales y arquitectura distribuida.
 - Base de datos.
-- Patrones distintos de Factory, Singleton y Observer.
+- Refactors masivos y reescritura de la arquitectura. La restricción original de
+  patrones del Corte 1 se conserva como contexto histórico, no excluye la FSM acordada del Corte 2.
 - Frameworks o librerías que no sean necesarios para esta base.
 
 ## Tecnologías
@@ -217,16 +248,19 @@ java -cp target/classes manualtest.BlockInteractionAndPatternsManualTest
 
 Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Esa carpeta está ignorada por Git.
 
-## Estado actual e implementación intencionalmente pendiente
+## Limitaciones actuales y mejora de calidad planificada
 
 **El MVP está completo y es jugable.** Funcionan de extremo a extremo el menú y sus casos de uso, la generación pseudoaleatoria del terreno, el cálculo del chunk de cada posición con sus validaciones, el movimiento con salto, gravedad y colisiones, colocar y eliminar bloques apuntando con el ratón, el renderizado 3D del mundo y la persistencia JSON. El ciclo crear → jugar → guardar → cerrar → cargar conserva metadatos, jugador, chunks y bloques.
 
-Quedan pendientes:
+Se preserva este funcionamiento. Para Corte 2 se planifican las mejoras del roadmap.
+Limitaciones actuales:
 
-- texturas: los bloques se dibujan con color plano y sombreado por cara, sin imágenes;
-- distancia de visión y carga dinámica de chunks: se genera y dibuja una cuadrícula fija de 2×2;
-- portar a JUnit las comprobaciones de `manualtest`, que cubren CT-02 a CT-07 y hoy se ejecutan a mano;
-- completar el nombre del tercer integrante en este README.
+- mundo finito: se genera y dibuja una cuadrícula fija de 2×2; streaming no es requisito del Corte 2;
+- completar pruebas JUnit de dominio/patrones y huecos de límites, Factory y determinismo.
+  Las clases `manualtest` son ejecutables separados, no cubren exhaustivamente todos los CT-02 a CT-07.
+
+Las texturas de bloques ya existen: la opción **7** alterna atlas y colores planos al
+abrir la siguiente ventana. Esta opción no es todavía una opción de texturas de enemigos.
 
 El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 
@@ -240,8 +274,12 @@ El detalle ejecutable de trabajo se encuentra en [TODO.md](TODO.md).
 
 El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el diagrama de clases obligatorio y vistas complementarias de casos de uso, patrones, componentes y secuencias, actualizadas con la ventana 3D, los controles básicos y el observador visual concreto.
 
-## Backlog de siguientes iteraciones
+## Backlog del Corte 2
 
-1. Incorporar texturas a los bloques, que por ahora usan color plano y sombreado por cara.
-2. Implementar distancia de visión y carga dinámica de chunks; actualmente se genera una cuadrícula fija de 2×2.
-3. Portar a JUnit las comprobaciones de `manualtest` que cubren CT-02 a CT-07.
+Consultar [TODO.md](TODO.md) para tareas por estudiante y dependencias, y
+[ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md) para fases, ownership y gates.
+La documentación inicial está en `docs/corte2/`; contiene planes y espacios de evidencia,
+no resultados de FSM/A*/PIT/carga. El árbol anterior describe la base del Corte 1;
+los tres enums nuevos están detallados en los acuerdos del Corte 2.
+`docs/uml.md` se actualizará solo en integración final; no representa todavía las
+capacidades planificadas y su exclusión histórica de texturas está desactualizada.
