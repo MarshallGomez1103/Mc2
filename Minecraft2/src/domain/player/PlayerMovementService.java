@@ -9,6 +9,7 @@ package domain.player;
  * CollisionResolver (Participante 3) decide si aplica, recorta o descarta.
  */
 public final class PlayerMovementService {
+    public static final double SPRINT_MULTIPLIER = 1.65;
 
     /**
      * Calcula el desplazamiento horizontal deseado para este frame, combinando
@@ -37,7 +38,8 @@ public final class PlayerMovementService {
             return new double[] {0d, 0d};
         }
 
-        double scale = (Player.MOVE_SPEED * deltaSeconds) / magnitude;
+        double speed = Player.MOVE_SPEED * (input.isSprint() ? SPRINT_MULTIPLIER : 1d);
+        double scale = (speed * deltaSeconds) / magnitude;
         return new double[] {dx * scale, dz * scale};
     }
 

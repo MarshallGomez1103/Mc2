@@ -24,9 +24,6 @@ import java.util.Random;
  * No contiene entrada/salida de la interfaz de usuario.
  */
 public final class WorldApplicationService {
-    /** Lado de la cuadrícula de chunks generada al crear un mundo: 2 × 2 = 4 chunks. */
-    private static final int DEFAULT_WORLD_CHUNKS = 2;
-
     private final WorldStorage storage;
     private final BlockFactory blockFactory;
     private final WorldManager worldManager;
@@ -39,15 +36,23 @@ public final class WorldApplicationService {
     }
 
     public void createWorld(String name) throws IOException {
+        createWorld(name, WorldSize.SMALL);
+    }
+
+    public void createWorld(String name, WorldSize size) throws IOException {
+        Objects.requireNonNull(size, "size no puede ser null");
         long seed = seedGenerator.nextLong();
         World world = new World(name, seed, Instant.now().truncatedTo(ChronoUnit.SECONDS));
+        if (storage.list().contains(world.getId())) {
+            throw new IllegalStateException("Ya existe un mundo con el identificador: " + world.getId());
+        }
 
         // El generador depende de la semilla, así que se construye por mundo y no por servicio.
         ChunkGenerationService generationService =
                 new ChunkGenerationService(new SimpleTerrainGenerator(seed), blockFactory);
-        generationService.generateChunks(DEFAULT_WORLD_CHUNKS, DEFAULT_WORLD_CHUNKS)
+        generationService.generateChunks(size.chunksPerSide(), size.chunksPerSide())
                 .forEach(world::addChunk);
-        placePlayerOnSurface(world);
+        placePlayerOnSurface(world, size);
 
         storage.create(world);
         worldManager.load(world);
@@ -64,9 +69,9 @@ public final class WorldApplicationService {
      * <p>Se descartan las cimas de madera y hojas para no aparecer dentro de un árbol. Al cargar
      * un mundo guardado esto no se ejecuta: ahí manda la posición que el jugador tenía al salir.
      */
-    private void placePlayerOnSurface(World world) {
-        int width = Chunk.WIDTH * DEFAULT_WORLD_CHUNKS;
-        int depth = Chunk.DEPTH * DEFAULT_WORLD_CHUNKS;
+    private void placePlayerOnSurface(World world, WorldSize size) {
+        int width = Chunk.WIDTH * size.chunksPerSide();
+        int depth = Chunk.DEPTH * size.chunksPerSide();
         int centerX = width / 2;
         int centerZ = depth / 2;
 
@@ -75,8 +80,11 @@ public final class WorldApplicationService {
         int bestTop = -1;
         int bestDistance = Integer.MAX_VALUE;
 
-        for (int x = 0; x < width; x++) {
-            for (int z = 0; z < depth; z++) {
+        // Buscar solo alrededor del centro: escanear todo un mundo grande sería costoso.
+        for (int x = Math.max(0, centerX - Chunk.WIDTH / 2);
+             x < Math.min(width, centerX + Chunk.WIDTH / 2); x++) {
+            for (int z = Math.max(0, centerZ - Chunk.DEPTH / 2);
+                 z < Math.min(depth, centerZ + Chunk.DEPTH / 2); z++) {
                 int top = groundTopAt(world, x, z);
                 if (top < bestTop) {
                     continue;
