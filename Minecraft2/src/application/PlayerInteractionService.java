@@ -120,7 +120,7 @@ public final class PlayerInteractionService {
     public void placeBlockOfType(Player player, World world, BlockType type) {
         raycast(player, world).ifPresent(target -> {
             Position placePosition = target.placePosition();
-            if (!canPlaceAt(world, placePosition)) {
+            if (!canPlaceAt(player, world, placePosition)) {
                 // Chunk todavía no generado en esa posición, o altura fuera de
                 // rango (p. ej. justo encima de y = 63): no hacemos nada, igual
                 // que cuando el rayo no encuentra ningún bloque.
@@ -134,12 +134,23 @@ public final class PlayerInteractionService {
         });
     }
 
-    /** true si se puede colocar un bloque ahí: el chunk ya existe y la altura es válida. */
-    private boolean canPlaceAt(World world, Position position) {
+    /** Un bloque nuevo no puede ocupar la caja del jugador ni reemplazar otro bloque. */
+    private boolean canPlaceAt(Player player, World world, Position position) {
         if (position.y() < 0 || position.y() >= Chunk.HEIGHT) {
             return false;
         }
-        return world.findChunk(position).isPresent();
+        var targetChunk = world.findChunk(position);
+        if (targetChunk.isEmpty() || targetChunk.get().getBlock(position).isPresent()) {
+            return false;
+        }
+        double halfWidth = Player.WIDTH / 2d;
+        boolean overlapsX = player.getX() - halfWidth < position.x() + 1d
+                && player.getX() + halfWidth > position.x();
+        boolean overlapsY = player.getY() < position.y() + 1d
+                && player.getY() + Player.HEIGHT > position.y();
+        boolean overlapsZ = player.getZ() - halfWidth < position.z() + 1d
+                && player.getZ() + halfWidth > position.z();
+        return !(overlapsX && overlapsY && overlapsZ);
     }
 
     /** Redondea a 0 componentes de dirección que deberían ser exactamente cero (ver comentario en {@link #raycast}). */
