@@ -1,6 +1,7 @@
-# Arquitectura Corte 2 — acuerdos de preparación
+# Arquitectura Corte 2 — acuerdos y estado actual
 
-Estado: planificación; las capacidades nuevas no están implementadas.
+Estado: generación/estructuras y ampliación finita implementadas; enemigos y
+calidad final pendientes. Este documento conserva los acuerdos iniciales.
 
 ## Objetivo y alcance
 
@@ -10,11 +11,13 @@ KISS, YAGNI, cohesión y testabilidad; priorizar archivos nuevos y cambios peque
 
 ## Base real que se preserva
 
-World contiene Player y una lista de chunks. Chunk mide 16×64×16 y almacena bloques
-por Position absoluta. World.findChunk recorre la lista. La creación genera 2×2.
-VoxelGame conserva meshes e instancias; GameInput coordina física del jugador.
+World contiene Player y una lista/index de chunks. Chunk mide 16×64×16 y almacena
+bloques por Position absoluta. World.findChunk usa índice; la creación genera
+2×2, 10×10 o 16×16. VoxelGame crea/libera mallas cercanas, filtra frustum y muestra
+FPS; J/K ajustan radio visible. GameInput coordina física del jugador y Shift corre.
 El JSON versión 1 guarda snapshot del mundo y jugador, no regenera desde seed.
-No existe sistema genérico Entity ni streaming.
+No existe sistema genérico Entity ni streaming. `PlayerLife` maneja muerte de sesión
+por vacío y expone `die(ENEMY)` para la integración futura.
 
 Hay dependencia de paquetes domain.world ↔ domain.player por World/CollisionResolver;
 no se promete eliminarla en esta preparación. No hay dominio dependiente de LibGDX.
@@ -24,7 +27,7 @@ no se promete eliminarla en esta preparación. No hay dominio dependiente de Lib
 | Tipo | Ruta | Acuerdo |
 | --- | --- | --- |
 | ZombieState | src/domain/enemy/ZombieState.java | IDLE, CHASE, ATTACK, DEAD; sin transiciones |
-| BiomeType | src/domain/world/biome/BiomeType.java | PLAINS, DESERT, MOUNTAINS; sin resolver |
+| BiomeType | src/domain/world/biome/BiomeType.java | PLAINS, DESERT, MOUNTAINS; BiomeResolver ya lo resuelve regionalmente |
 | Difficulty | src/domain/enemy/Difficulty.java | NORMAL, VERY_HARD; sin parámetros |
 
 Difficulty pertenece al dominio para que ZombieConfig pueda consumirlo sin importar
@@ -46,7 +49,7 @@ FOREST no se agrega por anticipación; VILLAGE se trata como estructura.
 - Texturas de enemigos se controlarán separadamente de texturas de bloques.
 - TDD formal exclusivamente sobre ZombieStateMachine, RED → GREEN → REFACTOR real.
 - PIT: objetivo aproximado 80% en lógica pura seleccionada, no score global del juego.
-- Mundo infinito/streaming NO pertenece al Corte 2; cuatro chunks siguen siendo baseline.
+- Mundo infinito/streaming NO pertenece al Corte 2; cuatro chunks siguen siendo baseline Pequeño.
 - Estructuras iniciales pueden limitarse a un chunk; documentar decisión y comprobar bordes.
 
 ## Integraciones futuras, no código existente
@@ -65,11 +68,11 @@ Ver [roadmap](../../ROADMAP_CORTE_2.md) para secuencia y ownership.
 - [ ] Acordar percepción, cooldown, salud/daño y forma mínima de demostrar ataque/muerte
       sin implementar survival completo.
 - [ ] Acordar valores/defaults de Difficulty y GameSettings y lifecycle al reabrir ventana.
-- [ ] Decidir escala de biomas: deben poder demostrarse dentro del mundo finito.
-- [ ] Revisar riesgos heredados que afecten aceptación: caída fuera del mundo y guardado,
-      invalidación de meshes vecinos en fronteras, solidez repetida y colisión discreta.
-      No corregidos en esta fase.
+- [x] Decidir escala de biomas: 18, con ejemplo reproducible seed 17.
+- [x] Revisar caída fuera del mundo, guardado, mallas vecinas y colocación dentro
+      del jugador; las correcciones se documentan en world-size-render-and-life.md.
 
 ## Evidencias posteriores
 
-Pendientes: diagramas de implementación, APIs finales, gate de regresión y verificación visual.
+Pendientes: diagramas de IA, APIs finales entre owners, gate final y verificación
+manual completa. El gate local del frente de generación es 63/63.

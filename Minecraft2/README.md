@@ -1,6 +1,6 @@
 # Minecraft 2
 
-Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; el Corte 2 está en fase de preparación para revisión.
+Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; el Corte 2 está en desarrollo por frentes.
 
 > Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
 
@@ -15,16 +15,24 @@ Singleton, Observer y texturas de bloques ON/OFF. Baseline: 41 pruebas JUnit.
 
 ### Corte 2 — En desarrollo
 
-Planificado para Corte 2: generación procedural 2.0 (PLAINS, DESERT, MOUNTAINS y
-estructura/VILLAGE mínima), Enemy AI con Zombie, FSM + A*, hordas, dificultad
+Implementado en el frente de generación: regiones PLAINS, DESERT y MOUNTAINS;
+casa/estructura mínima con puerta, ventanas y camino; generación determinista por
+seed. Al crear un mundo se puede elegir Pequeño (2×2), Mediano (10×10) o Grande
+(16×16 chunks). En juego: J/K cambian el radio visible, HUD con FPS, Shift corre,
+la muerte por caída muestra «MORISTE» y R reaparece. Se evita colocar bloques
+dentro del jugador y se corrige una posición ya incrustada en bloques sólidos.
+Los mundos se listan desde el directorio del proyecto incluso al lanzar el JAR
+desde otra carpeta. Consulte [límites de tamaño y memoria](docs/corte2/world-size-render-and-life.md).
+
+Pendiente para Corte 2: Enemy AI con Zombie, FSM + A*, hordas, dificultad
 NORMAL/VERY_HARD y opciones de enemigos/texturas de enemigos ON/OFF.
-Calidad planificada: unit tests, integración, TDD de ZombieStateMachine,
+Calidad pendiente: TDD de ZombieStateMachine,
 mutation testing (~80% en scope seleccionado) y load/performance testing
 BASELINE, PEAK, STRESS y ENDURANCE/RESISTANCE.
 
-Estas capacidades **no están implementadas todavía**. La preparación solo añade
-vocabulario compartido y documentación. No se crean ramas ni commits antes de revisión.
-Los zombies serán estado de sesión y no se guardarán en JSON.
+Los zombies **no están implementados todavía**. Serán estado de sesión y no se
+guardarán en JSON. La batería actual cubre lógica e integración, pero no reemplaza
+la comprobación manual de controles ni las futuras pruebas de carga.
 
 Mapa maestro: [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md).
 Backlog: [TODO.md](TODO.md). Acuerdos: [docs/corte2/arquitectura-corte2.md](docs/corte2/arquitectura-corte2.md).
@@ -217,6 +225,12 @@ java -Dfile.encoding=UTF-8 -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 Se ejecuta el jar y no `-cp target/classes`, porque ahora el proyecto depende de LibGDX: el jar generado incluye las librerías y los binarios nativos.
 
 `mvn clean package` compila y ejecuta la batería de pruebas JUnit, así que sirve además como comprobación de CT-01.
+
+Para abrir un mundo Grande se recomienda `java -Xmx2g -jar target/minecraft2-0.1.0-SNAPSHOT.jar`:
+su JSON puede necesitar más de 1 GB de heap al cargar. En un equipo limitado,
+preferir Mediano. Los controles de juego actuales son WASD, Shift para correr,
+espacio para saltar, ratón para bloques, J/K para distancia visible, R para
+reaparecer después de morir y ESC para salir.
 
 ### Controles del juego
 

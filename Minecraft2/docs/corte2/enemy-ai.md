@@ -2,6 +2,7 @@
 
 Estado: planificado; solo ZombieState y Difficulty existen como vocabulario.
 No hay Zombie, FSM, A*, EnemyUpdateService o rendering de enemigos funcionales.
+Plan secuenciado para el agente de Jasub: [PLAN_AGENTE_JASUB.md](PLAN_AGENTE_JASUB.md).
 
 ## Alcance y separación
 
@@ -43,6 +44,14 @@ Estudiante 3: settings/dificultad y hordas; acordar registro y lifecycle antes d
 World ofrece getPlayer, findChunk y getBlock; colisión actual es especializada en Player.
 BlockChange puede informar invalidación; Chunk.addBlock no emite ese evento.
 No modificar VoxelGame antes de FSM/A* verdes y ventana de integración acordada.
+`World` ya indexa chunks; puede contener 4, 100 o 256 chunks. `VoxelGame` mantiene
+mallas cercanas, radio J/K y FPS. Preservar este ciclo y liberar recursos de enemigos.
+`PlayerLife.die(ENEMY)` muestra «MORISTE» y permite reaparición con R.
+
+El clic izquierdo ya elimina bloques. Al añadir melee, primero elegir el objetivo
+visible más cercano dentro de alcance: si es un zombi, golpear; si no, conservar
+la eliminación de bloques. La muerte del zombi tendrá una explosión **visual**
+breve, sin explosión física, daño de área ni modificación de terreno.
 
 ## TODO y evidencias
 
