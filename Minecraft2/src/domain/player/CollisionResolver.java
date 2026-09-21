@@ -53,6 +53,7 @@ public final class CollisionResolver {
      * esta clase SÍ aplica el resultado final).
      */
     public void resolveAndApply(Player player, World world, double dx, double dy, double dz) {
+        moveOutOfSolid(player, world);
         double x = player.getX();
         double y = player.getY();
         double z = player.getZ();
@@ -88,6 +89,24 @@ public final class CollisionResolver {
         player.setX(x);
         player.setY(y);
         player.setZ(z);
+    }
+
+    /** Recupera posiciones antiguas atrapadas en piedra sin alterar un jugador libre. */
+    private void moveOutOfSolid(Player player, World world) {
+        double x = player.getX();
+        double y = player.getY();
+        double z = player.getZ();
+        if (!collidesBox(world, x, y, z)) {
+            return;
+        }
+        for (int candidateY = Math.max(0, (int) Math.ceil(y)); candidateY <= Chunk.HEIGHT; candidateY++) {
+            if (!collidesBox(world, x, candidateY, z)) {
+                player.setY(candidateY);
+                player.setVelocityY(0);
+                player.setOnGround(false);
+                return;
+            }
+        }
     }
 
     /**

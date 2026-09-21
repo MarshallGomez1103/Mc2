@@ -17,7 +17,7 @@ import java.util.Objects;
  * Traduce teclado y ratón en llamadas a los servicios de movimiento, física, colisión e
  * interacción. No decide reglas del juego: solo lee qué está pulsado y delega.
  *
- * <p>Controles: W/A/S/D mueven, espacio salta, el ratón mira, clic izquierdo elimina el bloque
+ * <p>Controles: W/A/S/D mueven, Shift corre, espacio salta, el ratón mira, clic izquierdo elimina el bloque
  * apuntado, clic derecho coloca, y las teclas 1 a 7 eligen el material a colocar.
  */
 public final class GameInput {
@@ -81,7 +81,9 @@ public final class GameInput {
                 Gdx.input.isKeyPressed(Input.Keys.W),
                 Gdx.input.isKeyPressed(Input.Keys.S),
                 Gdx.input.isKeyPressed(Input.Keys.A),
-                Gdx.input.isKeyPressed(Input.Keys.D));
+                Gdx.input.isKeyPressed(Input.Keys.D),
+                Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
+                        || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT));
 
         double[] horizontal = movementService.computeIntendedDelta(player, input, deltaSeconds);
 

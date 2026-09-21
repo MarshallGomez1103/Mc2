@@ -9,7 +9,9 @@ import patterns.observer.Subject;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -20,8 +22,7 @@ import java.util.Optional;
  */
 public final class World implements Subject<BlockChange> {
     /**
-     * Posición inicial del jugador; queda por encima de la superficie generada (18 a 22),
-     * y centrada en el bloque porque {@link Player} maneja coordenadas continuas.
+     * Posición inicial provisional; la creación ajusta el jugador al terreno generado.
      */
     public static final double DEFAULT_SPAWN_X = 8.5;
     public static final double DEFAULT_SPAWN_Y = 32.0;
@@ -35,6 +36,8 @@ public final class World implements Subject<BlockChange> {
     private final Instant createdAt;
     private final Player player;
     private final List<Chunk> chunks = new ArrayList<>();
+    /** Índice para consultas frecuentes de colisión, mallas y navegación. */
+    private final Map<Long, Chunk> chunksByCoordinate = new HashMap<>();
     private final List<Observer<BlockChange>> observers = new ArrayList<>();
 
     /** Constructor completo; lo usa la persistencia al reconstruir un mundo guardado. */
@@ -84,13 +87,20 @@ public final class World implements Subject<BlockChange> {
     }
 
     public void addChunk(Chunk chunk) {
-        chunks.add(Objects.requireNonNull(chunk, "chunk no puede ser null"));
+        Chunk validated = Objects.requireNonNull(chunk, "chunk no puede ser null");
+        long key = chunkKey(validated.getChunkX(), validated.getChunkZ());
+        if (chunksByCoordinate.putIfAbsent(key, validated) != null) {
+            throw new IllegalArgumentException("Ya existe un chunk en esas coordenadas");
+        }
+        chunks.add(validated);
     }
 
     public Optional<Chunk> findChunk(int chunkX, int chunkZ) {
-        return chunks.stream()
-                .filter(chunk -> chunk.getChunkX() == chunkX && chunk.getChunkZ() == chunkZ)
-                .findFirst();
+        return Optional.ofNullable(chunksByCoordinate.get(chunkKey(chunkX, chunkZ)));
+    }
+
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
     }
 
     /** Busca el chunk que contiene una posición absoluta del mundo. */

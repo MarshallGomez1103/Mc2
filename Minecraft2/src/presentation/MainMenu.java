@@ -1,6 +1,7 @@
 package presentation;
 
 import application.WorldApplicationService;
+import application.WorldSize;
 import domain.world.World;
 import presentation.game.GameWindow;
 
@@ -95,9 +96,25 @@ public final class MainMenu {
         if (name.isEmpty()) {
             return;
         }
+        console.info("Tamaño: 1. Pequeño (2x2) · 2. Mediano (10x10) · 3. Grande (16x16)");
+        Optional<String> selectedSize = console.prompt("Elija tamaño [1 por defecto]");
+        if (selectedSize.isEmpty()) {
+            return;
+        }
+        WorldSize size = switch (selectedSize.get()) {
+            case "", "1" -> WorldSize.SMALL;
+            case "2" -> WorldSize.MEDIUM;
+            case "3" -> WorldSize.LARGE;
+            default -> null;
+        };
+        if (size == null) {
+            console.error("Tamaño no válido. No se creó el mundo.");
+            return;
+        }
         try {
-            worldService.createWorld(name.get());
-            console.info("Mundo creado y cargado: " + name.get());
+            worldService.createWorld(name.get(), size);
+            console.info("Mundo creado y cargado: " + name.get() + " (" + size.label()
+                    + ", " + size.totalChunks() + " chunks)");
         } catch (IOException failure) {
             reportFileProblem(failure);
         } catch (IllegalArgumentException | IllegalStateException failure) {
@@ -178,7 +195,8 @@ public final class MainMenu {
         }
 
         console.info("Abriendo el mundo \"" + world.get().getName() + "\"...");
-        console.info("WASD para moverte, espacio para saltar, clic para colocar y eliminar bloques.");
+        console.info("WASD para moverte, Shift para correr, espacio para saltar, clic para colocar y eliminar bloques.");
+        console.info("J/K cambian distancia visible; R reaparece después de morir; FPS en pantalla.");
         console.info("Pulsa ESC o cierra la ventana para volver a este menú.");
 
         gameWindow.play(world.get());

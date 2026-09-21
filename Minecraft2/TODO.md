@@ -76,7 +76,7 @@ Se mantienen sin red, base de datos, nuevos singletons o frameworks innecesarios
 
 # CORTE 2 — ACTUAL
 
-Preparación para revisión; ninguna funcionalidad nueva implementada.
+Preparación aprobada; frentes del Corte 2 en desarrollo. Estado de cada tarea abajo.
 Baseline previo: mvn clean test, 41 exitosas, 0 fallos/errores/ignoradas.
 
 ## Preparación común — C2-00
@@ -84,22 +84,43 @@ Baseline previo: mvn clean test, 41 exitosas, 0 fallos/errores/ignoradas.
 - [x] Verificar Git, actualizar main y registrar baseline.
 - [x] Crear roadmap, ownership y documentos iniciales sin resultados inventados.
 - [x] Crear vocabulario mínimo ZombieState, BiomeType y Difficulty.
-- [ ] Revisión humana y autorización del commit base; sin commit/push/PR en esta fase.
-- [ ] Crear ramas después del commit base aprobado.
+- [x] Revisión humana y aprobación de la base de Corte 2.
+- [x] Crear ramas de trabajo individuales desde la base aprobada.
 
 ## Estudiante 1 — Generación procedural
 
 - [x] BiomeType: PLAINS, DESERT, MOUNTAINS; solo vocabulario.
-- [ ] C2-02: BiomeResolver regional determinista por seed + coordenadas.
-- [ ] Acordar escala de regiones demostrable dentro del mundo finito.
-- [ ] C2-06: PLAINS suave, GRASS/DIRT/STONE y árboles ocasionales.
-- [ ] C2-06: DESERT plano relativo, SAND predominante y sin árboles.
-- [ ] C2-06: MOUNTAINS con altura espacialmente coherente y límites válidos.
-- [ ] C2-06: VILLAGE/estructuras sencillas; separar ubicación y plantilla.
-- [ ] Determinismo por seed, negativos y orden independiente de generación.
-- [ ] Tests unitarios de generación, capas y límites.
-- [ ] Tests de integración entre chunks vecinos y límites de estructuras.
-- [ ] Documentación de generación en docs/corte2/terrain-generation.md.
+- [x] C2-02: BiomeResolver regional determinista por seed + coordenadas.
+- [x] Escala regional 18: demostrable con seed 17 en el mundo finito 2×2; no garantizada para toda seed.
+- [x] C2-06: PLAINS suave, GRASS/DIRT/STONE y árboles ocasionales.
+- [x] C2-06: DESERT plano relativo, SAND predominante y sin árboles.
+- [x] C2-06: MOUNTAINS con altura espacialmente coherente y límites válidos.
+- [x] C2-06: VILLAGE/estructura sencilla; ubicación y plantilla separadas, contenida en chunk.
+- [x] Determinismo por seed, negativos y orden independiente de generación.
+- [x] Tests unitarios de generación, capas y límites.
+- [x] Tests de integración entre chunks vecinos, límites de estructura y JSON existente.
+- [x] Documentación de generación en docs/corte2/terrain-generation.md.
+- [x] Revisión visual de biomas/relieve y spawn en mundos medianos/grandes.
+- [x] Captura visual del overlay MORISTE con instancia temporal bajo el vacío.
+- [x] Revisión visual de estructura con seed 17 y cámara temporal frente a la casa.
+- [x] Añadir huecos de ventanas a la casa y probar la plantilla.
+- [x] Shift para correr con prueba de velocidad y controles documentados.
+- [x] Impedir colocar un bloque dentro del jugador; recuperar posiciones incrustadas.
+- [x] Invalidar mallas vecinas al editar un bloque en borde de chunk.
+- [x] Listar mundos desde ruta estable aunque el JAR se ejecute fuera del proyecto.
+- [ ] Verificación interactiva de J/K/R con teclado real.
+
+## Extensión coordinada — tamaños finitos, FPS y muerte por vacío
+
+- [x] Elegir Pequeño 2×2, Mediano 10×10 o Grande 16×16 al crear mundo.
+- [x] Indexar chunks en World y limitar búsqueda de spawn al centro.
+- [x] Crear/liberar mallas cercanas con radio J/K y mostrar FPS en HUD.
+- [x] Muerte de sesión por caída y entrada reutilizable para futura muerte por enemigo.
+- [x] Tests de tamaños, índice, radio y vida; último gate 63/63.
+- [x] Crear, guardar, cargar y abrir Grande con heap de 2 GB; límite de 1 GB documentado.
+- [ ] Verificación manual de J/K, caída real y R en una sesión interactiva del equipo.
+
+Detalle técnico y mediciones: [world-size-render-and-life.md](docs/corte2/world-size-render-and-life.md).
 
 ## Estudiante 2 — Enemy AI
 
@@ -122,6 +143,9 @@ FSM = decide qué hacer. A* = decide por dónde desplazarse. Son conceptos difer
 - [ ] Repath por objetivo movido, ruta terminada/inválida o intervalo; evitar busy retry.
 - [ ] C2-07 integración EnemyUpdateService: FSM, percepción, navegación y movimiento.
 - [ ] C2-08 integración visual mínima y VoxelGame en ventana coordinada.
+- [ ] Clic izquierdo sobre zombi en alcance: golpe cuerpo a cuerpo antes de borrar bloque; si no hay zombi, conservar eliminación de bloques.
+- [ ] Muerte de zombi: efecto visual breve de «explosión» sin romper terreno ni producir daño de área; retirar recursos visuales al despawn.
+- [ ] Ataque letal del zombi: conectar con `PlayerLife.die(ENEMY)` sin persistir vida de sesión.
 - [ ] Tests unitarios FSM: transiciones, límites y prioridades.
 - [ ] Tests unitarios A*: recto, obstáculo/rodeo, imposible, origen=destino y desnivel.
 - [ ] Tests de integración Enemy + World con bloques modificados.
@@ -164,6 +188,10 @@ FSM = decide qué hacer. A* = decide por dónde desplazarse. Son conceptos difer
 | HordeManager con spawn real | Creación/registro de zombies y lifecycle de colección |
 | Rendering | Zombie con posición y actualización funcional |
 | Load testing de IA | EnemyUpdateService y A* integrados e instrumentados |
+
+Planes de ejecución: [Jasub / IA](docs/corte2/PLAN_AGENTE_JASUB.md) y
+[Ethian / hordas y calidad](docs/corte2/PLAN_AGENTE_ETHIAN.md). El frente de
+generación está listo; los planes indican checkpoints y contratos de integración.
 
 No crear veinte interfaces vacías: acordar APIs pendientes antes del trabajo dependiente.
 No editar archivos de otro owner sin aviso. POM solo Estudiante 3.

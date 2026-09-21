@@ -1,6 +1,6 @@
 package domain.world.biome;
 
-/** Biomas obligatorios del Corte 2; la resolución y generación se implementarán después. */
+/** Biomas de la generación procedural del Corte 2. VILLAGE es una estructura, no un bioma. */
 public enum BiomeType {
     PLAINS,
     DESERT,

@@ -10,15 +10,18 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 import domain.Position;
 import domain.player.Player;
+import domain.player.PlayerLife;
 import domain.world.BlockChange;
 import domain.world.Chunk;
 import domain.world.World;
@@ -27,6 +30,7 @@ import patterns.observer.Observer;
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -46,6 +50,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private static final float FIELD_OF_VIEW = 70f;
     private static final float NEAR_PLANE = 0.1f;
     private static final float FAR_PLANE = 300f;
+    private static final int MESHES_PER_FRAME = 2;
     private static final Color SKY = new Color(0.45f, 0.68f, 0.92f, 1f);
 
     private final World world;
@@ -62,6 +67,10 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private BlockTextureAtlas textureAtlas;
     private ChunkMeshBuilder meshBuilder;
     private GameInput input;
+    private RenderDistance renderDistance;
+    private PlayerLife playerLife;
+    private final Vector3 chunkCenter = new Vector3();
+    private final Vector3 chunkDimensions = new Vector3(Chunk.WIDTH, Chunk.HEIGHT, Chunk.DEPTH);
 
     private final Map<Chunk, ChunkMeshBuilder.ChunkMesh> meshes = new LinkedHashMap<>();
     /** Instancias dibujables, cacheadas: crearlas por fotograma sería trabajo tirado. */
@@ -70,6 +79,8 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     private SpriteBatch hudBatch;
     private BitmapFont font;
+    private BitmapFont deathFont;
+    private final GlyphLayout deathText = new GlyphLayout();
     private ShapeRenderer shapeRenderer;
     private int frame;
 
@@ -101,41 +112,42 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         textureAtlas = new BlockTextureAtlas();
         meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
         input = new GameInput(interactionService);
+        renderDistance = RenderDistance.forWorld(world);
+        playerLife = new PlayerLife(world.getPlayer());
 
         hudBatch = new SpriteBatch();
         font = new BitmapFont();
+        deathFont = new BitmapFont();
+        deathFont.getData().setScale(4f);
+        deathFont.setColor(Color.RED);
         shapeRenderer = new ShapeRenderer();
 
-        buildAllMeshes();
         world.addObserver(this);
         Gdx.input.setCursorCatched(true);
-    }
-
-    private void buildAllMeshes() {
-        long start = System.nanoTime();
-        int totalFaces = 0;
-        int totalBlocks = 0;
-
-        for (Chunk chunk : world.getChunks()) {
-            ChunkMeshBuilder.ChunkMesh mesh = meshBuilder.build(chunk);
-            meshes.put(chunk, mesh);
-            instances.put(chunk, new ModelInstance(mesh.model()));
-            totalFaces += mesh.faceCount();
-            totalBlocks += mesh.blockCount();
-        }
-
-        long millis = (System.nanoTime() - start) / 1_000_000;
-        int theoretical = totalBlocks * 6;
-        System.out.printf(
-                "[render] %d chunks, %d bloques, %d caras dibujadas de %d posibles (%.1f%%), en %d ms%n",
-                world.getChunks().size(), totalBlocks, totalFaces, theoretical,
-                theoretical == 0 ? 0f : (100f * totalFaces / theoretical), millis);
     }
 
     /** Llega desde World al colocar o eliminar un bloque: marca el chunk afectado. */
     @Override
     public void update(BlockChange change) {
-        world.findChunk(change.block().getPosition()).ifPresent(dirtyChunks::add);
+        Position position = change.block().getPosition();
+        int chunkX = Chunk.chunkXFor(position);
+        int chunkZ = Chunk.chunkZFor(position);
+        markDirty(chunkX, chunkZ);
+        // Una cara del chunk vecino puede quedar expuesta al cambiar un bloque del borde.
+        if (Math.floorMod(position.x(), Chunk.WIDTH) == 0) {
+            markDirty(chunkX - 1, chunkZ);
+        } else if (Math.floorMod(position.x(), Chunk.WIDTH) == Chunk.WIDTH - 1) {
+            markDirty(chunkX + 1, chunkZ);
+        }
+        if (Math.floorMod(position.z(), Chunk.DEPTH) == 0) {
+            markDirty(chunkX, chunkZ - 1);
+        } else if (Math.floorMod(position.z(), Chunk.DEPTH) == Chunk.DEPTH - 1) {
+            markDirty(chunkX, chunkZ + 1);
+        }
+    }
+
+    private void markDirty(int chunkX, int chunkZ) {
+        world.findChunk(chunkX, chunkZ).ifPresent(dirtyChunks::add);
     }
 
     /** Chunks pendientes de reconstruir. Permite comprobar el cableado del Observer sin gráficos. */
@@ -153,18 +165,39 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
             return;
         }
 
-        input.update(player, world, Gdx.graphics.getDeltaTime());
-        rebuildDirtyChunks();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
+            renderDistance.decrease();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
+            renderDistance.increase();
+        }
+        if (playerLife.isDead()) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+                playerLife.respawn();
+            }
+        } else {
+            input.update(player, world, Gdx.graphics.getDeltaTime());
+            playerLife.update();
+        }
         updateCamera(player);
+        refreshVisibleMeshes(player);
 
         ScreenUtils.clear(SKY, true);
         modelBatch.begin(camera);
-        for (ModelInstance instance : instances.values()) {
-            modelBatch.render(instance, environment);
+        for (Map.Entry<Chunk, ModelInstance> entry : instances.entrySet()) {
+            Chunk chunk = entry.getKey();
+            chunkCenter.set((chunk.getChunkX() + 0.5f) * Chunk.WIDTH,
+                    Chunk.HEIGHT / 2f, (chunk.getChunkZ() + 0.5f) * Chunk.DEPTH);
+            if (camera.frustum.boundsInFrustum(chunkCenter, chunkDimensions)) {
+                modelBatch.render(entry.getValue(), environment);
+            }
         }
         modelBatch.end();
 
         drawHud(player);
+        if (playerLife.isDead()) {
+            drawDeathOverlay();
+        }
 
         frame++;
         if (screenshotPath != null && frame == screenshotFrame) {
@@ -173,20 +206,60 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         }
     }
 
-    private void rebuildDirtyChunks() {
-        if (dirtyChunks.isEmpty()) {
-            return;
-        }
-        for (Chunk chunk : dirtyChunks) {
-            ChunkMeshBuilder.ChunkMesh previous = meshes.remove(chunk);
-            if (previous != null) {
-                previous.model().dispose();
+    /** Solo mantiene mallas alrededor del jugador; el World conserva sus bloques para guardar. */
+    private void refreshVisibleMeshes(Player player) {
+        int playerChunkX = Math.floorDiv((int) Math.floor(player.getX()), Chunk.WIDTH);
+        int playerChunkZ = Math.floorDiv((int) Math.floor(player.getZ()), Chunk.DEPTH);
+
+        Iterator<Map.Entry<Chunk, ChunkMeshBuilder.ChunkMesh>> iterator = meshes.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<Chunk, ChunkMeshBuilder.ChunkMesh> entry = iterator.next();
+            if (!renderDistance.contains(playerChunkX, playerChunkZ, entry.getKey())) {
+                entry.getValue().model().dispose();
+                instances.remove(entry.getKey());
+                dirtyChunks.remove(entry.getKey());
+                iterator.remove();
             }
-            ChunkMeshBuilder.ChunkMesh rebuilt = meshBuilder.build(chunk);
-            meshes.put(chunk, rebuilt);
-            instances.put(chunk, new ModelInstance(rebuilt.model()));
         }
-        dirtyChunks.clear();
+
+        int budget = MESHES_PER_FRAME;
+        for (Chunk chunk : Set.copyOf(dirtyChunks)) {
+            if (budget == 0) {
+                break;
+            }
+            if (renderDistance.contains(playerChunkX, playerChunkZ, chunk) && meshes.containsKey(chunk)) {
+                meshes.remove(chunk).model().dispose();
+                buildMesh(chunk);
+                dirtyChunks.remove(chunk);
+                budget--;
+            }
+        }
+
+        // Centro primero, luego anillos: al aumentar la distancia no se bloquea un frame.
+        for (int ring = 0; ring <= renderDistance.radius() && budget > 0; ring++) {
+            for (int dx = -ring; dx <= ring && budget > 0; dx++) {
+                for (int dz = -ring; dz <= ring && budget > 0; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != ring) {
+                        continue;
+                    }
+                    Chunk chunk = world.findChunk(playerChunkX + dx, playerChunkZ + dz).orElse(null);
+                    if (chunk != null && !meshes.containsKey(chunk)) {
+                        buildMesh(chunk);
+                        dirtyChunks.remove(chunk);
+                        budget--;
+                    }
+                }
+            }
+        }
+        // Un cambio fuera del radio se reconstruirá al volver a crear su malla.
+        dirtyChunks.removeIf(chunk -> !meshes.containsKey(chunk)
+                && !renderDistance.contains(playerChunkX, playerChunkZ, chunk));
+    }
+
+    private void buildMesh(Chunk chunk) {
+        ChunkMeshBuilder.ChunkMesh mesh = meshBuilder.build(chunk);
+        meshes.put(chunk, mesh);
+        instances.put(chunk, new ModelInstance(mesh.model()));
     }
 
     /**
@@ -228,8 +301,31 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
                 12f, height - 32f);
         font.draw(hudBatch, "Bloque a colocar: " + input.getSelectedType() + "   (teclas 1-7)",
                 12f, height - 52f);
-        font.draw(hudBatch, "WASD mover · espacio saltar · clic izq. eliminar · clic der. colocar · ESC salir",
+        font.draw(hudBatch, "FPS: " + Gdx.graphics.getFramesPerSecond()
+                        + "   Distancia: " + renderDistance.radius() + " chunks (J-/K+)"
+                        + "   Mallas: " + meshes.size(), 12f, height - 72f);
+        font.draw(hudBatch, "WASD mover · Shift correr · espacio saltar · clic izq. eliminar · clic der. colocar · ESC salir",
                 12f, 22f);
+        hudBatch.end();
+    }
+
+    private void drawDeathOverlay() {
+        float width = Gdx.graphics.getWidth();
+        float height = Gdx.graphics.getHeight();
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(0f, 0f, 0f, 0.65f);
+        shapeRenderer.rect(0, 0, width, height);
+        shapeRenderer.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        deathText.setText(deathFont, "MORISTE");
+        hudBatch.begin();
+        deathFont.draw(hudBatch, deathText, (width - deathText.width) / 2f,
+                (height + deathText.height) / 2f);
+        font.draw(hudBatch, "R para reaparecer  ·  ESC para salir", width / 2f - 125f,
+                height / 2f - 48f);
         hudBatch.end();
     }
 
@@ -273,6 +369,10 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     @Override
     public void dispose() {
+        // Volver al menú después de morir no debe dejar una posición bajo el vacío guardable.
+        if (playerLife != null && playerLife.isDead()) {
+            playerLife.respawn();
+        }
         world.removeObserver(this);
         meshes.values().forEach(mesh -> mesh.model().dispose());
         meshes.clear();
@@ -281,6 +381,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         disposeQuietly(modelBatch);
         disposeQuietly(hudBatch);
         disposeQuietly(font);
+        disposeQuietly(deathFont);
         disposeQuietly(shapeRenderer);
         disposeQuietly(textureAtlas);
     }

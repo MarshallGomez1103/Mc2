@@ -64,4 +64,18 @@ class VoxelGameObserverTest {
         assertEquals(0, game.pendingRebuildCount(),
                 "World no notifica al eliminar aire, así que no hay nada que redibujar");
     }
+
+    @Test
+    void cambiarBloqueEnBordeMarcaLasMallasVecinas() {
+        World world = worldWithOneChunk();
+        world.addChunk(new Chunk(1, 0));
+        world.addChunk(new Chunk(0, 1));
+        VoxelGame game = new VoxelGame(world, new PlayerInteractionService());
+        world.addObserver(game);
+
+        world.placeBlock(0, 0, FACTORY.create(BlockType.WOOD, new Position(15, 20, 15)));
+
+        assertEquals(3, game.pendingRebuildCount(),
+                "cambia la cara del chunk propio y de sus dos vecinos ortogonales");
+    }
 }

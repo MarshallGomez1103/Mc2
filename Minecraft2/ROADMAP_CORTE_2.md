@@ -1,6 +1,7 @@
 # Roadmap maestro — Corte 2
 
-Estado: preparación para revisión. No se han implementado las funcionalidades del Corte 2.
+Estado: generación/estructuras y ampliaciones finitas del Estudiante 1 implementadas;
+Enemy AI, hordas y quality gate final pendientes.
 Horizonte orientativo: dos semanas desde la aprobación del equipo; no es una promesa de fechas.
 
 ## Estado de los cortes
@@ -8,7 +9,7 @@ Horizonte orientativo: dos semanas desde la aprobación del equipo; no es una pr
 - **CORTE 1 — TERMINADO:** MVP de consola + ventana voxel, CRUD JSON, cuatro chunks,
   generación inicial, jugador, cámara, movimiento, gravedad, salto, colisiones,
   interacción, Factory, Singleton, Observer y texturas de bloques ON/OFF.
-- **CORTE 2 — ACTUAL:** preparación y desarrollo incremental de los tres retos siguientes.
+- **CORTE 2 — ACTUAL:** terreno implementado; enemigos, hordas y calidad en desarrollo.
 - **CORTE 3 — TODAVÍA NO DEFINIDO:** pendiente de definición. No se diseña en este roadmap.
 
 ## Objetivo del Corte 2
@@ -26,7 +27,7 @@ complejo, mundo infinito/streaming, ECS, behavior trees, machine learning, siste
 distribuidos y dependencias empresariales. FOREST es opcional y no bloquea aceptación.
 Una aldea es una estructura, no un valor de BiomeType.
 
-## Baseline y límites de esta preparación
+## Baseline histórico y estado actual
 
 Base: main, commit 5501b02e183cf81950430eba11828908009d1caf.
 Git estaba limpio; git pull --ff-only indicó Already up to date.
@@ -38,6 +39,13 @@ Esta preparación añade documentación y tres enums sin comportamiento:
 ZombieState, BiomeType y Difficulty (en domain.enemy para no hacer depender dominio
 de application). No incluye GameSettings, FSM, A*, zombies, hordas, rendering nuevo
 ni modificaciones de persistencia. El gate posterior se registra en testing/unit-integration.md.
+
+Desde esa preparación se integró el frente de terreno: BiomeResolver,
+PLAINS/DESERT/MOUNTAINS, casa con ventanas, mundo finito seleccionable,
+distancia visual J/K, FPS, Shift y vida de sesión. El gate local más reciente es
+`mvn clean test`: 63 pruebas verdes. No hay Zombie, FSM ni A* funcional todavía.
+Detalles y límites de memoria en
+[world-size-render-and-life.md](docs/corte2/world-size-render-and-life.md).
 
 ## Plan de dos semanas y dependencias
 
@@ -93,17 +101,18 @@ Preferir nuevas clases de prueba a modificar fixtures compartidos.
 
 ## Estrategia de ramas
 
-Las ramas salen **después del commit base aprobado**, no del main anterior:
+Las ramas de trabajo ya existen después de la base aprobada:
 
 ```text
-main (base Corte 2 revisada e integrada)
-├── feature/c2-terrain
-├── feature/c2-enemy-ai
-└── feature/c2-quality-hordes
+main (base compartida; integrar trabajo validado)
+├── feature/c2-Thomas (respaldo del frente Estudiante 1)
+├── feature/c2-jasub (Estudiante 2)
+└── feature/c2-Ethian (Estudiante 3)
 ```
 
-En esta preparación no se crean ramas, commits, push, merges ni PR.
-El commit base a main requiere aprobación posterior.
+Los nombres anteriores sustituyen los nombres orientativos del plan original.
+Nadie debe programar en `master` ni empujar directamente a la rama ajena.
+La sincronización con `main` debe preservar el historial ajeno, sin force-push.
 
 Trabajo futuro: commits pequeños por comportamiento. Ejecutar mvn clean test antes
 y después de cada cambio coherente; documentar conscientemente cualquier cambio
@@ -133,8 +142,10 @@ integración y publicación exige GREEN. No presentar un commit RED como gate ap
 
 ## Handoff
 
-Completado: baseline verificado y vocabulario/documentación de preparación.
-Activo: revisión humana del diff; no hay commit base todavía.
-Siguiente: aprobar contratos pendientes, autorizar commit base y luego ramificación.
+Completado: base aprobada, frente de generación y extensiones finitas verificadas.
+Activo: Jasub desarrolla IA y Ethian desarrolla hordas/configuración/calidad en
+sus ramas, desde el estado común actualizado.
+Siguiente: checkpoints de [Jasub](docs/corte2/PLAN_AGENTE_JASUB.md) y
+[Ethian](docs/corte2/PLAN_AGENTE_ETHIAN.md), integración coordinada y gate final.
 Detalles: [arquitectura](docs/corte2/arquitectura-corte2.md),
 [IA](docs/corte2/enemy-ai.md), [terreno](docs/corte2/terrain-generation.md).

@@ -2,6 +2,7 @@
 
 Estado: harness y escenarios NO construidos ni ejecutados.
 Owner: Estudiante 3. Depende de EnemyUpdateService + A* integrados.
+Plan operativo: [PLAN_AGENTE_ETHIAN.md](../PLAN_AGENTE_ETHIAN.md).
 
 ## Objetivo
 
@@ -49,3 +50,6 @@ Enemies OFF puede servir de control; no debe actualizar/spawnear enemigos.
 | ENDURANCE/RESISTANCE | Pendiente | N/D | N/D | N/D | N/D | N/D |
 
 Las mediciones gráficas históricas del Corte 1 no son resultados de carga del Corte 2.
+La medición puntual de generación/carga de 256 chunks y tres ciclos gráficos de
+120 frames está en [world-size-render-and-life.md](../world-size-render-and-life.md);
+no equivale a ENDURANCE ni demuestra ausencia de fugas nativas/GPU.

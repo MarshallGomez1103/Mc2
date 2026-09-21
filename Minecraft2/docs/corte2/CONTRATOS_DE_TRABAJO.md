@@ -1,5 +1,11 @@
 # Contratos de trabajo — Minecraft 2, Corte 2
 
+> Actualización tras el frente de generación: se entregan biomas, casa con ventanas,
+> tamaños finitos, J/K, FPS, Shift y `PlayerLife`. El gate local actual es 63 pruebas
+> verdes; la referencia a 41 más abajo es el baseline histórico del Corte 1.
+> Checkpoints vigentes para los agentes: [Jasub](PLAN_AGENTE_JASUB.md) y
+> [Ethian](PLAN_AGENTE_ETHIAN.md). Preservar estas capacidades al integrar.
+
 Especificación compartida para los tres estudiantes y sus agentes de IA.
 Define responsabilidades y contratos conceptuales; no afirma que las capacidades
 planificadas ya funcionen ni congela firmas Java todavía no acordadas.
