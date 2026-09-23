@@ -1,6 +1,8 @@
 package presentation.game;
 
+import application.EnemyUpdateService;
 import application.PlayerInteractionService;
+import application.ZombieMeleeService;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -20,6 +22,7 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 import domain.Position;
+import domain.enemy.ZombieParameters;
 import domain.player.Player;
 import domain.player.PlayerLife;
 import domain.world.BlockChange;
@@ -52,6 +55,10 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private static final float FAR_PLANE = 300f;
     private static final int MESHES_PER_FRAME = 2;
     private static final Color SKY = new Color(0.45f, 0.68f, 0.92f, 1f);
+    /** Mismo tope que GameInput: un tirón de la ventana no debe teletransportar a los zombis. */
+    private static final float MAX_ENEMY_DELTA_SECONDS = 0.05f;
+    /** Distancia delante del jugador a la que la tecla Z genera un zombi de prueba. */
+    private static final double DEBUG_SPAWN_DISTANCE = 6.0;
 
     private final World world;
     private final PlayerInteractionService interactionService;
@@ -69,6 +76,8 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private GameInput input;
     private RenderDistance renderDistance;
     private PlayerLife playerLife;
+    private EnemyUpdateService enemyService;
+    private ZombieRenderer zombieRenderer;
     private final Vector3 chunkCenter = new Vector3();
     private final Vector3 chunkDimensions = new Vector3(Chunk.WIDTH, Chunk.HEIGHT, Chunk.DEPTH);
 
@@ -111,7 +120,9 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         modelBatch = new ModelBatch();
         textureAtlas = new BlockTextureAtlas();
         meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
-        input = new GameInput(interactionService);
+        enemyService = new EnemyUpdateService(world, ZombieParameters.defaults());
+        zombieRenderer = new ZombieRenderer();
+        input = new GameInput(interactionService, new ZombieMeleeService(world), enemyService);
         renderDistance = RenderDistance.forWorld(world);
         playerLife = new PlayerLife(world.getPlayer());
 
@@ -124,6 +135,19 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
         world.addObserver(this);
         Gdx.input.setCursorCatched(true);
+        spawnEvidenceZombies(Integer.getInteger("mc2.zombies", 0));
+    }
+
+    /** Solo para capturas de evidencia: coloca zombis delante del jugador sin pulsar Z. */
+    private void spawnEvidenceZombies(int count) {
+        Player player = world.getPlayer();
+        double[] forward = player.forwardVector();
+        double[] right = player.rightVector();
+        for (int i = 0; i < count; i++) {
+            double side = (i - (count - 1) / 2.0) * 2.0;
+            enemyService.spawnAt(player.getX() + forward[0] * DEBUG_SPAWN_DISTANCE + right[0] * side,
+                    player.getZ() + forward[1] * DEBUG_SPAWN_DISTANCE + right[1] * side);
+        }
     }
 
     /** Llega desde World al colocar o eliminar un bloque: marca el chunk afectado. */
@@ -178,6 +202,13 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         } else {
             input.update(player, world, Gdx.graphics.getDeltaTime());
             playerLife.update();
+            // Provisional hasta que HordeManager (Estudiante 3) genere oleadas: Z crea un zombi delante.
+            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+                double[] forward = player.forwardVector();
+                enemyService.spawnAt(player.getX() + forward[0] * DEBUG_SPAWN_DISTANCE,
+                        player.getZ() + forward[1] * DEBUG_SPAWN_DISTANCE);
+            }
+            enemyService.update(playerLife, Math.min(Gdx.graphics.getDeltaTime(), MAX_ENEMY_DELTA_SECONDS));
         }
         updateCamera(player);
         refreshVisibleMeshes(player);
@@ -192,6 +223,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
                 modelBatch.render(entry.getValue(), environment);
             }
         }
+        zombieRenderer.render(modelBatch, environment, enemyService.zombies());
         modelBatch.end();
 
         drawHud(player);
@@ -304,7 +336,9 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         font.draw(hudBatch, "FPS: " + Gdx.graphics.getFramesPerSecond()
                         + "   Distancia: " + renderDistance.radius() + " chunks (J-/K+)"
                         + "   Mallas: " + meshes.size(), 12f, height - 72f);
-        font.draw(hudBatch, "WASD mover · Shift correr · espacio saltar · clic izq. eliminar · clic der. colocar · ESC salir",
+        font.draw(hudBatch, "Zombis: " + enemyService.zombies().size() + "   (Z genera uno delante)",
+                12f, height - 92f);
+        font.draw(hudBatch, "WASD mover · Shift correr · espacio saltar · clic izq. golpear/eliminar · clic der. colocar · ESC salir",
                 12f, 22f);
         hudBatch.end();
     }
@@ -384,6 +418,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         disposeQuietly(deathFont);
         disposeQuietly(shapeRenderer);
         disposeQuietly(textureAtlas);
+        disposeQuietly(zombieRenderer);
     }
 
     private static void disposeQuietly(com.badlogic.gdx.utils.Disposable disposable) {

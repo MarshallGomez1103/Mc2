@@ -125,31 +125,35 @@ Detalle técnico y mediciones: [world-size-render-and-life.md](docs/corte2/world
 ## Estudiante 2 — Enemy AI
 
 FSM = decide qué hacer. A* = decide por dónde desplazarse. Son conceptos diferentes.
+Estado: implementado y probado headless (110/110); smoke manual con ratón pendiente.
+Detalle: [docs/corte2/enemy-ai.md](docs/corte2/enemy-ai.md), reporte en
+[docs/corte2/REPORTE_ENEMY_AI_JASUB.md](docs/corte2/REPORTE_ENEMY_AI_JASUB.md).
 
 - [x] ZombieState: IDLE, CHASE, ATTACK, DEAD; solo vocabulario.
-- [ ] Zombie sin heredar de Player, sin LibGDX y como estado de sesión.
-- [ ] Acordar API pura de ZombieStateMachine antes de escribir comportamiento.
-- [ ] C2-03 TDD RED: pruebas primero y evidencia de fallo real pertinente.
-- [ ] TDD GREEN: mínimo comportamiento y evidencia verde.
-- [ ] TDD REFACTOR: simplificar conservando suite verde y registrar diff.
-- [ ] NavigationNode: X/Z + groundY, significado acordado.
-- [ ] NavigationGrid: World actual, apoyo, cuerpo, desnivel y chunk existente.
-- [ ] C2-05 AStarPathfinder: open/closed, g/h/f, parent y reconstrucción.
-- [ ] Path y movimiento siguiendo waypoint sin atravesar obstáculos.
-- [ ] Detección del jugador e IDLE.
-- [ ] CHASE con ruta A*, no búsqueda por frame.
-- [ ] ATTACK con alcance, cooldown y efecto mínimo acordados.
-- [ ] DEAD por salud <= 0 y retirada según regla acordada.
-- [ ] Repath por objetivo movido, ruta terminada/inválida o intervalo; evitar busy retry.
-- [ ] C2-07 integración EnemyUpdateService: FSM, percepción, navegación y movimiento.
-- [ ] C2-08 integración visual mínima y VoxelGame en ventana coordinada.
-- [ ] Clic izquierdo sobre zombi en alcance: golpe cuerpo a cuerpo antes de borrar bloque; si no hay zombi, conservar eliminación de bloques.
-- [ ] Muerte de zombi: efecto visual breve de «explosión» sin romper terreno ni producir daño de área; retirar recursos visuales al despawn.
-- [ ] Ataque letal del zombi: conectar con `PlayerLife.die(ENEMY)` sin persistir vida de sesión.
-- [ ] Tests unitarios FSM: transiciones, límites y prioridades.
-- [ ] Tests unitarios A*: recto, obstáculo/rodeo, imposible, origen=destino y desnivel.
-- [ ] Tests de integración Enemy + World con bloques modificados.
-- [ ] Documentación IA y evidencia TDD en docs/corte2/.
+- [x] Zombie sin heredar de Player, sin LibGDX y como estado de sesión (`domain.enemy.Zombie`; `ZombieTest` verifica ambas restricciones).
+- [x] Acordar API pura de ZombieStateMachine antes de escribir comportamiento: `next(ZombieState, ZombiePerception)`; reglas fijadas por escrito en `docs/corte2/testing/tdd-zombie-fsm.md` antes de RED.
+- [x] C2-03 TDD RED: pruebas primero y evidencia de fallo real pertinente (13 ejecutadas, 8 fallos de aserción con stub sin transiciones).
+- [x] TDD GREEN: mínimo comportamiento y evidencia verde (13/13).
+- [x] TDD REFACTOR: simplificar conservando suite verde y registrar diff (ternarios → `fromIdle/fromChase/fromAttack`).
+- [x] NavigationNode: X/Z + groundY, significado acordado (`groundY` = bloque de apoyo; pies en `groundY + 1`).
+- [x] NavigationGrid: World actual, apoyo, cuerpo, desnivel y chunk existente (sin caché; subir 1, bajar 3; vecinos 4).
+- [x] C2-05 AStarPathfinder: open/closed, g/h/f, parent y reconstrucción (presupuesto 2 000 expansiones; sin ruta = `Optional.empty()`).
+- [x] Path y movimiento siguiendo waypoint sin atravesar obstáculos (`ZombieMovement` con auto-step; bloqueo → repath).
+- [x] Detección del jugador e IDLE (distancia 3D, 12 bloques; sin línea de visión, documentado).
+- [x] CHASE con ruta A*, no búsqueda por frame (probado: 120 frames → 1–3 búsquedas).
+- [x] ATTACK con alcance, cooldown y efecto mínimo acordados (1.6 bloques, 1 s incluido el primer golpe, `PlayerLife.die(ENEMY)`).
+- [x] DEAD por salud <= 0 y retirada según regla acordada (despawn a 0.8 s; la colección no crece tras 10×20 muertes).
+- [x] Repath por objetivo movido, ruta terminada/inválida o intervalo; evitar busy retry (1.5 bloques / 1.5 s / espera 1 s sin ruta).
+- [x] C2-07 integración EnemyUpdateService: FSM, percepción, navegación y movimiento (`application.EnemyUpdateService`; ON/OFF y registro para HordeManager).
+- [x] C2-08 integración visual mínima y VoxelGame en ventana coordinada (`ZombieRenderer`; capturas en `docs/corte2/evidencias/`; avisar al equipo del cambio en el hotspot).
+- [x] Clic izquierdo sobre zombi en alcance: golpe cuerpo a cuerpo antes de borrar bloque; si no hay zombi, conservar eliminación de bloques (`ZombieMeleeService`, ambos caminos probados en JUnit; clic real pendiente de smoke manual).
+- [ ] Muerte de zombi: efecto visual breve de «explosión» sin romper terreno ni producir daño de área; retirar recursos visuales al despawn. Implementado en `ZombieRenderer` (solo visual; instancias liberadas con `retainAll`); falta verlo en pantalla con un golpe real.
+- [x] Ataque letal del zombi: conectar con `PlayerLife.die(ENEMY)` sin persistir vida de sesión (captura `enemy-ai-death.png`).
+- [x] Tests unitarios FSM: transiciones, límites y prioridades (13).
+- [x] Tests unitarios A*: recto, obstáculo/rodeo, imposible, origen=destino y desnivel (8).
+- [x] Tests de integración Enemy + World con bloques modificados (`EnemyUpdateServiceTest`: pared construida durante la persecución, jugador encerrado).
+- [x] Documentación IA y evidencia TDD en docs/corte2/ (`enemy-ai.md`, `testing/tdd-zombie-fsm.md`, `WIKI_ENEMY_AI_JASUB.md`).
+- [ ] Smoke manual del equipo con ratón: golpe, explosión, picar sin zombi, R y J/K con zombis; retirar tecla Z y `-Dmc2.zombies` al llegar HordeManager.
 
 ## Estudiante 3 — Hordas, configuración y calidad
 

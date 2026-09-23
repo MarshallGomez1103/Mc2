@@ -1,6 +1,8 @@
 package presentation.game;
 
+import application.EnemyUpdateService;
 import application.PlayerInteractionService;
+import application.ZombieMeleeService;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import domain.block.BlockType;
@@ -17,8 +19,9 @@ import java.util.Objects;
  * Traduce teclado y ratón en llamadas a los servicios de movimiento, física, colisión e
  * interacción. No decide reglas del juego: solo lee qué está pulsado y delega.
  *
- * <p>Controles: W/A/S/D mueven, Shift corre, espacio salta, el ratón mira, clic izquierdo elimina el bloque
- * apuntado, clic derecho coloca, y las teclas 1 a 7 eligen el material a colocar.
+ * <p>Controles: W/A/S/D mueven, Shift corre, espacio salta, el ratón mira, clic izquierdo golpea al zombi
+ * apuntado o, si no hay ninguno en alcance, elimina el bloque apuntado; clic derecho coloca, y las
+ * teclas 1 a 7 eligen el material a colocar.
  */
 public final class GameInput {
     /**
@@ -40,12 +43,17 @@ public final class GameInput {
     private final PlayerPhysics physics = new PlayerPhysics();
     private final CollisionResolver collisionResolver = new CollisionResolver();
     private final PlayerInteractionService interactionService;
+    private final ZombieMeleeService meleeService;
+    private final EnemyUpdateService enemyService;
 
     private BlockType selectedType = BlockType.STONE;
 
-    public GameInput(PlayerInteractionService interactionService) {
+    public GameInput(PlayerInteractionService interactionService, ZombieMeleeService meleeService,
+                     EnemyUpdateService enemyService) {
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
+        this.meleeService = Objects.requireNonNull(meleeService, "meleeService no puede ser null");
+        this.enemyService = Objects.requireNonNull(enemyService, "enemyService no puede ser null");
     }
 
     public BlockType getSelectedType() {
@@ -101,7 +109,10 @@ public final class GameInput {
             return;
         }
         if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
-            interactionService.removeTargetedBlock(player, world);
+            // Primero el zombi bajo la mira y en alcance; si no hay ninguno, el clic sigue picando.
+            if (!meleeService.strike(player, enemyService.zombies())) {
+                interactionService.removeTargetedBlock(player, world);
+            }
         }
         if (Gdx.input.isButtonJustPressed(Input.Buttons.RIGHT)) {
             interactionService.placeBlockOfType(player, world, selectedType);
