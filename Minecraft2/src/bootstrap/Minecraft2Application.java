@@ -1,5 +1,6 @@
 package bootstrap;
 
+import application.GameSettings;
 import application.PlayerInteractionService;
 import application.WorldApplicationService;
 import patterns.factory.BlockFactory;
@@ -18,7 +19,7 @@ public final class Minecraft2Application {
         BlockFactory blockFactory = new BlockFactory();
         WorldStorage storage = new JsonWorldStorage(WorldDirectory.resolve(), blockFactory);
         WorldApplicationService worldService = new WorldApplicationService(storage, blockFactory);
-        GameWindow gameWindow = new GameWindow(new PlayerInteractionService());
+        GameWindow gameWindow = new GameWindow(new PlayerInteractionService(), new GameSettings());
         new MainMenu(worldService, gameWindow).show();
     }
 }

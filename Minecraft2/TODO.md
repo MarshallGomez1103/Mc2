@@ -157,28 +157,28 @@ Detalle: [docs/corte2/enemy-ai.md](docs/corte2/enemy-ai.md), reporte en
 
 ## Estudiante 3 — Hordas, configuración y calidad
 
-- [ ] C2-04 GameSettings: campos/defaults y política de sesión acordados.
-- [ ] Enemigos ON/OFF: OFF impide spawn y actualización.
-- [ ] Enemy textures ON/OFF independiente de texturas del mundo.
+- [x] C2-04 GameSettings: enemigos ON, texturas de enemigos ON y NORMAL por defecto; solo sesión, sin persistir (`application.GameSettings`, `GameSettingsTest`).
+- [ ] Enemigos ON/OFF: OFF impide spawn y actualización. Lógica probada (`HordeManagerTest.enemiesOffFreezesTheHorde`); falta conectarla en VoxelGame con Jasub.
+- [ ] Enemy textures ON/OFF independiente de texturas del mundo. Opción y `ZombieSkin` listos; falta `ZombieRenderer` con Jasub.
 - [x] Difficulty: NORMAL y VERY_HARD como vocabulario, sin parámetros.
-- [ ] NORMAL con parámetros centralizados y probados.
-- [ ] VERY_HARD con mismos algoritmos y parámetros distintos probados.
-- [ ] HordeManager separado de movimiento individual.
-- [ ] Oleadas: inicio, cantidad, intervalo, final y siguiente oleada deterministas.
-- [ ] Acordar creación/registro de zombies y colección de sesión.
-- [ ] C2-08 configuración desde menú; MainMenu y GameWindow owned.
-- [ ] Pruebas unitarias de HordeManager con tiempo explícito.
-- [ ] Pruebas unitarias de Difficulty/configuración, no getters triviales.
-- [ ] Huecos baratos Corte 1: límites Chunk, todos los tipos Factory y misma seed.
-- [ ] C2-09 configuración PIT en pom.xml y scope pequeño de lógica pura.
-- [ ] Mutation testing: generated/killed/survived/no coverage/score reales.
-- [ ] Análisis de mutantes sobrevivientes y tests de comportamiento, sin maquillar scope.
-- [ ] C2-10 load test harness reproducible, headless cuando aplique.
-- [ ] BASELINE: referencia finita con NORMAL.
-- [ ] PEAK: carga alta y repaths concurrentes medidos.
-- [ ] STRESS: aumentar hasta degradación observada, sin prometer 100 enemigos.
-- [ ] ENDURANCE/RESISTANCE: ciclo prolongado spawn/update/death/oleadas.
-- [ ] Documentación de resultados, hardware/JVM, duración y limitaciones.
+- [x] NORMAL con parámetros centralizados y probados (`Difficulty` = `ZombieParameters.defaults()` + `WaveRules`).
+- [x] VERY_HARD con mismos algoritmos y parámetros distintos probados (`DifficultyTest`: detecta, corre, mata y aguanta más).
+- [x] HordeManager separado de movimiento individual (`application.HordeManager`; solo usa `spawnAt`/`zombies`/`isEnabled`).
+- [x] Oleadas: inicio, cantidad, intervalo, final y siguiente oleada deterministas (seed del mundo, tiempo explícito).
+- [ ] Acordar creación/registro de zombies y colección de sesión. Se usa el contrato propuesto por Jasub en `enemy-ai.md`; falta su confirmación.
+- [x] C2-08 configuración desde menú: opción 8 con submenú de enemigos, texturas y dificultad (`MainMenuSettingsTest`).
+- [x] Pruebas unitarias de HordeManager con tiempo explícito (`HordeManagerTest`, 16 casos).
+- [x] Pruebas unitarias de Difficulty/configuración, no getters triviales (`DifficultyTest`, `WaveRulesTest`, `GameSettingsTest`).
+- [x] Huecos baratos Corte 1: límites Chunk, todos los tipos Factory y misma seed (`ChunkBoundsTest`, `BlockFactoryTest`, `SameSeedTest`).
+- [x] C2-09 configuración PIT en pom.xml y scope pequeño de lógica pura (PIT 1.30.0, fuera del gate).
+- [x] Mutation testing: 172 generated, 153 killed, 1 timed out, 17 survived, 1 no coverage; score 89.5 % ([mutation-testing.md](docs/corte2/testing/mutation-testing.md)).
+- [x] Análisis de mutantes sobrevivientes y tests de comportamiento, sin maquillar scope (81 % → 89.5 %; supervivientes ajenos reportados).
+- [x] C2-10 load test harness reproducible, headless (`test/loadtest/EnemyLoadHarness.java`).
+- [x] BASELINE: referencia finita con NORMAL (3 zombis, p95 < 0.05 ms).
+- [x] PEAK: carga alta y repaths concurrentes medidos (25 zombis, p95 3.7 ms, 268 A*/s).
+- [x] STRESS: aumentar hasta degradación observada, sin prometer 100 enemigos (p95 > 16.7 ms con 320).
+- [x] ENDURANCE/RESISTANCE: ciclo prolongado spawn/update/death/oleadas (30 min, 4 096 oleadas, heap estable, 0 errores).
+- [x] Documentación de resultados, hardware/JVM, duración y limitaciones ([load-testing.md](docs/corte2/testing/load-testing.md)).
 
 ## Dependencias de integración
 

@@ -70,8 +70,10 @@ public final class WorldApplicationService {
      * un mundo guardado esto no se ejecuta: ahí manda la posición que el jugador tenía al salir.
      */
     private void placePlayerOnSurface(World world, WorldSize size) {
-        int width = Chunk.WIDTH * size.chunksPerSide();
-        int depth = Chunk.DEPTH * size.chunksPerSide();
+        placePlayerOnSurface(world, Chunk.WIDTH * size.chunksPerSide(), Chunk.DEPTH * size.chunksPerSide());
+    }
+
+    private void placePlayerOnSurface(World world, int width, int depth) {
         int centerX = width / 2;
         int centerZ = depth / 2;
 
@@ -151,13 +153,36 @@ public final class WorldApplicationService {
     public void saveCurrentWorld() throws IOException {
         World current = worldManager.getCurrentWorld()
                 .orElseThrow(() -> new IllegalStateException("No hay un mundo cargado"));
+        rescuePlayerOutsideHeight(current);
         storage.update(current);
+    }
+
+    /**
+     * Un jugador que cae por el borde sigue vivo hasta y = -8, pero el formato JSON solo admite
+     * alturas entre 0 y {@link Chunk#HEIGHT}. Guardarlo tal cual dejaría un archivo que no se puede
+     * volver a cargar; en su lugar se guarda sobre el suelo de su columna o, si la columna está
+     * fuera del mundo, en el punto de aparición inicial.
+     */
+    private void rescuePlayerOutsideHeight(World world) {
+        Player player = world.getPlayer();
+        if (player.getY() >= 0 && player.getY() <= Chunk.HEIGHT) {
+            return;
+        }
+        int top = groundTopAt(world, (int) Math.floor(player.getX()), (int) Math.floor(player.getZ()));
+        if (top >= 0) {
+            player.setY(top + 1d);
+            return;
+        }
+        int maxChunkX = world.getChunks().stream().mapToInt(Chunk::getChunkX).max().orElse(0);
+        int maxChunkZ = world.getChunks().stream().mapToInt(Chunk::getChunkZ).max().orElse(0);
+        placePlayerOnSurface(world, (maxChunkX + 1) * Chunk.WIDTH, (maxChunkZ + 1) * Chunk.DEPTH);
     }
 
     public void deleteWorld(String id) throws IOException {
         storage.delete(id);
         worldManager.getCurrentWorld()
-                .filter(world -> world.getId().equals(id))
+                // En Windows los nombres de archivo no distinguen mayúsculas: "mundo" borra "Mundo.json".
+                .filter(world -> world.getId().equalsIgnoreCase(id))
                 .ifPresent(world -> worldManager.unload());
     }
 }

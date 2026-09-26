@@ -30,6 +30,10 @@ public final class JsonParser {
             throw new InvalidWorldFileException("El contenido del archivo es nulo");
         }
         JsonParser parser = new JsonParser(source);
+        // Un BOM UTF-8 al principio (lo añaden algunos editores de Windows) no es contenido del documento.
+        if (!source.isEmpty() && source.charAt(0) == '﻿') {
+            parser.index = 1;
+        }
         parser.skipWhitespace();
         Object value = parser.readValue(0);
         parser.skipWhitespace();
@@ -139,6 +143,7 @@ public final class JsonParser {
             }
             char current = advance();
             if (current == '"') {
+                requireWellFormedUtf16(text);
                 return text.toString();
             }
             if (current == '\\') {
@@ -176,13 +181,34 @@ public final class JsonParser {
             throw error("Secuencia de escape unicode incompleta");
         }
         String hexadecimal = source.substring(index, index + 4);
+        int code = 0;
+        for (int i = 0; i < 4; i++) {
+            // Solo dígitos hexadecimales: Integer.parseInt aceptaría también un signo, como en "\\u+041".
+            int digit = Character.digit(hexadecimal.charAt(i), 16);
+            if (digit < 0) {
+                throw error("Secuencia de escape unicode inválida: '\\u" + hexadecimal + "'");
+            }
+            code = code * 16 + digit;
+        }
         for (int i = 0; i < 4; i++) {
             advance();
         }
-        try {
-            return (char) Integer.parseInt(hexadecimal, 16);
-        } catch (NumberFormatException cause) {
-            throw error("Secuencia de escape unicode inválida: '\\u" + hexadecimal + "'");
+        return (char) code;
+    }
+
+    /**
+     * Rechaza surrogates sueltos: la cadena se podría leer, pero al volver a guardarla en UTF-8 la
+     * escritura fallaría siempre y el mundo ya no se podría guardar.
+     */
+    private void requireWellFormedUtf16(CharSequence text) throws InvalidWorldFileException {
+        for (int i = 0; i < text.length(); i++) {
+            char current = text.charAt(i);
+            if (Character.isHighSurrogate(current) && i + 1 < text.length()
+                    && Character.isLowSurrogate(text.charAt(i + 1))) {
+                i++;
+            } else if (Character.isSurrogate(current)) {
+                throw error("La cadena contiene un carácter unicode incompleto (surrogate suelto)");
+            }
         }
     }
 
@@ -190,6 +216,9 @@ public final class JsonParser {
         int start = index;
         if (peekIs('-')) {
             advance();
+        }
+        if (peekIs('0') && index + 1 < source.length() && isDigit(source.charAt(index + 1))) {
+            throw error("JSON no admite ceros a la izquierda en los números");
         }
         readDigits();
 

@@ -1,5 +1,6 @@
 package presentation.game;
 
+import application.GameSettings;
 import application.PlayerInteractionService;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
@@ -19,11 +20,22 @@ public final class GameWindow {
     private static final int DEFAULT_HEIGHT = 720;
 
     private final PlayerInteractionService interactionService;
+    private final GameSettings settings;
     private boolean texturesEnabled = true;
 
     public GameWindow(PlayerInteractionService interactionService) {
+        this(interactionService, new GameSettings());
+    }
+
+    public GameWindow(PlayerInteractionService interactionService, GameSettings settings) {
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
+        this.settings = Objects.requireNonNull(settings, "settings no puede ser null");
+    }
+
+    /** Opciones de enemigos de la sesión, compartidas con el menú. */
+    public GameSettings settings() {
+        return settings;
     }
 
     /** Alterna entre el atlas visual y los colores planos originales. */

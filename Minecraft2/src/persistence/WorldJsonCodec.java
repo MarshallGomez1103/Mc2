@@ -55,6 +55,11 @@ public final class WorldJsonCodec {
         // El jugador usa coordenadas continuas y orientación; la velocidad vertical y onGround
         // son estado transitorio de la física y se recalculan al cargar.
         Player player = world.getPlayer();
+        // Misma regla que readPlayer: escribir una altura que luego no se puede leer corrompería el mundo.
+        if (player.getY() < 0 || player.getY() > Chunk.HEIGHT) {
+            throw new IllegalArgumentException(
+                    "La altura del jugador debe estar entre 0 y " + Chunk.HEIGHT + " para guardar: " + player.getY());
+        }
         json.append("  \"player\": { \"x\": ").append(number(player.getX()))
                 .append(", \"y\": ").append(number(player.getY()))
                 .append(", \"z\": ").append(number(player.getZ()))
@@ -224,8 +229,8 @@ public final class WorldJsonCodec {
 
     private static Chunk readChunk(Map<String, Object> source, String path, BlockFactory blockFactory)
             throws InvalidWorldFileException {
-        int chunkX = requireInt(source, "x", path);
-        int chunkZ = requireInt(source, "z", path);
+        int chunkX = requireChunkCoordinate(source, "x", path);
+        int chunkZ = requireChunkCoordinate(source, "z", path);
         Chunk chunk = new Chunk(chunkX, chunkZ);
 
         List<Object> blocks = asArray(require(source, "blocks", path), path + ".blocks");
@@ -371,6 +376,22 @@ public final class WorldJsonCodec {
         throw new InvalidWorldFileException(
                 "El campo '" + field + "' de " + path + " debe ser un número"
         );
+    }
+
+    /**
+     * Coordenada de chunk cuyos bloques caben en un {@code int}: más allá, {@code chunkX * 16}
+     * desbordaría y el bloque acabaría en otro chunk.
+     */
+    private static int requireChunkCoordinate(Map<String, Object> source, String field, String path)
+            throws InvalidWorldFileException {
+        int value = requireInt(source, field, path);
+        int limit = Integer.MAX_VALUE / Chunk.WIDTH - 1;
+        if (value < -limit || value > limit) {
+            throw new InvalidWorldFileException(
+                    "La coordenada de chunk '" + field + "' de " + path + " está fuera del mundo: " + value
+            );
+        }
+        return value;
     }
 
     private static int requireInt(Map<String, Object> source, String field, String path)

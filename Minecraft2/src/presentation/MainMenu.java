@@ -1,12 +1,15 @@
 package presentation;
 
+import application.GameSettings;
 import application.WorldApplicationService;
 import application.WorldSize;
+import domain.enemy.Difficulty;
 import domain.world.World;
 import presentation.game.GameWindow;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -75,6 +78,10 @@ public final class MainMenu {
             }
             case "7" -> {
                 toggleTextures();
+                yield true;
+            }
+            case "8" -> {
+                enemySettingsScreen();
                 yield true;
             }
             case "0" -> {
@@ -197,9 +204,16 @@ public final class MainMenu {
         console.info("Abriendo el mundo \"" + world.get().getName() + "\"...");
         console.info("WASD para moverte, Shift para correr, espacio para saltar, clic para colocar y eliminar bloques.");
         console.info("J/K cambian distancia visible; R reaparece después de morir; FPS en pantalla.");
+        console.info(enemySummary(gameWindow.settings()) + ". Clic izquierdo golpea al zombi que miras.");
         console.info("Pulsa ESC o cierra la ventana para volver a este menú.");
 
-        gameWindow.play(world.get());
+        try {
+            gameWindow.play(world.get());
+        } catch (RuntimeException failure) {
+            // Un fallo gráfico no debe cerrar el programa: el mundo sigue en memoria y se puede guardar.
+            console.blank();
+            console.error("El juego se cerró por un error: " + failure.getMessage());
+        }
 
         console.blank();
         console.info("De vuelta en el menú. Usa \"4. Guardar mundo actual\" para conservar los cambios.");
@@ -211,7 +225,53 @@ public final class MainMenu {
                 + ". Se aplicarán al abrir el juego.");
     }
 
+    /** Opciones de enemigos de la sesión; se aplican al abrir la siguiente ventana de juego. */
+    private void enemySettingsScreen() {
+        GameSettings settings = gameWindow.settings();
+        while (true) {
+            console.title("Opciones de enemigos");
+            console.info("""
+                    1. Enemigos: %s (cambiar)
+                    2. Texturas de enemigos: %s (cambiar)
+                    3. Dificultad: %s (cambiar)
+                    0. Volver""".formatted(onOff(settings.enemiesEnabled()),
+                    onOff(settings.enemyTexturesEnabled()), settings.difficulty()));
+            Optional<String> option = console.prompt("Seleccione una opción");
+            if (option.isEmpty() || option.get().equals("0")) {
+                return;
+            }
+            switch (option.get()) {
+                case "1" -> console.info("Enemigos " + onOff(settings.toggleEnemies())
+                        + ". Se aplicará al abrir el juego.");
+                case "2" -> console.info("Texturas de enemigos " + onOff(settings.toggleEnemyTextures())
+                        + ". Se aplicará al abrir el juego.");
+                case "3" -> console.info("Dificultad " + settings.cycleDifficulty()
+                        + ". " + describe(settings.difficulty()));
+                default -> console.error("Opción no válida: '" + option.get() + "'.");
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ utilidades
+
+    private static String enemySummary(GameSettings settings) {
+        return "Enemigos: " + onOff(settings.enemiesEnabled())
+                + " · Texturas enemigos: " + onOff(settings.enemyTexturesEnabled())
+                + " · Dificultad: " + settings.difficulty();
+    }
+
+    private static String onOff(boolean enabled) {
+        return enabled ? "ON" : "OFF";
+    }
+
+    /** Resume la dificultad con sus propios parámetros, sin condicionales por nivel. */
+    private static String describe(Difficulty difficulty) {
+        return String.format(Locale.ROOT,
+                "Primera oleada a los %.0f s con %d zombis (+%d por oleada, máx. %d); velocidad %.1f, %d golpes.",
+                difficulty.waveRules().firstWaveDelaySeconds(), difficulty.waveRules().baseCount(),
+                difficulty.waveRules().extraPerWave(), difficulty.waveRules().maxCount(),
+                difficulty.zombieParameters().moveSpeed(), difficulty.zombieParameters().maxHealth());
+    }
 
     private void printHeader() {
         console.title("Minecraft 2");
@@ -227,7 +287,9 @@ public final class MainMenu {
                 5. Eliminar mundo
                 6. Jugar
                 7. Texturas: %s (cambiar)
-                0. Salir""".formatted(gameWindow.texturesEnabled() ? "ACTIVADAS" : "DESACTIVADAS"));
+                8. %s (configurar)
+                0. Salir""".formatted(gameWindow.texturesEnabled() ? "ACTIVADAS" : "DESACTIVADAS",
+                enemySummary(gameWindow.settings())));
     }
 
     /** Fallo al leer o escribir el archivo: dañado, ilegible o con un esquema que no cumple. */
