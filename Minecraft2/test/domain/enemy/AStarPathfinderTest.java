@@ -21,7 +21,10 @@ class AStarPathfinderTest {
     private static void assertConsecutiveNodesAreAdjacent(Path path) {
         List<NavigationNode> nodes = path.nodes();
         for (int i = 1; i < nodes.size(); i++) {
-            assertEquals(1, nodes.get(i - 1).manhattanTo(nodes.get(i)), "waypoints no adyacentes en " + i);
+            NavigationNode previous = nodes.get(i - 1);
+            NavigationNode next = nodes.get(i);
+            assertTrue(Math.max(Math.abs(previous.x() - next.x()), Math.abs(previous.z() - next.z())) == 1,
+                    "waypoints no adyacentes en " + i);
             assertTrue(Math.abs(nodes.get(i).groundY() - nodes.get(i - 1).groundY()) <= NavigationGrid.MAX_DROP);
         }
     }
@@ -84,12 +87,14 @@ class AStarPathfinderTest {
 
     @Test
     void oneBlockStepIsClimbedWithHigherCostThanFlatGround() {
-        TestWorlds.place(world, 5, GROUND_Y + 1, 5, BlockType.STONE);
+        for (int z = 0; z < 16; z++) {
+            TestWorlds.place(world, 5, GROUND_Y + 1, z, BlockType.STONE);
+        }
         Path path = pathfinder.findPath(grid, ground(3, 5), ground(7, 5)).orElseThrow();
         assertConsecutiveNodesAreAdjacent(path);
         assertEquals(5, path.size());
         assertTrue(path.nodes().contains(new NavigationNode(5, GROUND_Y + 1, 5)),
-                "recta: 4 pasos + 1.0 de desnivel = 5.0; rodeo por z=4 o z=6: 6 pasos = 6.0");
+                "cruza la plataforma de un bloque por la ruta más corta");
     }
 
     @Test
@@ -98,7 +103,7 @@ class AStarPathfinderTest {
         TestWorlds.place(world, 5, GROUND_Y + 2, 5, BlockType.STONE);
         Path path = pathfinder.findPath(grid, ground(3, 5), ground(7, 5)).orElseThrow();
         assertConsecutiveNodesAreAdjacent(path);
-        assertEquals(7, path.size());
+        assertEquals(5, path.size());
         assertFalse(path.nodes().stream().anyMatch(node -> node.x() == 5 && node.z() == 5));
     }
 

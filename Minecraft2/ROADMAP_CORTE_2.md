@@ -1,15 +1,20 @@
 # Roadmap maestro — Corte 2
 
-Estado: generación/estructuras y ampliaciones finitas del Estudiante 1 implementadas;
-Enemy AI, hordas y quality gate final pendientes.
-Horizonte orientativo: dos semanas desde la aprobación del equipo; no es una promesa de fechas.
+Estado 2026-09-26: generación, IA, hordas y R1–R10 implementados e integrados
+localmente. Suite final 238/238; smoke gráfico automatizado, PIT y carga ejecutados.
+Pendiente: revisión humana de jugabilidad, AMD físico y endurance gráfico prolongado.
+No se hizo commit ni push. [Evidencia vigente](docs/corte2/testing/integration-20260926.md).
+
+El cronograma y baseline de septiembre 16 se conservan como historial, no como
+estado vigente. El usuario autorizó esta ejecución completa con subagentes.
+Los hotspots se asignaron a un único owner y se integraron desde el estado local.
 
 ## Estado de los cortes
 
 - **CORTE 1 — TERMINADO:** MVP de consola + ventana voxel, CRUD JSON, cuatro chunks,
   generación inicial, jugador, cámara, movimiento, gravedad, salto, colisiones,
   interacción, Factory, Singleton, Observer y texturas de bloques ON/OFF.
-- **CORTE 2 — ACTUAL:** terreno implementado; enemigos, hordas y calidad en desarrollo.
+- **CORTE 2 — ACTUAL:** los tres frentes integrados, ampliación de jugabilidad probada.
 - **CORTE 3 — TODAVÍA NO DEFINIDO:** pendiente de definición. No se diseña en este roadmap.
 
 ## Objetivo del Corte 2
@@ -42,8 +47,8 @@ ni modificaciones de persistencia. El gate posterior se registra en testing/unit
 
 Desde esa preparación se integró el frente de terreno: BiomeResolver,
 PLAINS/DESERT/MOUNTAINS, casa con ventanas, mundo finito seleccionable,
-distancia visual J/K, FPS, Shift y vida de sesión. El gate local más reciente es
-`mvn clean test`: 63 pruebas verdes. No hay Zombie, FSM ni A* funcional todavía.
+distancia visual J/K, FPS, Shift y vida de sesión. El gate de esa etapa fue
+`mvn clean test`: 63 pruebas verdes. En esa revisión no había Zombie, FSM ni A* funcional.
 Detalles y límites de memoria en
 [world-size-render-and-life.md](docs/corte2/world-size-render-and-life.md).
 
@@ -143,9 +148,9 @@ integración y publicación exige GREEN. No presentar un commit RED como gate ap
 ## Handoff
 
 Completado: base aprobada, frente de generación y extensiones finitas verificadas.
-Activo: Jasub desarrolla IA y Ethian desarrolla hordas/configuración/calidad en
-sus ramas, desde el estado común actualizado.
-Siguiente: checkpoints de [Jasub](docs/corte2/PLAN_AGENTE_JASUB.md) y
+Actual: las entregas de Jasub y Ethian están integradas con la generación de Thomas.
+Siguiente: playtest humano y revisión del diff para autorizar publicación.
+Checkpoints históricos de [Jasub](docs/corte2/PLAN_AGENTE_JASUB.md) y
 [Ethian](docs/corte2/PLAN_AGENTE_ETHIAN.md), integración coordinada y gate final.
 Detalles: [arquitectura](docs/corte2/arquitectura-corte2.md),
 [IA](docs/corte2/enemy-ai.md), [terreno](docs/corte2/terrain-generation.md).

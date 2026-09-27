@@ -1,78 +1,114 @@
-# Arquitectura Corte 2 — acuerdos y estado actual
+# Arquitectura Corte 2 — estado integrado 2026-09-26
 
-Estado: generación/estructuras y ampliación finita implementadas; enemigos y
-calidad final pendientes. Este documento conserva los acuerdos iniciales.
+Los tres frentes y la ampliación R1–R10 están implementados localmente.
+Pruebas y límites: [integración](testing/integration-20260926.md).
+Se conservan Java objetivo 17, Maven, LibGDX 1.12.1, JSON v1 y capas existentes.
+No se introdujeron dependencias, singletons ni una reescritura global.
 
-## Objetivo y alcance
+## Dependencias y composición
 
-Extender el MVP sin reescritura, renombrado de paquetes ni nuevas capas.
-Mantener Java 17 objetivo, Maven, LibGDX y presentation/application/domain/persistence/patterns.
-KISS, YAGNI, cohesión y testabilidad; priorizar archivos nuevos y cambios pequeños.
+```text
+bootstrap.Minecraft2Application
+  ├─ WorldDirectory + GpuPreference (antes del contexto)
+  ├─ JsonWorldStorage + BlockFactory
+  ├─ WorldApplicationService
+  └─ GameWindow → GraphicalGame
+                       ├─ Stage/MenuSkin: pantallas y CRUD delegado
+                       ├─ GraphicsDiagnostics + FullscreenController
+                       └─ VoxelGame: render/input y Observer
+                              ├─ GameSession: estado, vida, EnemyUpdateService, HordeManager
+                              ├─ GameInput: traducción de input, Stamina, física/interacción
+                              ├─ SprintCameraEffect + GameHud
+                              ├─ ChunkMeshBuilder + BlockTextureAtlas
+                              └─ ZombieRenderer + ZombieAtlas
+```
 
-## Base real que se preserva
+`application` coordina servicios de dominio/persistencia; el dominio no importa
+LibGDX ni capas superiores. Persiste el ciclo interno domain.world ↔ domain.player,
+por World/Player y CollisionResolver; no se afirma ausencia de todo ciclo.
+WorldManager sigue siendo el único Singleton. BlockFactory centraliza bloques y
+World publica BlockChange al Observer VoxelGame para reconstruir mallas vecinas.
 
-World contiene Player y una lista/index de chunks. Chunk mide 16×64×16 y almacena
-bloques por Position absoluta. World.findChunk usa índice; la creación genera
-2×2, 10×10 o 16×16. VoxelGame crea/libera mallas cercanas, filtra frustum y muestra
-FPS; J/K ajustan radio visible. GameInput coordina física del jugador y Shift corre.
-El JSON versión 1 guarda snapshot del mundo y jugador, no regenera desde seed.
-No existe sistema genérico Entity ni streaming. `PlayerLife` maneja muerte de sesión
-por vacío y expone `die(ENEMY)` para la integración futura.
+## Responsabilidades
 
-Hay dependencia de paquetes domain.world ↔ domain.player por World/CollisionResolver;
-no se promete eliminarla en esta preparación. No hay dominio dependiente de LibGDX.
+| Componente | Responsabilidad |
+| --- | --- |
+| GraphicalGame | UI principal/mundos/pausa/opciones; ciclo de vida de la vista; llama casos de uso |
+| VoxelGame | Loop de presentación, cámara, mallas, render y conexión de input; no CRUD |
+| GameSession | RUNNING/PAUSED/DEAD; snapshot dificultad y avance de vida/IA/hordas |
+| GameInput | WASD/Shift/ratón a servicios existentes; consumo según movimiento aplicado |
+| Stamina | Energía, consumo, regeneración, agotamiento y reset, sin gráficos |
+| GameHud / SprintCameraEffect | Barra, overlays, proyecciones, bob/FOV moderados |
+| EnemyUpdateService | FSM, A*, repath, ataques, despawn y separación local |
+| ZombieSeparation | Resolución de AABB sobre terreno; no pathfinding multiagente |
+| HordeManager | Scheduling y spawn determinista, ocupado/seguro, no IA individual |
+| WorldApplicationService | CRUD; usa WorldStorage; UI no duplica persistencia |
+| JsonWorldStorage | Snapshot JSON compatible, escritura temporal y movimiento atómico |
 
-## Contratos mínimos disponibles
+## Sesión, pausa y settings
 
-| Tipo | Ruta | Acuerdo |
-| --- | --- | --- |
-| ZombieState | src/domain/enemy/ZombieState.java | IDLE, CHASE, ATTACK, DEAD; sin transiciones |
-| BiomeType | src/domain/world/biome/BiomeType.java | PLAINS, DESERT, MOUNTAINS; BiomeResolver ya lo resuelve regionalmente |
-| Difficulty | src/domain/enemy/Difficulty.java | NORMAL, VERY_HARD; sin parámetros |
+- RUNNING ejecuta input/física/estamina, vida, horda y enemigos con delta limitado a .05.
+- PAUSED omite el avance completo, libera cursor y deja Stage activo.
+- DEAD congela avance; R reaparece, conserva mundo, restaura estamina y efecto.
+- Continuar se difiere al frame siguiente y la vista omite un frame de input:
+  el clic UI no golpea zombies ni edita bloques.
+- Enemigos ON/OFF y textura zombie se aplican inmediatamente de forma coherente.
+- Dificultad y textura bloque son preferencias de próxima partida; GameSession
+  conserva Difficulty y parámetros vigentes. El menú muestra el aviso y dificultad activa.
+- GPU se solicita antes del contexto en el próximo inicio; renderer efectivo visible.
+- Preferencia GPU se guarda fuera del JSON. Otras opciones siguen siendo de la sesión del programa.
 
-Difficulty pertenece al dominio para que ZombieConfig pueda consumirlo sin importar
-application. GameSettings se deja para Estudiante 3; no fijamos todavía campos/defaults.
-FOREST no se agrega por anticipación; VILLAGE se trata como estructura.
+## Mundo, navegación y cuerpos
 
-## Decisiones acordadas
+World conserva chunks 16×64×16 y Player. Tamaños finitos 2×2/10×10/16×16;
+se liberan mallas, nunca bloques del snapshot. Biomas y aldea siguen deterministas.
+Zombies no heredan Player ni se persisten. Cuerpo lógico 0.6×1.8×0.6;
+modelo visual seis piezas, UV por parte/cara, frente +Z girado con movimiento.
+FSM decide conducta y A* decide ruta; vecinos cuatro, subida uno, caída tres,
+World actual y chunk ausente no caminable. Transiciones comprueban techo sobre
+ambas columnas; movimiento consume distancia por subpasos para conservar velocidad.
+Ruta bloqueada espera cooldown, evitando retries por frame.
 
-- Zombie no hereda de Player; no crear jerarquía grande ni ECS.
-- FSM decide qué hacer; A* decide por dónde ir. Sin Behavior Tree, ML o LLM.
-- IA y navegación puras no importan LibGDX.
-- Enemigos son estado de sesión: NO persistir zombies ni modificar WorldJsonCodec para ellos.
-- Mantener JSON y Worlds existentes. Settings de sesión: propuesta pendiente de confirmar;
-  no extender el formato innecesariamente.
-- A* 2.5D X/Z + altura caminable del World ACTUAL, con apoyo, espacio y desnivel admisible.
-- Repath por cambios relevantes, fin/invalidez de ruta o intervalo; no A* por zombie/frame.
-- HordeManager coordina oleadas, no movimiento individual.
-- Dificultad modifica parámetros centralizados, no duplica IA.
-- Texturas de enemigos se controlarán separadamente de texturas de bloques.
-- TDD formal exclusivamente sobre ZombieStateMachine, RED → GREEN → REFACTOR real.
-- PIT: objetivo aproximado 80% en lógica pura seleccionada, no score global del juego.
-- Mundo infinito/streaming NO pertenece al Corte 2; cuatro chunks siguen siendo baseline Pequeño.
-- Estructuras iniciales pueden limitarse a un chunk; documentar decisión y comprobar bordes.
+Separación local AABB determinista, máximo 32 pasadas con correcciones acotadas,
+validadas contra terreno; muertos no bloquean. Spawn evita cuerpo ocupado y
+rechaza posiciones a menos de 2.5 bloques del jugador. Corredores forman filas;
+no existe navegación global multiagente. Detección sigue por distancia sin visión,
+pero el golpe enemigo verifica segmento despejado por terreno.
 
-## Integraciones futuras, no código existente
+## Persistencia, UX y recursos
 
-EnemyUpdateService coordinará FSM, percepción, navegación y movimiento.
-VoxelGame solo conectará actualización y representación; no contendrá reglas de IA.
-HordeManager tendrá lifecycle propio y registrará enemigos por un contrato acordado.
-No se decide aún una API Java de registro o caminabilidad: primero pactarla entre owners.
-Ver [roadmap](../../ROADMAP_CORTE_2.md) para secuencia y ownership.
+Crear ya persiste estado inicial. Guardar conserva bloques/posición/orientación;
+salir ofrece guardar/sin guardar/cancelar, sin autosave oculto. Archivo inválido
+sigue en lista, su error se muestra al cargar y conserva el mundo actual.
+WorldDirectory resuelve ruta absoluta desde IDE/JAR; override mc2.worlds.dir.
+Mover una copia del JAR fuera del proyecto puede cambiar su ruta por defecto.
 
-## TODO: acuerdos antes de desarrollo dependiente
+La shell mantiene una sola ventana. Crear vista es transaccional a nivel de
+presentación: si falla, libera recursos parciales y vuelve al menú con error.
+Dispose retira Observer, modelos/mallas, texturas, Stage/Skin/font/batches.
+F conserva tamaño windowed/cursor; resize actualiza cámara, HUD y Stage.
+No se instalaron drivers ni hay CUDA/cambio de GPU en caliente.
 
-- [ ] Definir cuerpo del zombie, apoyo, vecinos 4/8, subidas/caídas y groundY vs pies.
-- [ ] Definir resultado sin ruta y política de invalidación de bloques.
-- [ ] Acordar API de registro/consulta de enemigos entre HordeManager y EnemyUpdateService.
-- [ ] Acordar percepción, cooldown, salud/daño y forma mínima de demostrar ataque/muerte
-      sin implementar survival completo.
-- [ ] Acordar valores/defaults de Difficulty y GameSettings y lifecycle al reabrir ventana.
-- [x] Decidir escala de biomas: 18, con ejemplo reproducible seed 17.
-- [x] Revisar caída fuera del mundo, guardado, mallas vecinas y colocación dentro
-      del jugador; las correcciones se documentan en world-size-render-and-life.md.
+## Validación y límites
 
-## Evidencias posteriores
+238 pruebas automatizadas y smoke OpenGL programado con entradas simuladas.
+PIT seleccionado y carga headless nuevos en el reporte. Capturas zombie de
+frente/espalda/lateral/superior/marcha y OFF revisadas. Prueba GPU Intel + NVIDIA
+real; AMD y otros SO no físicamente probados. Playtest humano de diversión y
+sesión gráfica prolongada siguen pendientes. ENDURANCE actual: un minuto real.
 
-Pendientes: diagramas de IA, APIs finales entre owners, gate final y verificación
-manual completa. El gate local del frente de generación es 63/63.
+## Ampliación de combate
+
+- Dominio: ZombiePhysics integra saltos/caídas y cajas; KamikazePolicy decide el
+  resultado de un aterrizaje profundo. PlayerLife guarda vida fraccional para regenerar
+  independientemente de FPS, causa de muerte y reloj del golpe. No dependen de LibGDX.
+- Aplicación: PistolService guarda aparición/recogida/equipado y cooldown de una sesión;
+  ZombieTargeting aplica el mismo rayo/oclusión a pistola y puños. EnemyUpdateService
+  coordina caminos normales, entrada de pozos y ataques. GameSession es el único reloj.
+- Presentación: PistolRenderer tiene modelos reutilizados para suelo/mano y destello.
+  ZombiePose describe transformaciones puras, ZombieRenderer las dibuja. GameHud
+  presenta vida, daño y controles; DeathMessages selecciona por causa concreta.
+- Persistencia: no cambia JSON; armas, oleadas, salud y enemigos se reinician al crear
+  otra sesión de juego. Muerte/reaparición conserva la pistola de la sesión.
+
+Ver evidencia actual en testing/combat-kamikaze-20260926.md.

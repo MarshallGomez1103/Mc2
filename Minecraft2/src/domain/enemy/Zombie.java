@@ -18,8 +18,15 @@ public final class Zombie {
     private double z;
     private int health;
     private ZombieState state = ZombieState.IDLE;
-    private double attackTimer;
     private double deadSeconds;
+    private boolean crawler;
+    private boolean kamikaze;
+    private boolean shattered;
+    private double hitFlashSeconds;
+    private double velocityY;
+    private boolean onGround = true;
+    private double fallPeakY;
+    private double jumpCooldownSeconds;
 
     public Zombie(double x, double y, double z, int health) {
         if (health <= 0) {
@@ -29,6 +36,7 @@ public final class Zombie {
         this.y = y;
         this.z = z;
         this.health = health;
+        this.fallPeakY = y;
     }
 
     public double getX() {
@@ -68,31 +76,15 @@ public final class Zombie {
             throw new IllegalArgumentException("El daño debe ser positivo");
         }
         health = Math.max(0, health - amount);
+        hitFlashSeconds = 0.18;
     }
 
     public ZombieState getState() {
         return state;
     }
 
-    /** Cambiar de estado reinicia el temporizador de ataque: el primer golpe siempre espera el cooldown. */
     public void setState(ZombieState state) {
-        ZombieState next = Objects.requireNonNull(state, "state no puede ser null");
-        if (next != this.state) {
-            attackTimer = 0;
-        }
-        this.state = next;
-    }
-
-    public double getAttackTimer() {
-        return attackTimer;
-    }
-
-    public void addAttackTime(double deltaSeconds) {
-        attackTimer += deltaSeconds;
-    }
-
-    public void resetAttackTimer() {
-        attackTimer = 0;
+        this.state = Objects.requireNonNull(state, "state no puede ser null");
     }
 
     /** Segundos transcurridos desde que la FSM lo declaró DEAD; lo usan el despawn y el efecto visual. */
@@ -102,6 +94,48 @@ public final class Zombie {
 
     public void addDeadTime(double deltaSeconds) {
         deadSeconds += deltaSeconds;
+    }
+
+    public double height() { return crawler ? 0.8 : HEIGHT; }
+    public boolean isCrawler() { return crawler; }
+    public boolean isKamikaze() { return kamikaze; }
+    public boolean isShattered() { return shattered; }
+    public double hitFlashSeconds() { return hitFlashSeconds; }
+    public double velocityY() { return velocityY; }
+    public void setVelocityY(double value) { velocityY = value; }
+    public boolean isOnGround() { return onGround; }
+    public void setOnGround(boolean value) { onGround = value; }
+    public double jumpCooldownSeconds() { return jumpCooldownSeconds; }
+
+    public void advanceTimers(double seconds) {
+        advanceFlash(seconds);
+        advanceMotionTimers(seconds);
+    }
+    public void advanceFlash(double seconds) { hitFlashSeconds = Math.max(0, hitFlashSeconds - seconds); }
+    public void advanceMotionTimers(double seconds) {
+        jumpCooldownSeconds = Math.max(0, jumpCooldownSeconds - seconds);
+    }
+    public void beginJump(double speed) {
+        velocityY = speed;
+        onGround = false;
+        fallPeakY = y;
+        jumpCooldownSeconds = 1.0;
+    }
+    public void trackFallHeight() { fallPeakY = Math.max(fallPeakY, y); }
+    public double fallDistance() { return Math.max(0, fallPeakY - y); }
+    public void finishLanding() {
+        velocityY = 0;
+        onGround = true;
+        fallPeakY = y;
+    }
+    public void markKamikaze() { kamikaze = true; }
+    public void becomeCrawler() { crawler = true; kamikaze = true; }
+    public void shatter() {
+        shattered = true;
+        kamikaze = true;
+        health = 0;
+        state = ZombieState.DEAD;
+        velocityY = 0;
     }
 
     public double distanceTo(double otherX, double otherY, double otherZ) {

@@ -13,8 +13,8 @@ import java.util.Set;
 
 /**
  * A* sobre {@link NavigationGrid}: open set en cola de prioridad por f = g + h, closed set,
- * mapa de padres y reconstrucción del camino. Coste 1 por paso más 0.5 por bloque de desnivel;
- * la heurística Manhattan en X/Z nunca sobreestima porque cada paso cuesta al menos 1.
+ * mapa de padres y reconstrucción del camino. Coste horizontal 1 o sqrt(2) más 0.5 por bloque de desnivel;
+ * la heurística octil en X/Z es admisible e ignora el coste adicional de desnivel.
  *
  * <p>Ausencia de ruta = {@link Optional#empty()}: no se inventa un camino parcial. El presupuesto de
  * expansiones evita recorrer un mundo de 256 chunks cuando el destino es inalcanzable.
@@ -60,7 +60,7 @@ public final class AStarPathfinder {
                 Comparator.comparingDouble(OpenEntry::f).thenComparingDouble(OpenEntry::h));
 
         gScore.put(start, 0.0);
-        open.add(new OpenEntry(start, 0.0, start.manhattanTo(goal)));
+        open.add(new OpenEntry(start, 0.0, start.octileTo(goal)));
 
         while (!open.isEmpty()) {
             OpenEntry entry = open.poll();
@@ -83,13 +83,14 @@ public final class AStarPathfinder {
                 if (closed.contains(neighbor)) {
                     continue;
                 }
-                double tentativeG = currentG + 1.0
+                double tentativeG = currentG + Math.hypot(neighbor.x() - current.x(),
+                        neighbor.z() - current.z())
                         + CLIMB_COST * Math.abs(neighbor.groundY() - current.groundY());
                 Double knownG = gScore.get(neighbor);
                 if (knownG == null || tentativeG < knownG) {
                     gScore.put(neighbor, tentativeG);
                     parent.put(neighbor, current);
-                    open.add(new OpenEntry(neighbor, tentativeG, neighbor.manhattanTo(goal)));
+                    open.add(new OpenEntry(neighbor, tentativeG, neighbor.octileTo(goal)));
                 }
             }
         }

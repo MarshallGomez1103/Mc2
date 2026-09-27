@@ -15,7 +15,7 @@ public final class RenderDistance {
             throw new IllegalArgumentException("El radio máximo no puede ser negativo");
         }
         this.maxRadius = maxRadius;
-        this.radius = Math.min(1, maxRadius);
+        this.radius = Math.min(2, maxRadius);
     }
 
     public static RenderDistance forWorld(World world) {

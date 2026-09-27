@@ -29,6 +29,7 @@ public final class HordeManager {
     /** Intentos de encontrar una columna caminable para un zombi antes de darlo por perdido. */
     static final int SPAWN_ATTEMPTS = 8;
     private static final double EDGE_MARGIN = 0.5;
+    private static final double PLAYER_SPAWN_CLEARANCE = 2.5;
 
     public enum Phase { WAITING, SPAWNING, ACTIVE, PAUSE }
 
@@ -137,8 +138,19 @@ public final class HordeManager {
         for (int attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
             double angle = random.nextDouble() * 2 * Math.PI;
             double distance = rules.minSpawnDistance() + random.nextDouble() * span;
-            double x = clamp(playerX + Math.cos(angle) * distance, minX, maxX);
-            double z = clamp(playerZ + Math.sin(angle) * distance, minZ, maxZ);
+            // Project along the ray to the boundary, avoiding clamped corner piles.
+            double dx = Math.cos(angle) * distance, dz = Math.sin(angle) * distance;
+            double originX = clamp(playerX, minX, maxX), originZ = clamp(playerZ, minZ, maxZ);
+            double fraction = 1.0;
+            if (dx > 0) fraction = Math.min(fraction, (maxX - originX) / dx);
+            if (dx < 0) fraction = Math.min(fraction, (minX - originX) / dx);
+            if (dz > 0) fraction = Math.min(fraction, (maxZ - originZ) / dz);
+            if (dz < 0) fraction = Math.min(fraction, (minZ - originZ) / dz);
+            double x = clamp(originX + dx * fraction, minX, maxX);
+            double z = clamp(originZ + dz * fraction, minZ, maxZ);
+            if (Math.hypot(x - playerX, z - playerZ) < PLAYER_SPAWN_CLEARANCE) {
+                continue;
+            }
             if (enemies.spawnAt(x, z).map(waveZombies::add).isPresent()) {
                 return;
             }

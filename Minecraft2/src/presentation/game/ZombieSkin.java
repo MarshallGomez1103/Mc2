@@ -6,7 +6,7 @@ package presentation.game;
  * {@code Pixmap}.
  *
  * <p>Proporción 1:3 como el cuerpo del zombi (0.6 × 1.8): cabeza verde con ojos y boca, camisa
- * turquesa y pantalón azul. La misma imagen se aplica a las seis caras de la caja.
+ * turquesa y pantalón azul. Se conserva como paleta y formato histórico; ZombieAtlas define las caras por parte.
  */
 public final class ZombieSkin {
     public static final int WIDTH = 8;

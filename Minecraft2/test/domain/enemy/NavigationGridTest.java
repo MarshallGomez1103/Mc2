@@ -46,10 +46,10 @@ class NavigationGridTest {
     void neighborsCrossChunkBorderAndSkipMissingChunks() {
         List<NavigationNode> border = grid.neighbors(ground(15, 5));
         assertTrue(border.contains(ground(16, 5)), "el vecino está en el chunk (1,0), que existe");
-        assertEquals(4, border.size());
+        assertEquals(8, border.size());
 
         List<NavigationNode> edge = grid.neighbors(ground(0, 0));
-        assertEquals(2, edge.size(), "x=-1 y z=-1 caen en chunks ausentes");
+        assertEquals(3, edge.size(), "solo los tres vecinos dentro del chunk existen");
     }
 
     @Test

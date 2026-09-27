@@ -16,20 +16,35 @@ import java.util.Optional;
  * de inmediato. Un chunk ausente nunca se trata como terreno.
  *
  * <p>Reglas acordadas: apoyo sólido bajo los pies, dos bloques de aire para el cuerpo, subida
- * máxima de 1 y caída máxima de {@link #MAX_DROP}; vecinos en 4 direcciones para no cortar esquinas
- * de paredes.
+ * máxima de 1 y caída máxima de {@link #MAX_DROP}; vecinos en ocho direcciones, con apoyo y
+ * espacio para el cuerpo en ambas columnas laterales de cada diagonal.
  */
 public final class NavigationGrid {
     public static final int MAX_CLIMB = 1;
     public static final int MAX_DROP = 3;
     public static final int BODY_HEIGHT = 2;
 
-    private static final int[][] DIRECTIONS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    private static final int[][] DIRECTIONS = {
+            {1, 0}, {-1, 0}, {0, 1}, {0, -1},
+            {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+    };
 
     private final World world;
+    private final int bodyHeight;
+    private final int maxClimb;
 
     public NavigationGrid(World world) {
+        this(world, BODY_HEIGHT, MAX_CLIMB);
+    }
+
+    /** A crawler uses one block of clearance and cannot jump onto a higher block. */
+    public NavigationGrid(World world, int bodyHeight, int maxClimb) {
         this.world = Objects.requireNonNull(world, "world no puede ser null");
+        if (bodyHeight < 1 || maxClimb < 0 || maxClimb > MAX_CLIMB) {
+            throw new IllegalArgumentException("Medidas de navegación inválidas");
+        }
+        this.bodyHeight = bodyHeight;
+        this.maxClimb = maxClimb;
     }
 
     public boolean isSolid(int x, int y, int z) {
@@ -49,7 +64,7 @@ public final class NavigationGrid {
 
     /** Aire suficiente para el cuerpo con los pies en {@code feetY}. */
     public boolean isBodyClear(int x, int feetY, int z) {
-        for (int dy = 0; dy < BODY_HEIGHT; dy++) {
+        for (int dy = 0; dy < bodyHeight; dy++) {
             if (isSolid(x, feetY + dy, z)) {
                 return false;
             }
@@ -72,7 +87,7 @@ public final class NavigationGrid {
             return Optional.empty();
         }
         for (int offset = 0; offset <= MAX_DROP; offset++) {
-            if (offset <= MAX_CLIMB) {
+            if (offset <= maxClimb) {
                 NavigationNode up = new NavigationNode(x, fromGroundY + offset, z);
                 if (isWalkable(up)) {
                     return Optional.of(up);
@@ -105,10 +120,35 @@ public final class NavigationGrid {
         return Optional.empty();
     }
 
+    /** The body straddles both columns during a step: validate their shared highest feet. */
+    public boolean isTransitionClear(NavigationNode from, NavigationNode to) {
+        int feet = Math.max(from.feetY(), to.feetY());
+        if (!isBodyClear(from.x(), feet, from.z()) || !isBodyClear(to.x(), feet, to.z())) {
+            return false;
+        }
+        if (from.x() == to.x() || from.z() == to.z()) return true;
+
+        // Around the shared corner the 0.6-wide body overlaps all four columns. A diagonal
+        // therefore needs solid, reachable support on both sides, not just at its endpoints.
+        Optional<NavigationNode> sideX = nodeAt(to.x(), from.z(), from.groundY());
+        Optional<NavigationNode> sideZ = nodeAt(from.x(), to.z(), from.groundY());
+        if (sideX.isEmpty() || sideZ.isEmpty()) return false;
+        NavigationNode x = sideX.get();
+        NavigationNode z = sideZ.get();
+        int highestGround = Math.max(from.groundY(), to.groundY());
+        int lowestGround = Math.min(Math.min(from.groundY(), to.groundY()),
+                Math.min(x.groundY(), z.groundY()));
+        // Do not route through a raised side step or a drop beyond the movement body's reach.
+        if (x.groundY() > highestGround || z.groundY() > highestGround
+                || highestGround - lowestGround > MAX_DROP) return false;
+        return isBodyClear(x.x(), feet, x.z()) && isBodyClear(z.x(), feet, z.z());
+    }
+
     public List<NavigationNode> neighbors(NavigationNode node) {
         List<NavigationNode> result = new ArrayList<>(DIRECTIONS.length);
         for (int[] direction : DIRECTIONS) {
-            nodeAt(node.x() + direction[0], node.z() + direction[1], node.groundY()).ifPresent(result::add);
+            nodeAt(node.x() + direction[0], node.z() + direction[1], node.groundY())
+                    .filter(next -> isTransitionClear(node, next)).ifPresent(result::add);
         }
         return result;
     }

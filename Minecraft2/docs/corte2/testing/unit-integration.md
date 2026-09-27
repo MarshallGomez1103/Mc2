@@ -1,5 +1,10 @@
 # Pruebas unitarias e integración — preparación
 
+> Actualización 2026-09-26: resultados nuevos y scope ampliado en
+> [integration-20260926.md](integration-20260926.md). Las mediciones posteriores
+> de este documento conservan su fecha/hardware originales; no son resultados de hoy.
+
+
 ## Baseline confirmado
 
 16 de septiembre de 2026; main 5501b02e183cf81950430eba11828908009d1caf.

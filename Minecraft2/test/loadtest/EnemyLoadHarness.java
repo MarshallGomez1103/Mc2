@@ -58,7 +58,7 @@ public final class EnemyLoadHarness {
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.err.println("Uso: EnemyLoadHarness BASELINE|PEAK|STRESS|ENDURANCE [minutos para ENDURANCE]");
+            System.err.println("Uso: EnemyLoadHarness BASELINE|PEAK|STRESS|ENDURANCE|FUNCTIONAL20 [minutos para ENDURANCE]");
             System.exit(2);
         }
         String scenario = args[0].toUpperCase(Locale.ROOT);
@@ -70,6 +70,7 @@ public final class EnemyLoadHarness {
         printEnvironment(scenario);
         try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(csv, StandardCharsets.UTF_8))) {
             switch (scenario) {
+                case "FUNCTIONAL20" -> constantLoad(out, 2, Difficulty.VERY_HARD, new int[]{20}, 60, 1, false);
                 case "BASELINE" -> constantLoad(out, 2, Difficulty.NORMAL, new int[]{3}, 60, 5, false);
                 case "PEAK" -> constantLoad(out, 10, Difficulty.VERY_HARD, new int[]{25}, 60, 3, false);
                 case "STRESS" -> constantLoad(out, 10, Difficulty.VERY_HARD,

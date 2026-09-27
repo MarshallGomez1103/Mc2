@@ -22,7 +22,7 @@ class EnemyUpdateServiceTest {
     private final World world = TestWorlds.flat(2, 1);
     private final Player player = world.getPlayer();
     private final PlayerLife life = new PlayerLife(player);
-    private final EnemyUpdateService service = new EnemyUpdateService(world, ZombieParameters.defaults());
+    private final EnemyUpdateService service = new EnemyUpdateService(world, new ZombieParameters(12, 1.6, 18, 2.6, 3, 1, 1.5, 1.5, 1));
 
     private void placePlayer(double x, double z) {
         player.setX(x);
@@ -110,13 +110,17 @@ class EnemyUpdateServiceTest {
     }
 
     @Test
-    void attackKillsPlayerOnlyAfterCooldownAndUsesEnemyCause() {
+    void firstContactHurtsImmediatelyAndFollowingHitsRespectCooldown() {
         placePlayer(5.5, 5.5);
         Zombie zombie = service.spawnAt(6.5, 5.5).orElseThrow();
-        run(0.5);
+        run(FRAME);
         assertEquals(ZombieState.ATTACK, zombie.getState());
-        assertFalse(life.isDead(), "el primer golpe espera el cooldown");
-        run(0.6);
+        assertEquals(75, life.health(), "el primer contacto hace daño en el mismo fotograma");
+        run(0.5);
+        assertEquals(75, life.health(), "los siguientes golpes sí esperan el cooldown");
+        run(0.5);
+        assertEquals(50, life.health());
+        run(2.05);
         assertTrue(life.isDead());
         assertEquals(PlayerLife.DeathCause.ENEMY, life.deathCause());
     }
@@ -151,5 +155,27 @@ class EnemyUpdateServiceTest {
             run(EnemyUpdateService.DESPAWN_SECONDS);
             assertEquals(0, service.zombies().size(), "ronda " + round);
         }
+    }
+    @Test
+    void returningIntoReachCannotBypassAttackCooldown() {
+        placePlayer(5.5, 5.5);
+        service.spawnAt(6.5, 5.5).orElseThrow();
+        run(FRAME);
+        assertEquals(75, life.health());
+        placePlayer(9.5, 5.5);
+        run(FRAME);
+        placePlayer(5.5, 5.5);
+        run(FRAME);
+        assertEquals(75, life.health());
+    }
+
+    @Test
+    void twoDifferentZombiesDealSeparateContactHits() {
+        placePlayer(5.5, 5.5);
+        service.spawnAt(6.5, 5.5).orElseThrow();
+        service.spawnAt(4.5, 5.5).orElseThrow();
+        run(FRAME);
+        assertEquals(50, life.health());
+        assertFalse(life.isDead());
     }
 }

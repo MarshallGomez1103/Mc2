@@ -1,6 +1,6 @@
 # Diagramas UML de Minecraft 2
 
-> Diagramas contrastados con el código integrado el 23 de agosto de 2026. Describen solamente comportamiento y clases existentes, incluido el renderizado voxel, la ventana 3D y los controles básicos de teclado y ratón incorporados en `presentation.game`.
+> La base MVP de agosto se conserva en las vistas 1–6. La vista 7 se actualizó el 2026-09-26 con el flujo gráfico, sesión, enemigos, estamina y gráficos integrados. Los usos de MainMenu de consola en las vistas históricas se sustituyen por GraphicalGame en el arranque normal.
 
 ## Guía rápida
 
@@ -326,3 +326,70 @@ sequenceDiagram
 - El proyecto incluye ventana gráfica, renderizado voxel y controles básicos. Quedan fuera del modelo las texturas con imágenes, la carga dinámica de chunks y otras ampliaciones posteriores del MVP.
 - DAO, Strategy, Command y otros patrones no forman parte del alcance acordado y no se incorporan al modelo.
 - El diagrama de clases se mantiene consistente porque cada clase, atributo público relevante y relación mostrada existe en `src/`.
+
+## 7. Clases de la integración vigente
+
+```mermaid
+classDiagram
+    class GraphicalGame {
+      -Stage stage
+      -VoxelGame game
+      +render()
+      +requestClose()
+      +focusLost()
+    }
+    class GameSession {
+      +state() State
+      +setPaused(boolean)
+      +advance(double, Runnable)
+      +respawn()
+    }
+    class Stamina {
+      +current() double
+      +fraction() double
+      +canSprint() boolean
+      +advance(double, double)
+      +reset()
+    }
+    class Zombie {
+      +getState() ZombieState
+      +takeDamage(int)
+    }
+    GraphicalGame "1" --> "0..1" VoxelGame : vista activa
+    GraphicalGame "1" --> "1" WorldApplicationService : CRUD delegado
+    VoxelGame "1" --> "1" GameSession : runtime
+    VoxelGame "1" --> "1" GameInput : entrada
+    VoxelGame "1" --> "1" GameHud : HUD
+    VoxelGame "1" --> "1" SprintCameraEffect : efecto
+    VoxelGame "1" --> "1" ZombieRenderer : modelos
+    GameInput "1" --> "1" Stamina : energia de sesion
+    GameSession "1" --> "1" PlayerLife : vida
+    GameSession "1" --> "1" EnemyUpdateService : IA
+    GameSession "1" --> "1" HordeManager : oleadas
+    EnemyUpdateService "1" --> "0..*" Zombie : registro
+    EnemyUpdateService "1" --> "1" ZombieStateMachine : FSM
+    EnemyUpdateService "1" --> "1" AStarPathfinder : rutas
+    EnemyUpdateService "1" --> "1" NavigationGrid : terreno actual
+    EnemyUpdateService "1" --> "1" ZombieSeparation : cuerpos
+    AStarPathfinder ..> NavigationGrid : vecinos
+    HordeManager --> EnemyUpdateService : spawn seguro
+    ZombieRenderer ..> ZombieAtlas : UV por cara
+    GraphicalGame ..> FullscreenController : F y resize
+    GraphicalGame ..> GraphicsDiagnostics : contexto efectivo
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> RUNNING
+    RUNNING --> PAUSED: ESC o perdida de foco
+    PAUSED --> RUNNING: Continuar si vivo
+    RUNNING --> DEAD: vacio o ataque
+    DEAD --> PAUSED: ESC
+    PAUSED --> DEAD: Continuar si muerto
+    DEAD --> RUNNING: R y reset stamina
+```
+
+PAUSED congela simulación y mantiene UI activa. Difficulty/textura de bloques
+se toman para próxima sesión, enemies/textura zombie se aplican inmediatamente.
+Los zombies y estamina no entran al JSON. Estos componentes son clases pequeñas;
+no se añadieron patrones ni nuevos Singleton.

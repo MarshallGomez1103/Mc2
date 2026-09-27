@@ -9,7 +9,7 @@ public enum Difficulty {
     NORMAL(ZombieParameters.defaults(),
             new WaveRules(8.0, 2, 1, 6, 1.0, 20.0, 14.0, 20.0)),
     /** Zombis que detectan antes, corren más, aguantan más golpes y atacan más rápido. */
-    VERY_HARD(new ZombieParameters(18.0, 1.8, 26.0, 3.6, 5, 0.6, 1.0, 1.0, 0.6),
+    VERY_HARD(new ZombieParameters(28.0, 1.8, Double.POSITIVE_INFINITY, 4.7, 5, 0.4, 1.0, 1.0, 0.6),
             new WaveRules(4.0, 4, 2, 12, 0.5, 10.0, 10.0, 16.0));
 
     private final ZombieParameters zombieParameters;

@@ -3,6 +3,26 @@
 Checklist único: `[ ]` pendiente, `[x]` terminada con evidencia.
 Mapa maestro y ownership: [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md).
 
+## Integración de jugabilidad — 2026-09-26
+
+- [x] R1: modelo zombie de seis partes, UV y textura ON/OFF; capturas OpenGL.
+- [x] R2: estamina pura, sprint, cámara y barra; pruebas unitarias y smoke gráfico.
+- [x] R3: GameSession y GameHud extraídos; UI, reglas y render separados.
+- [x] R4: F fullscreen/ventana; probado junto a resize 640×480 y 1280×720.
+- [x] R5/R6: renderer efectivo y preferencia próximo arranque; Intel y NVIDIA probadas.
+- [x] R7: crear/listar/guardar/reiniciar/cargar y archivos inválidos; JSON compatible.
+- [x] R8: menú gráfico, ESC pausa, opciones y confirmaciones de salida/eliminación.
+- [x] R9: separación física local; spawn ocupado, pared/corredor y 20 zombies probados.
+- [x] R10: velocidad real mayor que caminar y menor que sprint; spawn seguro y detección.
+- [x] Suite nueva real: 238/238; build, PIT seleccionado y cinco escenarios de carga.
+- [x] Preservación: diff previo, copia fuente y 14 mundos con SHA256; sin commit/push.
+- [ ] Playtest humano prolongado: diversión, hordas, bob, melee y refugio en estructuras.
+- [ ] Prueba física AMD y sistemas Windows/macOS; endurance gráfico prolongado.
+
+Evidencia y límites: [integración](docs/corte2/testing/integration-20260926.md).
+Las secciones siguientes conservan el historial de trabajo por estudiante;
+sus conteos y opciones de consola son históricos si contradicen esta sección.
+
 # CORTE 1 — TERMINADO
 
 Se conserva el historial del MVP. Huecos de automatización pasan a calidad del Corte 2,
@@ -153,19 +173,19 @@ Detalle: [docs/corte2/enemy-ai.md](docs/corte2/enemy-ai.md), reporte en
 - [x] Tests unitarios A*: recto, obstáculo/rodeo, imposible, origen=destino y desnivel (8).
 - [x] Tests de integración Enemy + World con bloques modificados (`EnemyUpdateServiceTest`: pared construida durante la persecución, jugador encerrado).
 - [x] Documentación IA y evidencia TDD en docs/corte2/ (`enemy-ai.md`, `testing/tdd-zombie-fsm.md`, `WIKI_ENEMY_AI_JASUB.md`).
-- [ ] Smoke manual del equipo con ratón: golpe, explosión, picar sin zombi, R y J/K con zombis; retirar tecla Z y `-Dmc2.zombies` al llegar HordeManager.
+- [ ] Smoke manual con ratón: golpe, explosión, picar sin zombi, R y J/K durante oleadas. La integración retiró el spawn de prueba por Z y mc2.zombies.
 
 ## Estudiante 3 — Hordas, configuración y calidad
 
 - [x] C2-04 GameSettings: enemigos ON, texturas de enemigos ON y NORMAL por defecto; solo sesión, sin persistir (`application.GameSettings`, `GameSettingsTest`).
-- [ ] Enemigos ON/OFF: OFF impide spawn y actualización. Lógica probada (`HordeManagerTest.enemiesOffFreezesTheHorde`); falta conectarla en VoxelGame con Jasub.
-- [ ] Enemy textures ON/OFF independiente de texturas del mundo. Opción y `ZombieSkin` listos; falta `ZombieRenderer` con Jasub.
+- [x] Enemigos ON/OFF: OFF impide spawn y actualización. Conectado desde GameSettings al loop de VoxelGame y HordeManager.
+- [x] Enemy textures ON/OFF independiente de texturas del mundo; GameSettings llega a VoxelGame y ZombieRenderer aplica ZombieSkin o color plano.
 - [x] Difficulty: NORMAL y VERY_HARD como vocabulario, sin parámetros.
 - [x] NORMAL con parámetros centralizados y probados (`Difficulty` = `ZombieParameters.defaults()` + `WaveRules`).
 - [x] VERY_HARD con mismos algoritmos y parámetros distintos probados (`DifficultyTest`: detecta, corre, mata y aguanta más).
 - [x] HordeManager separado de movimiento individual (`application.HordeManager`; solo usa `spawnAt`/`zombies`/`isEnabled`).
 - [x] Oleadas: inicio, cantidad, intervalo, final y siguiente oleada deterministas (seed del mundo, tiempo explícito).
-- [ ] Acordar creación/registro de zombies y colección de sesión. Se usa el contrato propuesto por Jasub en `enemy-ai.md`; falta su confirmación.
+- [x] Integración local de HordeManager con spawnAt, zombies e isEnabled de EnemyUpdateService; los zombis siguen en estado de sesión.
 - [x] C2-08 configuración desde menú: opción 8 con submenú de enemigos, texturas y dificultad (`MainMenuSettingsTest`).
 - [x] Pruebas unitarias de HordeManager con tiempo explícito (`HordeManagerTest`, 16 casos).
 - [x] Pruebas unitarias de Difficulty/configuración, no getters triviales (`DifficultyTest`, `WaveRulesTest`, `GameSettingsTest`).

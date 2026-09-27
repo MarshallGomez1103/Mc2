@@ -1,6 +1,9 @@
 package presentation.game;
 
 import application.GameSettings;
+import application.WorldApplicationService;
+import java.nio.file.Path;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter;
 import application.PlayerInteractionService;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
@@ -49,6 +52,29 @@ public final class GameWindow {
         return texturesEnabled;
     }
 
+    /** Flujo normal integrado: una sola ventana conserva menú y partida. */
+    public void openMenu(WorldApplicationService worlds, Path directory) {
+        GraphicalGame shell = new GraphicalGame(worlds, this, interactionService, directory);
+        Lwjgl3ApplicationConfiguration config = configuration("Minecraft 2");
+        config.setWindowListener(new Lwjgl3WindowAdapter() {
+            @Override public boolean closeRequested() {
+                shell.requestClose();
+                return false;
+            }
+            @Override public void focusLost() { shell.focusLost(); }
+        });
+        new Lwjgl3Application(shell, config);
+    }
+
+    private static Lwjgl3ApplicationConfiguration configuration(String title) {
+        Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
+        config.setTitle(title);
+        config.setWindowedMode(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        config.useVsync(true);
+        config.setForegroundFPS(60);
+        return config;
+    }
+
     /** Abre la ventana y no regresa hasta que el jugador la cierra. */
     public void play(World world) {
         Objects.requireNonNull(world, "world no puede ser null");
@@ -59,6 +85,7 @@ public final class GameWindow {
         configuration.useVsync(true);
         configuration.setForegroundFPS(60);
 
-        new Lwjgl3Application(new VoxelGame(world, interactionService, texturesEnabled), configuration);
+        new Lwjgl3Application(
+                new VoxelGame(world, interactionService, texturesEnabled, settings), configuration);
     }
 }

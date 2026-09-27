@@ -1,64 +1,63 @@
 package domain.enemy;
 
-import java.util.Optional;
-
-/**
- * Desplaza al zombi hacia el waypoint actual del Path sin atravesar bloques sólidos.
- * El movimiento es horizontal a velocidad constante; la altura se ajusta al apoyo más alto de
- * las columnas que pisa la caja (subir 1 o bajar hasta MAX_DROP), sin salto ni gravedad continua.
- */
+/** Horizontal motion and timed jumps; vertical movement is resolved by continuous gravity. */
 public final class ZombieMovement {
-    /** Distancia al centro del waypoint que cuenta como alcanzado. */
     public static final double ARRIVE_DISTANCE = 0.2;
     private static final double EPSILON = 1e-6;
+    private final ZombiePhysics physics;
 
-    /**
-     * @return false si el siguiente paso quedó bloqueado por un bloque que no estaba al calcular la
-     *         ruta; el llamador debe pedir un repath. true cuando avanzó o el Path ya terminó.
-     */
+    public ZombieMovement() { this(new ZombiePhysics()); }
+    public ZombieMovement(ZombiePhysics physics) { this.physics = physics; }
+
+    public void advancePhysics(Zombie zombie, NavigationGrid grid, double deltaSeconds) {
+        physics.advance(zombie, grid, deltaSeconds);
+    }
+
     public boolean follow(Zombie zombie, Path path, NavigationGrid grid, double speed, double deltaSeconds) {
-        if (path.isFinished()) {
-            return true;
+        if (!path.isFinished() && path.current().feetY() > zombie.getY() + 0.1) {
+            physics.jump(zombie, grid);
         }
-        NavigationNode target = path.current();
-        double dx = target.centerX() - zombie.getX();
-        double dz = target.centerZ() - zombie.getZ();
-        double distance = Math.hypot(dx, dz);
-        if (distance <= ARRIVE_DISTANCE) {
-            path.advance();
-            return true;
-        }
-        double step = Math.min(speed * deltaSeconds, distance);
-        double nextX = zombie.getX() + dx / distance * step;
-        double nextZ = zombie.getZ() + dz / distance * step;
-
-        int currentGroundY = (int) Math.floor(zombie.getY()) - 1;
-        double half = Zombie.WIDTH / 2.0;
-        int minX = (int) Math.floor(nextX - half + EPSILON);
-        int maxX = (int) Math.floor(nextX + half - EPSILON);
-        int minZ = (int) Math.floor(nextZ - half + EPSILON);
-        int maxZ = (int) Math.floor(nextZ + half - EPSILON);
-
-        // La caja puede tocar dos columnas por eje: todas necesitan apoyo alcanzable y el zombi
-        // se sube al más alto (auto-step de un bloque, igual que al pisar un escalón).
-        int feetY = Integer.MIN_VALUE;
-        for (int blockX = minX; blockX <= maxX; blockX++) {
-            for (int blockZ = minZ; blockZ <= maxZ; blockZ++) {
-                Optional<NavigationNode> support = grid.nodeAt(blockX, blockZ, currentGroundY);
-                if (support.isEmpty()) {
-                    return false;
-                }
-                feetY = Math.max(feetY, support.get().feetY());
+        physics.advance(zombie, grid, deltaSeconds);
+        if (!zombie.isAlive()) return true;
+        double budget = Math.max(0, speed * (zombie.isCrawler() ? 0.55 : 1) * deltaSeconds);
+        while (!path.isFinished()) {
+            NavigationNode target = path.current();
+            double dx = target.centerX() - zombie.getX(), dz = target.centerZ() - zombie.getZ();
+            double distance = Math.hypot(dx, dz);
+            if (distance <= EPSILON) { path.advance(); continue; }
+            if (budget <= EPSILON) return true;
+            double step = Math.min(0.1, Math.min(budget, distance));
+            if (!tryMove(zombie, grid, zombie.getX() + dx / distance * step,
+                    zombie.getZ() + dz / distance * step)) {
+                // A planned one-block climb waits for jump height; a changed flat route is blocked.
+                return target.feetY() > zombie.getY() + EPSILON && !zombie.isCrawler();
             }
+            budget -= step;
         }
-        for (int blockX = minX; blockX <= maxX; blockX++) {
-            for (int blockZ = minZ; blockZ <= maxZ; blockZ++) {
-                if (!grid.isBodyClear(blockX, feetY, blockZ)) {
-                    return false;
-                }
-            }
+        return true;
+    }
+
+    /** Move toward a drop/cave waypoint without requiring support, while never crossing a wall. */
+    public boolean toward(Zombie zombie, NavigationGrid grid, double x, double z,
+                          double speed, double deltaSeconds) {
+        physics.advance(zombie, grid, deltaSeconds);
+        if (!zombie.isAlive()) return false;
+        double dx = x - zombie.getX(), dz = z - zombie.getZ(), distance = Math.hypot(dx, dz);
+        if (distance <= EPSILON) return true;
+        double budget = Math.min(distance, speed * (zombie.isCrawler() ? 0.55 : 1) * deltaSeconds);
+        while (budget > EPSILON) {
+            double step = Math.min(0.1, budget);
+            if (!tryMove(zombie, grid, zombie.getX() + dx / distance * step,
+                    zombie.getZ() + dz / distance * step)) return false;
+            budget -= step;
         }
-        zombie.setPosition(nextX, feetY, nextZ);
+        return true;
+    }
+
+    /** Horizontal body validation only: separation cannot climb and air movement needs no floor. */
+    public boolean tryMove(Zombie zombie, NavigationGrid grid, double nextX, double nextZ) {
+        if (!physics.isBodyClear(zombie, grid, nextX, zombie.getY(), nextZ)) return false;
+        zombie.setPosition(nextX, zombie.getY(), nextZ);
         return true;
     }
 }

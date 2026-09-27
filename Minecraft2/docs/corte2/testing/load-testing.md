@@ -1,5 +1,10 @@
 # Load/performance testing — C2-10
 
+> Actualización 2026-09-26: resultados nuevos y scope ampliado en
+> [integration-20260926.md](integration-20260926.md). Las mediciones posteriores
+> de este documento conservan su fecha/hardware originales; no son resultados de hoy.
+
+
 Estado: harness construido y los cuatro escenarios ejecutados una vez. Owner: Estudiante 3.
 Plan operativo: [PLAN_AGENTE_ETHIAN.md](../PLAN_AGENTE_ETHIAN.md).
 

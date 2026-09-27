@@ -6,10 +6,10 @@ package domain.enemy;
  *
  * @param detectionRange        distancia (bloques) a la que un zombi IDLE nota al jugador.
  * @param attackRange           distancia a la que puede golpear.
- * @param loseTargetRange       distancia a la que un zombi en CHASE abandona la persecución.
+ * @param loseTargetRange       distancia de abandono; infinito conserva el objetivo detectado.
  * @param moveSpeed             bloques por segundo al perseguir.
  * @param maxHealth             golpes de jugador que resiste (cada golpe quita 1).
- * @param attackCooldownSeconds tiempo en ATTACK antes de cada golpe; el primero también espera.
+ * @param attackCooldownSeconds intervalo entre golpes; el primero al contacto es inmediato.
  * @param repathIntervalSeconds recálculo periódico de ruta aunque nada cambie.
  * @param repathDistance        desplazamiento del jugador respecto al destino que fuerza recálculo.
  * @param noRouteRetrySeconds   espera tras un A* sin ruta antes de intentar de nuevo.
@@ -38,6 +38,6 @@ public record ZombieParameters(
 
     /** Valores de sesión propuestos para NORMAL hasta que Estudiante 3 los derive de Difficulty. */
     public static ZombieParameters defaults() {
-        return new ZombieParameters(12.0, 1.6, 18.0, 2.6, 3, 1.0, 1.5, 1.5, 1.0);
+        return new ZombieParameters(24.0, 1.6, Double.POSITIVE_INFINITY, 4.3, 3, 0.6, 1.5, 1.5, 1.0);
     }
 }

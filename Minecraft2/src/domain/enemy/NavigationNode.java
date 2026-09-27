@@ -19,6 +19,13 @@ public record NavigationNode(int x, int groundY, int z) {
         return z + 0.5;
     }
 
+    /** Shortest horizontal distance with cardinal cost 1 and diagonal cost sqrt(2). */
+    public double octileTo(NavigationNode other) {
+        int dx = Math.abs(x - other.x);
+        int dz = Math.abs(z - other.z);
+        return Math.max(dx, dz) + (Math.sqrt(2.0) - 1.0) * Math.min(dx, dz);
+    }
+
     public int manhattanTo(NavigationNode other) {
         return Math.abs(x - other.x) + Math.abs(z - other.z);
     }

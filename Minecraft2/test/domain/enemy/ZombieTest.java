@@ -34,14 +34,16 @@ class ZombieTest {
     }
 
     @Test
-    void changingStateResetsAttackTimerButSameStateKeepsIt() {
-        Zombie zombie = new Zombie(0, 0, 0, 3);
+    void stateChangesPreserveHealthAndPositionAndRejectNull() {
+        Zombie zombie = new Zombie(1.5, 21, 2.5, 3);
         zombie.setState(ZombieState.ATTACK);
-        zombie.addAttackTime(0.7);
         zombie.setState(ZombieState.ATTACK);
-        assertEquals(0.7, zombie.getAttackTimer(), 1e-9);
+        assertEquals(ZombieState.ATTACK, zombie.getState());
         zombie.setState(ZombieState.CHASE);
-        assertEquals(0, zombie.getAttackTimer());
+        assertEquals(ZombieState.CHASE, zombie.getState());
+        assertEquals(3, zombie.getHealth());
+        assertEquals(new Position(1, 21, 2), zombie.toPosition());
+        assertThrows(NullPointerException.class, () -> zombie.setState(null));
     }
 
     @Test

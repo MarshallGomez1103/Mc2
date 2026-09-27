@@ -19,7 +19,8 @@ class RenderDistanceTest {
         Chunk far = new Chunk(2, 2);
         assertTrue(distance.contains(0, 0, center));
         assertTrue(distance.contains(0, 0, neighbor));
-        assertFalse(distance.contains(0, 0, far));
+        assertTrue(distance.contains(0, 0, far));
+        assertEquals(2, distance.radius());
 
         distance.decrease();
         distance.decrease();

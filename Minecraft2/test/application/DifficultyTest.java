@@ -50,14 +50,14 @@ class DifficultyTest {
     void veryHardZombieNoticesPlayerThatNormalZombieIgnores() {
         Session normal = new Session(Difficulty.NORMAL);
         Session veryHard = new Session(Difficulty.VERY_HARD);
-        Zombie calm = normal.enemies.spawnAt(17.5, 5.5).orElseThrow();
-        Zombie alert = veryHard.enemies.spawnAt(17.5, 5.5).orElseThrow();
+        Zombie calm = normal.enemies.spawnAt(28.5, 5.5).orElseThrow();
+        Zombie alert = veryHard.enemies.spawnAt(28.5, 5.5).orElseThrow();
 
         normal.run(0.1);
         veryHard.run(0.1);
 
-        assertEquals(ZombieState.IDLE, calm.getState(), "a 15 bloques NORMAL todavía no detecta");
-        assertEquals(ZombieState.CHASE, alert.getState(), "a 15 bloques VERY_HARD ya persigue");
+        assertEquals(ZombieState.IDLE, calm.getState(), "a 26 bloques NORMAL todavía no detecta");
+        assertEquals(ZombieState.CHASE, alert.getState(), "a 26 bloques VERY_HARD ya persigue");
     }
 
     @Test
@@ -81,11 +81,12 @@ class DifficultyTest {
         normal.enemies.spawnAt(3.5, 5.5).orElseThrow();
         veryHard.enemies.spawnAt(3.5, 5.5).orElseThrow();
 
-        normal.run(0.75);
-        veryHard.run(0.75);
+        normal.run(1.35);
+        veryHard.run(1.35);
 
-        assertFalse(normal.life.isDead(), "NORMAL espera 1 s antes del primer golpe");
-        assertTrue(veryHard.life.isDead(), "VERY_HARD golpea a los 0.6 s");
+        assertFalse(normal.life.isDead(), "NORMAL aplica daño inmediato, pero espacía los siguientes golpes");
+        assertTrue(normal.life.health() < 100);
+        assertTrue(veryHard.life.isDead(), "VERY_HARD completa cuatro golpes antes");
     }
 
     @Test

@@ -2,6 +2,7 @@ package presentation.game;
 
 import application.EnemyUpdateService;
 import application.PlayerInteractionService;
+import application.PistolService;
 import application.ZombieMeleeService;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -11,6 +12,7 @@ import domain.player.MovementInput;
 import domain.player.Player;
 import domain.player.PlayerMovementService;
 import domain.player.PlayerPhysics;
+import domain.player.Stamina;
 import domain.world.World;
 
 import java.util.Objects;
@@ -45,11 +47,31 @@ public final class GameInput {
     private final PlayerInteractionService interactionService;
     private final ZombieMeleeService meleeService;
     private final EnemyUpdateService enemyService;
+    private final PistolService pistol;
 
+    private final Stamina stamina = new Stamina();
+    private boolean sprinting;
+    private boolean moving;
     private BlockType selectedType = BlockType.STONE;
+
+    public Stamina stamina() { return stamina; }
+    public boolean isSprinting() { return sprinting; }
+    public boolean isMoving() { return moving; }
+
+    public void resetAfterRespawn() {
+        stamina.reset();
+        sprinting = false;
+        moving = false;
+    }
 
     public GameInput(PlayerInteractionService interactionService, ZombieMeleeService meleeService,
                      EnemyUpdateService enemyService) {
+        this(interactionService, meleeService, enemyService, null);
+    }
+
+    public GameInput(PlayerInteractionService interactionService, ZombieMeleeService meleeService,
+                     EnemyUpdateService enemyService, PistolService pistol) {
+        this.pistol = pistol;
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
         this.meleeService = Objects.requireNonNull(meleeService, "meleeService no puede ser null");
@@ -62,12 +84,13 @@ public final class GameInput {
 
     /** Procesa un fotograma completo de entrada y movimiento. */
     public void update(Player player, World world, float rawDeltaSeconds) {
-        double deltaSeconds = Math.min(rawDeltaSeconds, MAX_DELTA_SECONDS);
+        double deltaSeconds = checkedDelta(rawDeltaSeconds);
 
         applyLook(player);
         applyMovement(player, world, deltaSeconds);
-        applyInteraction(player, world);
+        if (pistol != null && Gdx.input.isKeyJustPressed(Input.Keys.Q)) pistol.toggleEquipped();
         updateSelectedType();
+        applyInteraction(player, world);
     }
 
     /**
@@ -93,15 +116,45 @@ public final class GameInput {
                 Gdx.input.isKeyPressed(Input.Keys.SHIFT_LEFT)
                         || Gdx.input.isKeyPressed(Input.Keys.SHIFT_RIGHT));
 
-        double[] horizontal = movementService.computeIntendedDelta(player, input, deltaSeconds);
+        updateMovement(player, world, input,
+                Gdx.input.isKeyJustPressed(Input.Keys.SPACE), deltaSeconds);
+    }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+    /** Device-independent movement step; Shift is intent, stamina authorizes the speed. */
+    public void updateMovement(Player player, World world, MovementInput intent,
+                               boolean jumpRequested, double rawDeltaSeconds) {
+        double deltaSeconds = checkedDelta(rawDeltaSeconds);
+        MovementInput walk = new MovementInput(intent.isForward(), intent.isBackward(),
+                intent.isLeft(), intent.isRight());
+        double[] horizontal = movementService.computeIntendedDelta(player, walk, deltaSeconds);
+        double sprintSeconds = intent.isSprint() ? stamina.sprintSeconds(deltaSeconds) : 0;
+        if (sprintSeconds > 0) {
+            double[] extra = movementService.computeIntendedDelta(player, walk,
+                    sprintSeconds * (PlayerMovementService.SPRINT_MULTIPLIER - 1));
+            horizontal[0] += extra[0];
+            horizontal[1] += extra[1];
+        }
+        if (jumpRequested) {
             physics.jump(player);
         }
         physics.applyGravity(player, deltaSeconds);
         double verticalDelta = physics.computeIntendedDeltaY(player, deltaSeconds);
-
+        double previousX = player.getX();
+        double previousZ = player.getZ();
         collisionResolver.resolveAndApply(player, world, horizontal[0], verticalDelta, horizontal[1]);
+        double displacement = Math.hypot(player.getX() - previousX, player.getZ() - previousZ);
+        double intended = Math.hypot(horizontal[0], horizontal[1]);
+        moving = displacement > 1e-9;
+        double appliedFraction = intended > 1e-9 ? Math.min(1, displacement / intended) : 0;
+        sprinting = moving && sprintSeconds > 0;
+        stamina.advance(deltaSeconds, sprintSeconds * appliedFraction);
+    }
+
+    private static double checkedDelta(double rawDeltaSeconds) {
+        if (!Double.isFinite(rawDeltaSeconds) || rawDeltaSeconds < 0) {
+            throw new IllegalArgumentException("deltaSeconds must be finite and nonnegative");
+        }
+        return Math.min(rawDeltaSeconds, MAX_DELTA_SECONDS);
     }
 
     private void applyInteraction(Player player, World world) {
@@ -110,7 +163,9 @@ public final class GameInput {
         }
         if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
             // Primero el zombi bajo la mira y en alcance; si no hay ninguno, el clic sigue picando.
-            if (!meleeService.strike(player, enemyService.zombies())) {
+            if (pistol != null && pistol.equipped()) {
+                pistol.shoot(player, enemyService.zombies());
+            } else if (!meleeService.strike(player, enemyService.zombies())) {
                 interactionService.removeTargetedBlock(player, world);
             }
         }
@@ -123,6 +178,7 @@ public final class GameInput {
         for (int slot = 0; slot < PLACEABLE.length; slot++) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.NUM_1 + slot)) {
                 selectedType = PLACEABLE[slot];
+                if (pistol != null) pistol.unequip();
                 return;
             }
         }

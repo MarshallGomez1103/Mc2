@@ -36,6 +36,16 @@ class ZombieMovementTest {
     }
 
     @Test
+    void normalZombieMatchesWalkingAcrossWaypoints() {
+        Zombie zombie = new Zombie(2.5, GROUND_Y + 1, 2.5, 3);
+        Path path = pathfinder.findPath(grid, ground(2, 2), ground(12, 2)).orElseThrow();
+        for (int frame=0;frame<60;frame++) assertTrue(movement.follow(zombie,path,grid,
+                ZombieParameters.defaults().moveSpeed(), DELTA));
+        assertEquals(domain.player.Player.MOVE_SPEED, zombie.getX()-2.5, 1e-6);
+        assertTrue(zombie.getX()-2.5 < 4.3*1.65);
+    }
+
+    @Test
     void blockPlacedAfterPlanningStopsTheZombieAndReportsInvalidPath() {
         Zombie zombie = new Zombie(2.5, GROUND_Y + 1, 2.5, 3);
         Path path = pathfinder.findPath(grid, ground(2, 2), ground(6, 2)).orElseThrow();
@@ -57,11 +67,12 @@ class ZombieMovementTest {
         boolean climbed = false;
         for (int frame = 0; frame < 600 && !path.isFinished(); frame++) {
             assertTrue(movement.follow(zombie, path, grid, SPEED, DELTA));
-            if (zombie.getY() == GROUND_Y + 2) {
+            if (zombie.getY() >= GROUND_Y + 2) {
                 climbed = true;
             }
         }
-        assertTrue(climbed, "debe pasar por encima del escalón");
+        for (int frame = 0; frame < 90; frame++) movement.advancePhysics(zombie, grid, DELTA);
+        assertTrue(climbed, "debe saltar sobre el escalón con tiempo de vuelo");
         assertEquals(GROUND_Y + 1, zombie.getY(), "vuelve al suelo al bajar");
     }
 }

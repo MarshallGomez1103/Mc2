@@ -1,5 +1,10 @@
 # Mutation testing — C2-09
 
+> Actualización 2026-09-26: resultados nuevos y scope ampliado en
+> [integration-20260926.md](integration-20260926.md). Las mediciones posteriores
+> de este documento conservan su fecha/hardware originales; no son resultados de hoy.
+
+
 Estado: PIT configurado en `pom.xml` y ejecutado. Owner: Estudiante 3.
 Objetivo aproximado 80 % sobre un scope pequeño de lógica pura, no 80 % global del juego.
 

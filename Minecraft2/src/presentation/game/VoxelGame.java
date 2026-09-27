@@ -1,28 +1,24 @@
 package presentation.game;
 
-import application.EnemyUpdateService;
+import application.GameSession;
+import application.GameSettings;
+import domain.enemy.Difficulty;
 import application.PlayerInteractionService;
 import application.ZombieMeleeService;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.PixmapIO;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 import domain.Position;
-import domain.enemy.ZombieParameters;
 import domain.player.Player;
 import domain.player.PlayerLife;
 import domain.world.BlockChange;
@@ -55,14 +51,12 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private static final float FAR_PLANE = 300f;
     private static final int MESHES_PER_FRAME = 2;
     private static final Color SKY = new Color(0.45f, 0.68f, 0.92f, 1f);
-    /** Mismo tope que GameInput: un tirón de la ventana no debe teletransportar a los zombis. */
-    private static final float MAX_ENEMY_DELTA_SECONDS = 0.05f;
-    /** Distancia delante del jugador a la que la tecla Z genera un zombi de prueba. */
-    private static final double DEBUG_SPAWN_DISTANCE = 6.0;
-
+    /** Mismo tope que GameInput para mantener estable el paso completo de simulación. */
+    private static final float MAX_SIMULATION_DELTA_SECONDS = 0.05f;
     private final World world;
     private final PlayerInteractionService interactionService;
     private final boolean texturesEnabled;
+    private final GameSettings gameSettings;
 
     /** Captura automática para la evidencia de CT-10; desactivada si no se pide. */
     private final String screenshotPath;
@@ -76,8 +70,14 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private GameInput input;
     private RenderDistance renderDistance;
     private PlayerLife playerLife;
-    private EnemyUpdateService enemyService;
+    private GameSession session;
+    private SprintCameraEffect sprintEffect;
+    private GameHud hud;
+    private int skipInputFrames;
+    private final boolean managedByShell;
+    private final FullscreenController fullscreen = new FullscreenController();
     private ZombieRenderer zombieRenderer;
+    private PistolRenderer pistolRenderer;
     private final Vector3 chunkCenter = new Vector3();
     private final Vector3 chunkDimensions = new Vector3(Chunk.WIDTH, Chunk.HEIGHT, Chunk.DEPTH);
 
@@ -86,22 +86,29 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private final Map<Chunk, ModelInstance> instances = new LinkedHashMap<>();
     private final Set<Chunk> dirtyChunks = new LinkedHashSet<>();
 
-    private SpriteBatch hudBatch;
-    private BitmapFont font;
-    private BitmapFont deathFont;
-    private final GlyphLayout deathText = new GlyphLayout();
-    private ShapeRenderer shapeRenderer;
     private int frame;
 
     public VoxelGame(World world, PlayerInteractionService interactionService) {
-        this(world, interactionService, true);
+        this(world, interactionService, true, new GameSettings());
     }
 
     public VoxelGame(World world, PlayerInteractionService interactionService, boolean texturesEnabled) {
+        this(world, interactionService, texturesEnabled, new GameSettings());
+    }
+
+    public VoxelGame(World world, PlayerInteractionService interactionService,
+                     boolean texturesEnabled, GameSettings gameSettings) {
+        this(world, interactionService, texturesEnabled, gameSettings, false);
+    }
+
+    public VoxelGame(World world, PlayerInteractionService interactionService,
+                     boolean texturesEnabled, GameSettings gameSettings, boolean managedByShell) {
+        this.managedByShell = managedByShell;
         this.world = Objects.requireNonNull(world, "world no puede ser null");
         this.interactionService = Objects.requireNonNull(interactionService,
                 "interactionService no puede ser null");
         this.texturesEnabled = texturesEnabled;
+        this.gameSettings = Objects.requireNonNull(gameSettings, "gameSettings no puede ser null");
         this.screenshotPath = System.getProperty("mc2.screenshot");
         this.screenshotFrame = Integer.getInteger("mc2.screenshot.frame", 5);
     }
@@ -120,34 +127,17 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         modelBatch = new ModelBatch();
         textureAtlas = new BlockTextureAtlas();
         meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
-        enemyService = new EnemyUpdateService(world, ZombieParameters.defaults());
-        zombieRenderer = new ZombieRenderer();
-        input = new GameInput(interactionService, new ZombieMeleeService(world), enemyService);
+        session = new GameSession(world, gameSettings);
+        zombieRenderer = new ZombieRenderer(gameSettings.enemyTexturesEnabled());
+        pistolRenderer = new PistolRenderer();
+        input = new GameInput(interactionService, new ZombieMeleeService(world), session.enemies(), session.pistol());
+        sprintEffect = new SprintCameraEffect();
         renderDistance = RenderDistance.forWorld(world);
-        playerLife = new PlayerLife(world.getPlayer());
-
-        hudBatch = new SpriteBatch();
-        font = new BitmapFont();
-        deathFont = new BitmapFont();
-        deathFont.getData().setScale(4f);
-        deathFont.setColor(Color.RED);
-        shapeRenderer = new ShapeRenderer();
+        playerLife = session.life();
+        hud = new GameHud();
 
         world.addObserver(this);
         Gdx.input.setCursorCatched(true);
-        spawnEvidenceZombies(Integer.getInteger("mc2.zombies", 0));
-    }
-
-    /** Solo para capturas de evidencia: coloca zombis delante del jugador sin pulsar Z. */
-    private void spawnEvidenceZombies(int count) {
-        Player player = world.getPlayer();
-        double[] forward = player.forwardVector();
-        double[] right = player.rightVector();
-        for (int i = 0; i < count; i++) {
-            double side = (i - (count - 1) / 2.0) * 2.0;
-            enemyService.spawnAt(player.getX() + forward[0] * DEBUG_SPAWN_DISTANCE + right[0] * side,
-                    player.getZ() + forward[1] * DEBUG_SPAWN_DISTANCE + right[1] * side);
-        }
     }
 
     /** Llega desde World al colocar o eliminar un bloque: marca el chunk afectado. */
@@ -183,32 +173,23 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     public void render() {
         Player player = world.getPlayer();
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            Gdx.input.setCursorCatched(false);
-            Gdx.app.exit();
-            return;
+        if (!managedByShell) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) setPaused(!isPaused());
+            if (Gdx.input.isKeyJustPressed(Input.Keys.F)) fullscreen.toggle();
         }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.J)) {
-            renderDistance.decrease();
-        }
-        if (Gdx.input.isKeyJustPressed(Input.Keys.K)) {
-            renderDistance.increase();
-        }
-        if (playerLife.isDead()) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-                playerLife.respawn();
+        if (session.state() == GameSession.State.RUNNING) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.J)) renderDistance.decrease();
+            if (Gdx.input.isKeyJustPressed(Input.Keys.K)) renderDistance.increase();
+            if (skipInputFrames > 0) {
+                skipInputFrames--;
+            } else {
+                float delta = Math.min(Gdx.graphics.getDeltaTime(), MAX_SIMULATION_DELTA_SECONDS);
+                session.advance(delta, () -> input.update(player, world, delta));
+                sprintEffect.update(delta, input.isSprinting(), input.isMoving(), player.isOnGround());
             }
-        } else {
-            input.update(player, world, Gdx.graphics.getDeltaTime());
-            playerLife.update();
-            // Provisional hasta que HordeManager (Estudiante 3) genere oleadas: Z crea un zombi delante.
-            if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
-                double[] forward = player.forwardVector();
-                enemyService.spawnAt(player.getX() + forward[0] * DEBUG_SPAWN_DISTANCE,
-                        player.getZ() + forward[1] * DEBUG_SPAWN_DISTANCE);
-            }
-            enemyService.update(playerLife, Math.min(Gdx.graphics.getDeltaTime(), MAX_ENEMY_DELTA_SECONDS));
+        } else if (session.state() == GameSession.State.DEAD
+                && Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            respawn();
         }
         updateCamera(player);
         refreshVisibleMeshes(player);
@@ -223,13 +204,17 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
                 modelBatch.render(entry.getValue(), environment);
             }
         }
-        zombieRenderer.render(modelBatch, environment, enemyService.zombies());
+        zombieRenderer.render(modelBatch, environment, session.enemies().zombies());
+        pistolRenderer.renderPickup(modelBatch, environment, session.pistol());
         modelBatch.end();
 
-        drawHud(player);
-        if (playerLife.isDead()) {
-            drawDeathOverlay();
+        if (session.pistol().equipped() && !session.life().isDead()) {
+            Gdx.gl.glClear(com.badlogic.gdx.graphics.GL20.GL_DEPTH_BUFFER_BIT);
+            modelBatch.begin(camera);
+            pistolRenderer.renderHeld(modelBatch, environment, camera, session.pistol());
+            modelBatch.end();
         }
+        hud.draw(world, input, session, renderDistance, meshes.size(), managedByShell);
 
         frame++;
         if (screenshotPath != null && frame == screenshotFrame) {
@@ -305,62 +290,36 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
         camera.position.set(
                 (float) player.getX(),
-                (float) (player.getY() + Player.EYE_HEIGHT),
+                (float) (player.getY() + Player.EYE_HEIGHT + sprintEffect.verticalOffset()),
                 (float) player.getZ());
         camera.direction.set(
                 (float) (-Math.sin(yaw) * Math.cos(pitch)),
                 (float) Math.sin(pitch),
                 (float) (Math.cos(yaw) * Math.cos(pitch)));
+        camera.fieldOfView = FIELD_OF_VIEW + (float) sprintEffect.fovOffset();
         camera.up.set(0f, 1f, 0f);
         camera.update();
     }
 
-    private void drawHud(Player player) {
-        float width = Gdx.graphics.getWidth();
-        float height = Gdx.graphics.getHeight();
-
-        // Punto de mira: sin él no se sabe a qué bloque se está apuntando.
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.WHITE);
-        shapeRenderer.line(width / 2f - 8f, height / 2f, width / 2f + 8f, height / 2f);
-        shapeRenderer.line(width / 2f, height / 2f - 8f, width / 2f, height / 2f + 8f);
-        shapeRenderer.end();
-
-        Position block = player.toPosition();
-        hudBatch.begin();
-        font.draw(hudBatch, "Mundo: " + world.getName(), 12f, height - 12f);
-        font.draw(hudBatch, String.format("Posicion: %d, %d, %d", block.x(), block.y(), block.z()),
-                12f, height - 32f);
-        font.draw(hudBatch, "Bloque a colocar: " + input.getSelectedType() + "   (teclas 1-7)",
-                12f, height - 52f);
-        font.draw(hudBatch, "FPS: " + Gdx.graphics.getFramesPerSecond()
-                        + "   Distancia: " + renderDistance.radius() + " chunks (J-/K+)"
-                        + "   Mallas: " + meshes.size(), 12f, height - 72f);
-        font.draw(hudBatch, "Zombis: " + enemyService.zombies().size() + "   (Z genera uno delante)",
-                12f, height - 92f);
-        font.draw(hudBatch, "WASD mover · Shift correr · espacio saltar · clic izq. golpear/eliminar · clic der. colocar · ESC salir",
-                12f, 22f);
-        hudBatch.end();
+    public void setPaused(boolean value) {
+        session.setPaused(value);
+        Gdx.input.setCursorCatched(!value);
+        if (!value) skipInputFrames = 1;
     }
-
-    private void drawDeathOverlay() {
-        float width = Gdx.graphics.getWidth();
-        float height = Gdx.graphics.getHeight();
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-        shapeRenderer.setColor(0f, 0f, 0f, 0.65f);
-        shapeRenderer.rect(0, 0, width, height);
-        shapeRenderer.end();
-        Gdx.gl.glDisable(GL20.GL_BLEND);
-
-        deathText.setText(deathFont, "MORISTE");
-        hudBatch.begin();
-        deathFont.draw(hudBatch, deathText, (width - deathText.width) / 2f,
-                (height + deathText.height) / 2f);
-        font.draw(hudBatch, "R para reaparecer  ·  ESC para salir", width / 2f - 125f,
-                height / 2f - 48f);
-        hudBatch.end();
+    public boolean isPaused() { return session.isPaused(); }
+    public GameSession.State sessionState() { return session.state(); }
+    public Difficulty runtimeDifficulty() { return session.difficulty(); }
+    public boolean texturesEnabled() { return texturesEnabled; }
+    public String statusText() { return session.waveSummary(); }
+    public void applySettings() {
+        session.applySettings(gameSettings);
+        zombieRenderer.setTexturesEnabled(gameSettings.enemyTexturesEnabled());
+    }
+    public void respawn() {
+        session.respawn();
+        input.resetAfterRespawn();
+        sprintEffect.reset();
+        skipInputFrames = 1;
     }
 
     private void captureScreenshot() {
@@ -398,6 +357,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
             camera.viewportWidth = width;
             camera.viewportHeight = height;
             camera.update();
+            if (hud != null) hud.resize(width, height);
         }
     }
 
@@ -413,12 +373,10 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         instances.clear();
 
         disposeQuietly(modelBatch);
-        disposeQuietly(hudBatch);
-        disposeQuietly(font);
-        disposeQuietly(deathFont);
-        disposeQuietly(shapeRenderer);
+        disposeQuietly(hud);
         disposeQuietly(textureAtlas);
         disposeQuietly(zombieRenderer);
+        disposeQuietly(pistolRenderer);
     }
 
     private static void disposeQuietly(com.badlogic.gdx.utils.Disposable disposable) {
