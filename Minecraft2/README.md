@@ -1,6 +1,6 @@
 # Minecraft 2
 
-Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; los tres frentes del Corte 2 están integrados localmente.
+Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; los tres frentes del Corte 2 están integrados en `main`.
 
 > Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
 
@@ -13,7 +13,7 @@ cuatro chunks, bloques, jugador, cámara, movimiento, salto, gravedad, colisione
 raycast e interacción, renderizado 3D y persistencia JSON. Incluye Factory,
 Singleton, Observer y texturas de bloques ON/OFF. Baseline: 41 pruebas JUnit.
 
-### Corte 2 — Integrado localmente, ampliación de jugabilidad
+### Corte 2 — Integrado en main, ampliación de jugabilidad
 
 Biomas PLAINS/DESERT/MOUNTAINS, aldea, mundos finitos, zombies FSM + A* y oleadas
 están integrados. El inicio normal abre el menú gráfico para crear/listar/cargar/
@@ -22,8 +22,10 @@ con confirmación. F alterna pantalla completa conservando la partida.
 
 Los zombies tienen cabeza, torso, brazos y piernas, UV por cara/parte y marcha.
 Sus cuerpos se separan; spawn ocupado o a menos de 2.5 bloques del jugador se
-rechaza. NORMAL: velocidad 4.3, detección 24, oleada inicial 2 a los 8 s, cap 6.
-VERY_HARD: velocidad 4.7, detección 28, oleada inicial 4 a los 4 s, cap 12.
+rechaza. NORMAL: velocidad 4.3, detección 24, oleada inicial 4 a los 8 s.
+VERY_HARD: velocidad 4.7, detección 28, oleada inicial 4 a los 4 s.
+Ambas dificultades duplican cantidades: 4, 8, 16, 32, 64, 128… Las apariciones
+fallidas se reintentan, sin descontarlas de la ronda.
 Caminar sigue en 4.3; sprint 7.095 con estamina para aproximadamente 10 s.
 
 Estamina: 100, consumo 10/s al moverse, regeneración 20/s, desbloqueo al 20% tras
@@ -49,15 +51,21 @@ sobre terreno aleatorio: acercarse la recoge; Q alterna, clic dispara y 1–7 vu
 bloques. Daño 3, alcance 36, intervalo 0.28 s, munición ilimitada.
 Los zombis pueden entrar en pozos, de uno en uno, y recuerdan el borde cuando el jugador
 se aleja por la cueva. Caída de 8 bloques o más: 70% se desarman y 30% sobreviven sin
-piernas, con altura 0.8 y velocidad reducida al 55%; persiguen por túneles bajos.
+piernas, con altura 0.8 y velocidad reducida al 28% (1.204 bloques/s en NORMAL);
+persiguen por túneles bajos. Preparan cada salto al pozo durante 5 s en el borde;
+el mismo hueco admite una entrada por segundo, siempre que esté libre.
+Los cuerpos se desarman en 18 piezas texturizadas: chocan con suelo y paredes,
+se asientan y permanecen durante toda la sesión, sin colisión ni bloquear oleadas.
+Los restos no se guardan en JSON; se limpian al cerrar la partida.
 La muerte por kamikaze dice «Te mató el zombi kamikaze»; por vacío «Aquí no hay piso».
 
 El menú de pausa es transparente. La barra de estamina aparece arriba sin etiquetas.
 El radio inicial de chunks es 2 (limitado por el tamaño del mundo). Los mensajes de
 muerte recorren únicamente las tres frases restantes, una por muerte.
-Detalle actual: [combate, pistola y kamikaze](docs/corte2/testing/combat-kamikaze-20260926.md).
+Detalle actual: [oleadas y restos](docs/corte2/testing/final-horde-20260926.md).
+La validación anterior de combate se conserva como evidencia histórica.
 
-Gate real 2026-09-26: **303 pruebas, cero fallos/errores/ignoradas**.
+Gate real 2026-09-26: **313 pruebas, cero fallos/errores/ignoradas**.
 El smoke gráfico automatizado pasó menú, sprint, pausa, opciones, fullscreen,
 resize y guardado/carga. No equivale a un playtest humano de diversión.
 Resultados nuevos de PIT/carga y fronteras de evidencia:
@@ -345,3 +353,18 @@ Consultar [TODO.md](TODO.md) para tareas por estudiante y dependencias, y
 La documentación de arquitectura está en `docs/corte2/`; los resultados vigentes
 están en `docs/corte2/testing/integration-20260926.md`. Los resultados históricos
 se conservan identificados por fecha. `docs/uml.md` incluye la arquitectura integrada.
+
+## Actualizar desde main y jugar
+
+Desde la raíz del repositorio Mc2, con JDK 17+ y Maven instalados:
+
+```bash
+git pull origin main
+./Minecraft2/jugar.sh
+```
+
+El lanzador compila el código actualizado antes de abrir el juego. En IntelliJ:
+actualizar main, recargar Maven y ejecutar `bootstrap.Minecraft2Application`.
+`worlds/` y `graphics.properties` son locales y no se publican; cada computador
+conserva sus mundos y elige su propia tarjeta gráfica. Las ramas de estudiantes
+se mantienen sin cambios.

@@ -104,15 +104,23 @@ class DifficultyTest {
     }
 
     @Test
-    void veryHardWavesAreBiggerAndArriveSooner() {
+    void bothDifficultiesDoubleWavesWhileVeryHardArrivesSooner() {
         var normal = Difficulty.NORMAL.waveRules();
         var veryHard = Difficulty.VERY_HARD.waveRules();
 
         assertTrue(veryHard.firstWaveDelaySeconds() < normal.firstWaveDelaySeconds());
         assertTrue(veryHard.pauseSeconds() < normal.pauseSeconds());
-        for (int wave = 1; wave <= 10; wave++) {
-            assertTrue(veryHard.countFor(wave) > normal.countFor(wave), "oleada " + wave);
+        int[] expected = {4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048};
+        for (int wave = 1; wave <= expected.length; wave++) {
+            assertEquals(expected[wave - 1], normal.countFor(wave), "NORMAL oleada " + wave);
+            assertEquals(expected[wave - 1], veryHard.countFor(wave), "VERY_HARD oleada " + wave);
         }
+        assertEquals(8, normal.firstWaveDelaySeconds());
+        assertEquals(20, normal.pauseSeconds());
+        assertEquals(1, normal.spawnIntervalSeconds());
+        assertEquals(4, veryHard.firstWaveDelaySeconds());
+        assertEquals(10, veryHard.pauseSeconds());
+        assertEquals(.5, veryHard.spawnIntervalSeconds());
     }
 
     @Test

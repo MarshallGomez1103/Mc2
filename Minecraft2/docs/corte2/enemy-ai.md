@@ -113,3 +113,7 @@ Reptante: alto0.8, no salta, camina al55%, rejilla con1bloque de espacio libre. 
 kamikaze usa su causa propia. ZombieTargeting comparte entre puño y pistola el rayo
 sobre la altura real; voxelDDA conservadora en esquinas bloquea terreno y chunks
 ausentes. El efecto rojo dura0.18s; no comparte materiales de otro zombi.
+
+## Ajuste final de entrega
+
+La progresión actual es 4,8,16,32,64,128… en ambas dificultades; las apariciones fallidas se reintentan. Reptante al 28% de velocidad, 5 s de preparación al borde y entrada secuencial ≥1 s. `ZombieDebris` separa los 18 fragmentos persistentes de la IA y la pertenencia de oleadas. Detalle: [validación final](testing/final-horde-20260926.md). Las cantidades/límites de notas anteriores son históricos.

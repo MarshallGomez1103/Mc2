@@ -224,7 +224,7 @@ class HordeManagerTest {
     }
 
     @Test
-    void worldWithoutWalkableGroundDoesNotBlockTheWaves() {
+    void worldWithoutWalkableGroundKeepsEverySpawnPendingUntilGroundReturns() {
         World empty = new World("vacio", 1L, Instant.parse("2026-09-25T00:00:00Z"));
         empty.addChunk(new Chunk(0, 0));
         EnemyUpdateService service = new EnemyUpdateService(empty, ZombieParameters.defaults());
@@ -233,10 +233,18 @@ class HordeManagerTest {
         advance(manager, 2.5);
         assertEquals(0, service.zombies().size());
         assertEquals(2, manager.failedSpawns());
-        assertEquals(HordeManager.Phase.PAUSE, manager.phase(), "una oleada sin zombis termina");
-
-        advance(manager, RULES.pauseSeconds() + 1.0);
-        assertEquals(2, manager.wave());
+        assertEquals(HordeManager.Phase.SPAWNING, manager.phase(), "no se descartan zombis pendientes");
+        assertEquals(2, manager.pendingSpawns());
+        for (int x = 0; x < Chunk.WIDTH; x++) {
+            for (int z = 0; z < Chunk.DEPTH; z++) {
+                TestWorlds.place(empty, x, GROUND_Y, z, domain.block.BlockType.STONE);
+            }
+        }
+        advance(manager, 2.0);
+        assertEquals(1, manager.wave(), "se completa la misma oleada, no se salta a otra");
+        assertEquals(2, service.zombies().size());
+        assertEquals(0, manager.pendingSpawns());
+        assertEquals(HordeManager.Phase.ACTIVE, manager.phase());
     }
 
     @Test

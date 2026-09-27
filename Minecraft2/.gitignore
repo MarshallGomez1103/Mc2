@@ -31,3 +31,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Preferencia de GPU de cada equipo (se genera localmente)
+graphics.properties

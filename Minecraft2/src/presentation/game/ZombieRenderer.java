@@ -18,6 +18,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Disposable;
 import domain.enemy.Zombie;
+import domain.enemy.ZombieDebris;
 import domain.enemy.ZombieState;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +32,8 @@ public final class ZombieRenderer implements Disposable {
     private static final ZombiePose.Part[] PARTS = ZombiePose.Part.values();
     private final com.badlogic.gdx.math.Quaternion partRotation = new com.badlogic.gdx.math.Quaternion();
     private final Model model;
+    private final Model debrisModel;
+    private final Map<ZombieDebris, ModelInstance> debrisInstances = new HashMap<>();
     private final Texture skinTexture;
     private final Map<Zombie, Visual> instances = new HashMap<>();
     private boolean texturesEnabled;
@@ -40,6 +43,7 @@ public final class ZombieRenderer implements Disposable {
         this.texturesEnabled=texturesEnabled;
         skinTexture=createSkinTexture();
         model=createModel(skinTexture);
+        debrisModel=createDebrisModel(skinTexture);
     }
     public void setTexturesEnabled(boolean enabled) { texturesEnabled=enabled; }
     public boolean texturesEnabled() { return texturesEnabled; }
@@ -63,6 +67,17 @@ public final class ZombieRenderer implements Disposable {
         addPart(builder,texture,"rightArm",.33f,1.27f,0,.20f,.20f,.65f,3,0,.27f);
         addPart(builder,texture,"leftLeg",-.12f,.70f,0,.22f,.70f,.25f,2,-.35f,0);
         addPart(builder,texture,"rightLeg",.12f,.70f,0,.22f,.70f,.25f,2,-.35f,0);
+        return builder.end();
+    }
+    private static Model createDebrisModel(Texture texture) {
+        ModelBuilder builder = new ModelBuilder(); builder.begin();
+        for (int i=0; i<ZombieDebris.FRAGMENT_COUNT; i++) {
+            int part=i/3;
+            // Smaller cubes break the six original body parts into eighteen textured pieces.
+            int atlasPart = part==0 ? 0 : part==1 ? 1 : part<4 ? 3 : 2;
+            float size = part==0 ? .28f : part==1 ? .30f : .20f;
+            addPart(builder,texture,"fragment"+i,0,0,0,size,size,size,atlasPart,0,0);
+        }
         return builder.end();
     }
     private static void addPart(ModelBuilder builder, Texture texture, String id, float px,float py,float pz,
@@ -124,8 +139,31 @@ public final class ZombieRenderer implements Disposable {
             batch.render(visual.instance,environment);
         }
     }
+    public void render(ModelBatch batch, Environment environment, List<Zombie> zombies,
+                       List<ZombieDebris> debris) {
+        render(batch, environment, zombies);
+        debrisInstances.keySet().retainAll(new HashSet<>(debris));
+        for (ZombieDebris remains : debris) {
+            ModelInstance instance=debrisInstances.computeIfAbsent(remains, ignored -> new ModelInstance(debrisModel));
+            for (int i=0; i<remains.fragments().size(); i++) {
+                var fragment=remains.fragments().get(i);
+                var node=instance.getNode("fragment"+i);
+                node.translation.set((float)fragment.x(),(float)fragment.y(),(float)fragment.z());
+                node.rotation.set(Vector3.X,(float)fragment.rotation());
+                float scale=fragment.visible() ? 1 : 0;
+                node.scale.set(scale,scale,scale);
+            }
+            instance.calculateTransforms();
+            for (Material material : instance.materials) {
+                material.set(ColorAttribute.createDiffuse(texturesEnabled ? Color.WHITE : BODY));
+                if (texturesEnabled) material.set(TextureAttribute.createDiffuse(skinTexture));
+                else material.remove(TextureAttribute.Diffuse);
+            }
+            batch.render(instance,environment);
+        }
+    }
     int instanceCount() { return instances.size(); }
-    @Override public void dispose() { instances.clear();model.dispose();skinTexture.dispose(); }
+    @Override public void dispose() { instances.clear();debrisInstances.clear();model.dispose();debrisModel.dispose();skinTexture.dispose(); }
     private static final class Visual {
         final ModelInstance instance;double x,z,phase;float yaw;
         Visual(ModelInstance instance,Zombie zombie) { this.instance=instance;x=zombie.getX();z=zombie.getZ(); }

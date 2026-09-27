@@ -48,4 +48,32 @@ class CombatSessionRegressionTest {
         assertTrue(life.isDead());
         assertEquals(PlayerLife.DeathCause.KAMIKAZE, life.deathCause());
     }
+    @Test void pauseFreezesPersistentPiecesWithoutDeletingThem() {
+        var world=TestWorlds.flat(1,1);
+        var session=new GameSession(world,new GameSettings());
+        var zombie=new domain.enemy.Zombie(5.5,21,5.5,3); zombie.shatter();
+        session.enemies().register(zombie);
+        session.advance(1.0/60,()->{});
+        assertEquals(1,session.enemies().debris().size());
+        var fragment=session.enemies().debris().get(0).fragments().get(0);
+        double x=fragment.x(), y=fragment.y();
+        session.setPaused(true);
+        for(int frame=0;frame<600;frame++) session.advance(1.0/60,()->{});
+        assertEquals(x,fragment.x()); assertEquals(y,fragment.y());
+        assertEquals(1,session.enemies().debris().size());
+    }
+    @Test void permanentPiecesDoNotPreventNextWave() {
+        var world=TestWorlds.flat(2,2);
+        var life=new PlayerLife(world.getPlayer());
+        var enemies=new EnemyUpdateService(world,domain.enemy.ZombieParameters.defaults());
+        var horde=new HordeManager(new domain.enemy.WaveRules(0,1,0,1,0,1,8,12),world,enemies);
+        horde.update(.01,15.5,15.5);
+        assertEquals(1,enemies.zombies().size());
+        enemies.zombies().get(0).shatter();
+        enemies.update(life,.01); horde.update(.01,15.5,15.5);
+        assertEquals(1,enemies.debris().size());
+        assertEquals(HordeManager.Phase.PAUSE,horde.phase());
+        horde.update(1,15.5,15.5);
+        assertEquals(2,horde.wave()); assertEquals(1,enemies.debris().size());
+    }
 }

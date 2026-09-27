@@ -22,6 +22,27 @@ class WaveRulesTest {
     }
 
     @Test
+    void explicitMultiplierDoublesWavesAndSaturatesWithoutOverflow() {
+        WaveRules rules = new WaveRules(0, 4, 0, Integer.MAX_VALUE, 1, 1, 5, 8, 2);
+        int[] counts = {4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048};
+        for (int wave = 1; wave <= counts.length; wave++) assertEquals(counts[wave - 1], rules.countFor(wave));
+        assertEquals(1_073_741_824, rules.countFor(29));
+        assertEquals(Integer.MAX_VALUE, rules.countFor(30));
+        assertEquals(Integer.MAX_VALUE, rules.countFor(Integer.MAX_VALUE));
+    }
+
+    @Test
+    void explicitMultiplierAlsoHonorsCustomCapAndRejectsInvalidFactor() {
+        WaveRules rules = new WaveRules(0, 4, 0, 10, 1, 1, 5, 8, 2);
+        assertEquals(4, rules.countFor(1));
+        assertEquals(8, rules.countFor(2));
+        assertEquals(10, rules.countFor(3));
+        assertThrows(IllegalArgumentException.class, () -> new WaveRules(0, 4, 0, 10, 1, 1, 5, 8, 0));
+        WaveRules huge = new WaveRules(0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE, 1, 1, 5, 8, Integer.MAX_VALUE);
+        assertEquals(Integer.MAX_VALUE, huge.countFor(Integer.MAX_VALUE));
+    }
+
+    @Test
     void zeroExtraKeepsWavesConstant() {
         WaveRules rules = rules(3, 0, 3);
         assertEquals(3, rules.countFor(1));

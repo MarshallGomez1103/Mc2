@@ -5,6 +5,7 @@ import domain.enemy.NavigationGrid;
 import domain.enemy.NavigationNode;
 import domain.enemy.Path;
 import domain.enemy.Zombie;
+import domain.enemy.ZombieDebris;
 import domain.enemy.ZombieMovement;
 import domain.enemy.ZombiePhysics;
 import domain.enemy.KamikazePolicy;
@@ -46,6 +47,8 @@ import java.util.function.DoubleSupplier;
 public final class EnemyUpdateService {
     public static final double DESPAWN_SECONDS = 0.8;
     public static final int ATTACK_DAMAGE = 25;
+    public static final double DROP_PREPARATION_SECONDS = 5.0;
+    public static final double DROP_ENTRY_INTERVAL_SECONDS = 1.0;
 
     private final World world;
     private final ZombieParameters parameters;
@@ -58,6 +61,7 @@ public final class EnemyUpdateService {
     private final Map<String, DropGate> dropGates = new HashMap<>();
     private final ZombieSeparation separation = new ZombieSeparation();
     private final List<Zombie> zombies = new ArrayList<>();
+    private final List<ZombieDebris> debris = new ArrayList<>();
     private final Map<Zombie, Navigation> navigation = new HashMap<>();
     private boolean enabled = true;
 
@@ -105,6 +109,9 @@ public final class EnemyUpdateService {
         return Collections.unmodifiableList(zombies);
     }
 
+    /** Restos visuales conservados durante la sesión, fuera de IA y oleadas. */
+    public List<ZombieDebris> debris() { return Collections.unmodifiableList(debris); }
+
     public void register(Zombie zombie) {
         zombies.add(Objects.requireNonNull(zombie, "zombie no puede ser null"));
         navigation.put(zombie, new Navigation());
@@ -147,7 +154,8 @@ public final class EnemyUpdateService {
                     nav.clear();
                     zombie.advanceMotionTimers(deltaSeconds);
                     zombie.addDeadTime(deltaSeconds);
-                    if (zombie.getDeadSeconds() >= DESPAWN_SECONDS) {
+                    if (zombie.isShattered() || zombie.getDeadSeconds() >= DESPAWN_SECONDS) {
+                        if (zombie.isShattered()) debris.add(new ZombieDebris(zombie));
                         iterator.remove();
                         navigation.remove(zombie);
                     }
@@ -155,6 +163,7 @@ public final class EnemyUpdateService {
             }
             resolveFallingContact(zombie, previousY);
         }
+        debris.forEach(remains -> remains.advance(grid, deltaSeconds));
         separation.resolve(zombies, grid);
         dropGates.values().forEach(gate -> gate.remaining = Math.max(0, gate.remaining - deltaSeconds));
         dropGates.values().removeIf(gate -> gate.remaining <= 0);
@@ -204,6 +213,13 @@ public final class EnemyUpdateService {
     }
 
     private void enterDrop(Zombie zombie, Navigation nav, NavigationGrid bodyGrid, double seconds) {
+        if (!nav.dropCommitted) {
+            nav.dropPreparationRemaining = Math.max(0, nav.dropPreparationRemaining - seconds);
+            if (nav.dropPreparationRemaining > 1e-9) {
+                movement.advancePhysics(zombie, bodyGrid, seconds);
+                return;
+            }
+        }
         String key = nav.dropTarget.x() + ":" + nav.dropTarget.z();
         DropGate gate = dropGates.get(key);
         boolean entranceOccupied = zombies.stream().anyMatch(other -> other != zombie && other.isAlive()
@@ -218,7 +234,7 @@ public final class EnemyUpdateService {
         if (!nav.dropCommitted) {
             nav.dropCommitted = true;
             zombie.markKamikaze();
-            dropGates.put(key, new DropGate(0.65));
+            dropGates.put(key, new DropGate(DROP_ENTRY_INTERVAL_SECONDS));
         }
         movement.toward(zombie, bodyGrid, nav.dropTarget.centerX(), nav.dropTarget.centerZ(),
                 parameters.moveSpeed(), seconds);
@@ -233,6 +249,7 @@ public final class EnemyUpdateService {
         nav.path = null;
         nav.dropTarget = null;
         nav.dropCommitted = false;
+        nav.dropPreparationRemaining = DROP_PREPARATION_SECONDS;
         NavigationGrid bodyGrid = zombie.isCrawler() ? crawlerGrid : grid;
         Optional<NavigationNode> start = bodyGrid.nodeUnder(zombie.getX(), zombie.getY(), zombie.getZ());
         Optional<NavigationNode> goal = bodyGrid.nodeUnder(player.getX(), player.getY(), player.getZ());
@@ -316,6 +333,7 @@ public final class EnemyUpdateService {
         private NavigationNode dropTarget;
         private double dropEntryY;
         private boolean dropCommitted;
+        private double dropPreparationRemaining = DROP_PREPARATION_SECONDS;
 
         void clear() {
             path = null;
@@ -323,6 +341,7 @@ public final class EnemyUpdateService {
             sinceRepath = 0;
             dropTarget = null;
             dropCommitted = false;
+            dropPreparationRemaining = DROP_PREPARATION_SECONDS;
         }
 
         boolean needsRepath(Player player, ZombieParameters parameters) {

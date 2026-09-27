@@ -7,10 +7,10 @@ package domain.enemy;
 public enum Difficulty {
     /** Los mismos valores con los que se probó la IA: {@link ZombieParameters#defaults()}. */
     NORMAL(ZombieParameters.defaults(),
-            new WaveRules(8.0, 2, 1, 6, 1.0, 20.0, 14.0, 20.0)),
+            new WaveRules(8.0, 4, 0, Integer.MAX_VALUE, 1.0, 20.0, 14.0, 20.0, 2)),
     /** Zombis que detectan antes, corren más, aguantan más golpes y atacan más rápido. */
     VERY_HARD(new ZombieParameters(28.0, 1.8, Double.POSITIVE_INFINITY, 4.7, 5, 0.4, 1.0, 1.0, 0.6),
-            new WaveRules(4.0, 4, 2, 12, 0.5, 10.0, 10.0, 16.0));
+            new WaveRules(4.0, 4, 0, Integer.MAX_VALUE, 0.5, 10.0, 10.0, 16.0, 2));
 
     private final ZombieParameters zombieParameters;
     private final WaveRules waveRules;

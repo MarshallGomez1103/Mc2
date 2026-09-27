@@ -3,6 +3,7 @@ package domain.enemy;
 /** Horizontal motion and timed jumps; vertical movement is resolved by continuous gravity. */
 public final class ZombieMovement {
     public static final double ARRIVE_DISTANCE = 0.2;
+    public static final double CRAWLER_SPEED_FACTOR = 0.28;
     private static final double EPSILON = 1e-6;
     private final ZombiePhysics physics;
 
@@ -19,7 +20,7 @@ public final class ZombieMovement {
         }
         physics.advance(zombie, grid, deltaSeconds);
         if (!zombie.isAlive()) return true;
-        double budget = Math.max(0, speed * (zombie.isCrawler() ? 0.55 : 1) * deltaSeconds);
+        double budget = Math.max(0, speed * (zombie.isCrawler() ? CRAWLER_SPEED_FACTOR : 1) * deltaSeconds);
         while (!path.isFinished()) {
             NavigationNode target = path.current();
             double dx = target.centerX() - zombie.getX(), dz = target.centerZ() - zombie.getZ();
@@ -44,7 +45,7 @@ public final class ZombieMovement {
         if (!zombie.isAlive()) return false;
         double dx = x - zombie.getX(), dz = z - zombie.getZ(), distance = Math.hypot(dx, dz);
         if (distance <= EPSILON) return true;
-        double budget = Math.min(distance, speed * (zombie.isCrawler() ? 0.55 : 1) * deltaSeconds);
+        double budget = Math.min(distance, speed * (zombie.isCrawler() ? CRAWLER_SPEED_FACTOR : 1) * deltaSeconds);
         while (budget > EPSILON) {
             double step = Math.min(0.1, budget);
             if (!tryMove(zombie, grid, zombie.getX() + dx / distance * step,

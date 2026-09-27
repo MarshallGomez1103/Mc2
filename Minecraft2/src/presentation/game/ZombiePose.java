@@ -23,10 +23,10 @@ public final class ZombiePose {
         float x=part.x, y=part.y, z=part.z, rotation=0, scale=1;
         if (crawler) {
             switch (part) {
-                case HEAD -> { y=.5f; z=.03f; }
-                case TORSO -> { y=.38f; z=0; rotation=90; scale=.9f; }
-                case LEFT_ARM -> { y=.3f; z=.2f; rotation=-swing*.35f; }
-                case RIGHT_ARM -> { y=.3f; z=.2f; rotation=swing*.35f; }
+                case HEAD -> { y=.40f; z=.24f; }
+                case TORSO -> { y=.24f; z=-.22f; rotation=90; }
+                case LEFT_ARM -> { y=.18f; z=.13f; rotation=-swing*.20f; }
+                case RIGHT_ARM -> { y=.18f; z=.13f; rotation=swing*.20f; }
                 case LEFT_LEG, RIGHT_LEG -> scale=0;
             }
         } else {

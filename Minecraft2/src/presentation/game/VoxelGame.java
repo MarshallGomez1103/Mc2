@@ -204,7 +204,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
                 modelBatch.render(entry.getValue(), environment);
             }
         }
-        zombieRenderer.render(modelBatch, environment, session.enemies().zombies());
+        zombieRenderer.render(modelBatch, environment, session.enemies().zombies(), session.enemies().debris());
         pistolRenderer.renderPickup(modelBatch, environment, session.pistol());
         modelBatch.end();
 

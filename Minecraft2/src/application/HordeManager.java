@@ -26,8 +26,11 @@ import java.util.SplittableRandom;
  * {@code PAUSE} (descanso) → {@code SPAWNING} de la oleada siguiente.
  */
 public final class HordeManager {
-    /** Intentos de encontrar una columna caminable para un zombi antes de darlo por perdido. */
+    /** Intentos de encontrar una columna caminable antes de aplazar una aparición. */
     static final int SPAWN_ATTEMPTS = 8;
+    /** Presupuesto por actualización; nunca descarta pendientes de oleadas grandes. */
+    static final int MAX_SPAWNS_PER_UPDATE = 64;
+    private static final double MIN_RETRY_INTERVAL_SECONDS = .05;
     private static final double EDGE_MARGIN = 0.5;
     private static final double PLAYER_SPAWN_CLEARANCE = 2.5;
 
@@ -45,7 +48,7 @@ public final class HordeManager {
     private Phase phase = Phase.WAITING;
     private int wave;
     private int pendingSpawns;
-    private int spawnIndex;
+    private long spawnIndex;
     private int failedSpawns;
     private double countdown;
 
@@ -96,8 +99,13 @@ public final class HordeManager {
             countdown -= deltaSeconds;
         }
         if (phase == Phase.SPAWNING) {
-            while (pendingSpawns > 0 && countdown <= 0) {
-                spawnOne(playerX, playerZ);
+            int budget = MAX_SPAWNS_PER_UPDATE;
+            while (pendingSpawns > 0 && countdown <= 0 && budget-- > 0) {
+                if (!spawnOne(playerX, playerZ)) {
+                    // La congestión no reduce la cantidad: probar otros sitios en el siguiente intervalo.
+                    countdown = Math.max(rules.spawnIntervalSeconds(), MIN_RETRY_INTERVAL_SECONDS);
+                    break;
+                }
                 pendingSpawns--;
                 countdown += rules.spawnIntervalSeconds();
             }
@@ -123,7 +131,7 @@ public final class HordeManager {
     }
 
     private void startNextWave() {
-        wave++;
+        if (wave < Integer.MAX_VALUE) wave++;
         pendingSpawns = rules.countFor(wave);
         spawnIndex = 0;
         phase = Phase.SPAWNING;
@@ -132,7 +140,7 @@ public final class HordeManager {
     }
 
     /** Busca una columna caminable en el anillo alrededor del jugador, siempre con la misma secuencia. */
-    private void spawnOne(double playerX, double playerZ) {
+    private boolean spawnOne(double playerX, double playerZ) {
         SplittableRandom random = new SplittableRandom(spawnSeed(wave, spawnIndex++));
         double span = rules.maxSpawnDistance() - rules.minSpawnDistance();
         for (int attempt = 0; attempt < SPAWN_ATTEMPTS; attempt++) {
@@ -152,13 +160,14 @@ public final class HordeManager {
                 continue;
             }
             if (enemies.spawnAt(x, z).map(waveZombies::add).isPresent()) {
-                return;
+                return true;
             }
         }
-        failedSpawns++;
+        if (failedSpawns < Integer.MAX_VALUE) failedSpawns++;
+        return false;
     }
 
-    private long spawnSeed(int waveNumber, int index) {
+    private long spawnSeed(int waveNumber, long index) {
         return seed ^ (waveNumber * 0x9E3779B97F4A7C15L) ^ (index * 0xC2B2AE3D27D4EB4FL);
     }
 
@@ -185,7 +194,7 @@ public final class HordeManager {
         return waveZombies.size();
     }
 
-    /** Apariciones abandonadas porque no se encontró una columna caminable. */
+    /** Lotes de intentos fallidos: la aparición sigue pendiente y se reintenta, nunca se pierde. */
     public int failedSpawns() {
         return failedSpawns;
     }

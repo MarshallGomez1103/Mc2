@@ -8,10 +8,11 @@ class ZombiePoseTest {
         }
         var head=ZombiePose.part(ZombiePose.Part.HEAD,true,false,0,0);
         assertTrue(head.y()+.225f <= .8f);
-        assertTrue(Math.abs(head.z())+.225f <= domain.enemy.Zombie.WIDTH/2);
+        assertTrue(head.y()-.225f > 0, "la cabeza queda sobre el suelo");
         var torso=ZombiePose.part(ZombiePose.Part.TORSO,true,false,0,0);
         assertEquals(90,torso.rotationX());
-        assertTrue(Math.abs(torso.z())+.325f*torso.scale() <= domain.enemy.Zombie.WIDTH/2);
+        assertTrue(torso.z() < head.z()-.4f, "el torso se arrastra detrás de la cabeza");
+        assertTrue(torso.y()-.14f*torso.scale() > 0, "el torso no se hunde en el piso");
         assertTrue(torso.y()+.14f <= .8f);
         var left=ZombiePose.part(ZombiePose.Part.LEFT_ARM,true,false,0,25);
         var right=ZombiePose.part(ZombiePose.Part.RIGHT_ARM,true,false,0,25);
