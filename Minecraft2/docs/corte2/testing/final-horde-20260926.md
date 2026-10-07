@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Entrega final: oleadas, reptante y restos
 
 ## Cambios

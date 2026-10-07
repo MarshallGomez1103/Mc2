@@ -1,20 +1,19 @@
 # Roadmap maestro — Corte 2
 
-Estado 2026-09-26: generación, IA, hordas y R1–R10 implementados e integrados
-localmente. Suite final 238/238; smoke gráfico automatizado, PIT y carga ejecutados.
+Registro de la primera integración, 2026-09-26: generación, IA, hordas y R1–R10 implementados e integrados
+localmente. Suite de esa etapa: 238/238; smoke gráfico automatizado, PIT y carga ejecutados.
 Pendiente: revisión humana de jugabilidad, AMD físico y endurance gráfico prolongado.
-No se hizo commit ni push. [Evidencia vigente](docs/corte2/testing/integration-20260926.md).
+[Registro de primera integración](docs/corte2/testing/integration-20260926.md).
 
-El cronograma y baseline de septiembre 16 se conservan como historial, no como
-estado vigente. El usuario autorizó esta ejecución completa con subagentes.
-Los hotspots se asignaron a un único owner y se integraron desde el estado local.
+El cronograma y baseline del 16 de septiembre se conservan como historial.
+El cierre del Corte 2 corresponde a la etapa final de 313 pruebas registrada en el README.
 
 ## Estado de los cortes
 
 - **CORTE 1 — TERMINADO:** MVP de consola + ventana voxel, CRUD JSON, cuatro chunks,
   generación inicial, jugador, cámara, movimiento, gravedad, salto, colisiones,
   interacción, Factory, Singleton, Observer y texturas de bloques ON/OFF.
-- **CORTE 2 — ACTUAL:** los tres frentes integrados, ampliación de jugabilidad probada.
+- **CORTE 2 — CERRADO:** los tres frentes integrados, ampliación de jugabilidad probada.
 - **CORTE 3 — TODAVÍA NO DEFINIDO:** pendiente de definición. No se diseña en este roadmap.
 
 ## Objetivo del Corte 2
@@ -58,7 +57,7 @@ Los IDs permiten reanudar sin perder el alcance. Checklist ejecutable: [TODO.md]
 
 | ID | Momento orientativo | Resultado verificable | Dependencias |
 | --- | --- | --- | --- |
-| C2-00 | Antes de desarrollar | Revisar esta base y autorizar su commit; gate de 41 pruebas | Revisión humana |
+| C2-00 | Antes de desarrollar | Registrar baseline de 41 pruebas | Revisión humana |
 | C2-01 | Inicio, días 1–2 | Acordar caminabilidad, temporización, dificultad y defaults; crear ramas desde base aprobada | C2-00 |
 | C2-02 | Semana 1 | BiomeResolver puro, determinista y regional | C2-01 |
 | C2-03 | Semana 1 | RED → GREEN → REFACTOR real de FSM | C2-01; independiente de C2-02 |
@@ -145,12 +144,7 @@ integración y publicación exige GREEN. No presentar un commit RED como gate ap
 - Cuatro escenarios de carga con hardware/JVM, tiempos, llamadas A* y memoria.
 - Regresión del menú, mundos, interacción, jugador, texturas y JSON del Corte 1.
 
-## Handoff
+## Cierre
 
-Completado: base aprobada, frente de generación y extensiones finitas verificadas.
-Actual: las entregas de Jasub y Ethian están integradas con la generación de Thomas.
-Siguiente: playtest humano y revisión del diff para autorizar publicación.
-Checkpoints históricos de [Jasub](docs/corte2/PLAN_AGENTE_JASUB.md) y
-[Ethian](docs/corte2/PLAN_AGENTE_ETHIAN.md), integración coordinada y gate final.
-Detalles: [arquitectura](docs/corte2/arquitectura-corte2.md),
-[IA](docs/corte2/enemy-ai.md), [terreno](docs/corte2/terrain-generation.md).
+Los tres frentes quedaron integrados al cerrar el Corte 2. Las validaciones de
+septiembre conservan su fecha; el alcance del Corte 3 se definirá por separado.

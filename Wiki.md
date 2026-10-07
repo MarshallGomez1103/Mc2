@@ -24,15 +24,11 @@ Viendo otro dilema en paralelo, resolver el "hambre de entretenimiento" de las p
 
 ## 3. Fundamentos de Ingeniería de Software
 
-| Atributo de calidad | ¿Cómo se sostiene en el diseño? (evidencia concreta)                                                                                                                                                                                                                                     | ¿Qué se sacrificó a cambio?                                                                                                                                                                                                                                                             |
-|---------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Mantenibilidad**  | El proyecto se divide en módulos (`presentation`, `application`, `domain`, `persistence`, `patterns`, `manualtest`, `bootstrap`) con dependencia en una sola dirección hacia el dominio. Un cambio en cómo se guarda un mundo (`JsonWorldStorage`) no obliga a tocar `World` ni el menú. | En cuanto a documentación, se tienen los READMEs, comentarios a lo largo de las clases y varios archivos .md que describen componentes del desarrollo.                                                                                                                                  
-| **Eficiencia**      |Chunk está acotado a 16×64×16 bloques (16,384 bloques máximo por chunk). Esto no es casualidad — es una decisión explícita del equipo (docs/decisiones-compartidas.md) que limita cuánta memoria puede ocupar un solo chunk, en vez de dejarlo con tamaño arbitrario.
-La conversión de posición a coordenada de chunk es una operación matemática O(1) (Math.floorDiv(x, 16)), no una búsqueda ni iteración sobre una lista de chunks existentes. Esto importa porque cada vez que el jugador se mueve, coloca o elimina un bloque, esta operación se ejecuta — que sea aritmética directa en vez de una búsqueda lineal es una decisión de rendimiento, aunque no esté "documentada" como tal explícitamente.
-
-
-| **Escalabilidad ** | no la vimos en clase, pero está respaldada por el ISO 25010. persistence/WorldStorage.java (interfaz) vs JsonWorldStorage.java (implementación) — es el único punto concreto de bajo acoplamiento que dejaría espacio para escalar el almacenamiento sin tocar la capa de aplicación.
-
+| Atributo de calidad | Evidencia concreta | Costo de la decisión |
+| --- | --- | --- |
+| Mantenibilidad | Separación entre presentación, aplicación, dominio y persistencia; aplicación depende de WorldStorage | Más clases y cableado que una implementación concentrada en un solo módulo |
+| Eficiencia | Chunks acotados a 16×64×16, coordenadas por floorDiv y descarte de caras ocultas al renderizar | El mundo finito permanece en memoria; editar bloques requiere actualizar mallas |
+| Modificabilidad | WorldStorage separa el contrato de archivos de su implementación JSON | Cambiar almacenamiento exige implementar y validar el mismo snapshot; no proporciona distribución ni concurrencia automáticamente |
 
 ## 4. Diseño de Software
 
@@ -142,8 +138,8 @@ src/
 **Terminal:**
 ```bash
 mvn clean package
-java -cp target/classes bootstrap.Minecraft2Application
-o también
+java -Dmc2.console=true -jar target/minecraft2-0.1.0-SNAPSHOT.jar
+# Alternativa de ejecución gráfica
 java -Dfile.encoding=UTF-8 -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 ```
 
@@ -171,12 +167,6 @@ El único acoplamiento fuerte y deliberado del proyecto es la dependencia hacia 
 |---|---|
 | Elioth Thomas Gómez Morales | Estudiante 1 — Mundo y generación: `Chunk`, generación pseudoaleatoria de terreno, `BlockFactory`, distribución de tipos de bloque, validaciones de `Chunk`. |
 | Jasub Sastre | Estudiante 2 — Jugador e interacción: estado y orientación del jugador, movimiento horizontal, gravedad y salto, colisiones básicas, selección de bloque por clic, conexión con `World.placeBlock`/`removeBlock`, verificación de los patrones Observer y Singleton. |
-| *(pendiente de completar)* | Estudiante 3 — Presentación y persistencia: interfaz del menú principal, conexión de pantallas de crear/listar/cargar/guardar/eliminar, escritura y reconstrucción JSON de chunks y bloques, manejo de errores y confirmación antes de eliminar un mundo. |
+| Ethian Daniel White Ortiz | Estudiante 3 — Presentación y persistencia: interfaz del menú principal, conexión de pantallas de crear/listar/cargar/guardar/eliminar, escritura y reconstrucción JSON de chunks y bloques, manejo de errores y confirmación antes de eliminar un mundo. |
 
 ---
-
-### Recordatorio de entregables (según enunciado oficial)
-- [x] Repositorio en GitHub con código y documentación
-- [x] Este Wiki completo
-- [ ] Presentación creativa del problema
-- [no] *(Opcional)* Video técnico explicando la solución (máx. 5 min)

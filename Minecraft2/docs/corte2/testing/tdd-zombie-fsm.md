@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # TDD — ZombieStateMachine
 
 Estado: **RED → GREEN → REFACTOR ejecutados** el 2026-09-21 sobre la revisión `6202362` (master).

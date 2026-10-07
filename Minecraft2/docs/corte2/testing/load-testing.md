@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Load/performance testing — C2-10
 
 > Actualización 2026-09-26: resultados nuevos y scope ampliado en
@@ -6,7 +8,6 @@
 
 
 Estado: harness construido y los cuatro escenarios ejecutados una vez. Owner: Estudiante 3.
-Plan operativo: [PLAN_AGENTE_ETHIAN.md](../PLAN_AGENTE_ETHIAN.md).
 
 ## Harness
 

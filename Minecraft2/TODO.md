@@ -1,3 +1,5 @@
+> Registro histórico del trabajo del Corte 2, cerrado. Las tareas y conteos de cada etapa no describen pendientes del Corte 3.
+
 # TODO — Minecraft 2
 
 Checklist único: `[ ]` pendiente, `[x]` terminada con evidencia.
@@ -14,8 +16,8 @@ Mapa maestro y ownership: [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md).
 - [x] R8: menú gráfico, ESC pausa, opciones y confirmaciones de salida/eliminación.
 - [x] R9: separación física local; spawn ocupado, pared/corredor y 20 zombies probados.
 - [x] R10: velocidad real mayor que caminar y menor que sprint; spawn seguro y detección.
-- [x] Suite nueva real: 238/238; build, PIT seleccionado y cinco escenarios de carga.
-- [x] Preservación: diff previo, copia fuente y 14 mundos con SHA256; sin commit/push.
+- [x] Suite de la primera integración: 238/238; build, PIT seleccionado y cinco escenarios de carga.
+- [x] Preservación: diff previo, copia fuente y 14 mundos con SHA256.
 - [ ] Playtest humano prolongado: diversión, hordas, bob, melee y refugio en estructuras.
 - [ ] Prueba física AMD y sistemas Windows/macOS; endurance gráfico prolongado.
 
@@ -94,7 +96,7 @@ Se mantienen sin red, base de datos, nuevos singletons o frameworks innecesarios
 - [ ] No convertir nuevas clases en Singleton.
 - [ ] No agregar frameworks sin una necesidad acordada por el equipo.
 
-# CORTE 2 — ACTUAL
+# CORTE 2 — CERRADO
 
 Preparación aprobada; frentes del Corte 2 en desarrollo. Estado de cada tarea abajo.
 Baseline previo: mvn clean test, 41 exitosas, 0 fallos/errores/ignoradas.
@@ -172,7 +174,7 @@ Detalle: [docs/corte2/enemy-ai.md](docs/corte2/enemy-ai.md), reporte en
 - [x] Tests unitarios FSM: transiciones, límites y prioridades (13).
 - [x] Tests unitarios A*: recto, obstáculo/rodeo, imposible, origen=destino y desnivel (8).
 - [x] Tests de integración Enemy + World con bloques modificados (`EnemyUpdateServiceTest`: pared construida durante la persecución, jugador encerrado).
-- [x] Documentación IA y evidencia TDD en docs/corte2/ (`enemy-ai.md`, `testing/tdd-zombie-fsm.md`, `WIKI_ENEMY_AI_JASUB.md`).
+- [x] Documentación IA y evidencia TDD en docs/corte2/ (`enemy-ai.md`, `testing/tdd-zombie-fsm.md`).
 - [ ] Smoke manual con ratón: golpe, explosión, picar sin zombi, R y J/K durante oleadas. La integración retiró el spawn de prueba por Z y mc2.zombies.
 
 ## Estudiante 3 — Hordas, configuración y calidad
@@ -213,11 +215,6 @@ Detalle: [docs/corte2/enemy-ai.md](docs/corte2/enemy-ai.md), reporte en
 | Rendering | Zombie con posición y actualización funcional |
 | Load testing de IA | EnemyUpdateService y A* integrados e instrumentados |
 
-Planes de ejecución: [Jasub / IA](docs/corte2/PLAN_AGENTE_JASUB.md) y
-[Ethian / hordas y calidad](docs/corte2/PLAN_AGENTE_ETHIAN.md). El frente de
-generación está listo; los planes indican checkpoints y contratos de integración.
-
-No crear veinte interfaces vacías: acordar APIs pendientes antes del trabajo dependiente.
 No editar archivos de otro owner sin aviso. POM solo Estudiante 3.
 
 ## Integración y cierre — C2-09 a C2-11

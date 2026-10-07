@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Menús, vida y navegación diagonal — 26 septiembre 2026
 
 > Etapa anterior: el combate actual está en [combat-kamikaze-20260926.md](combat-kamikaze-20260926.md).
@@ -30,8 +32,6 @@
 
 ## Reparto y arquitectura
 
-Tres agentes con archivos separados desarrollaron fondo, vida/ataques y navegación.
-El principal integró GPU, frases y persecución, revisó y ejecutó las pruebas.
 MenuWorldBackdrop solo renderiza paisaje; GraphicalGame coordina menús. PlayerLife
 es dominio puro; GameHud dibuja vida. NavigationGrid valida pasos y AStarPathfinder
 busca rutas. EnemyUpdateService coordina golpes, espera y búsqueda.
@@ -53,12 +53,5 @@ busca rutas. EnemyUpdateService coordina golpes, espera y búsqueda.
   Smoke normal usa Intel y muestra Integrada. No hardware AMD físico.
 - Capturas revisadas de portada, lista, GPU, vida y muerte. No es playtest humano.
 - Los mundos existentes mantienen SHA-256 y no se usan para las pruebas. El escenario
-  del menú no se guarda. Sin commit, push, reset ni clean de Git.
+  del menú no se guarda.
 - PIT/carga anteriores son históricos, no se ejecutaron de nuevo para este ajuste.
-
-## Abrir y devolver
-
-El JAR del repositorio está actualizado. Cerrar una instancia anterior y volver a abrir.
-El entregable incluye Jugar_Minecraft2.sh y volver_al_estado_previo.py: revisión sin
-argumentos; devolución de esta etapa con --apply --rebuild. Se verifica todo el
-manifiesto antes de escribir y se detiene si hay cambios posteriores. No toca mundos.

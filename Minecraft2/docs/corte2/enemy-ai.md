@@ -1,7 +1,7 @@
 # Enemy AI — implementación del Corte 2
 
 Estado 2026-09-26: IA/hordas integradas; modelo seis partes, separación, balance,
-spawn seguro y golpe bloqueado por paredes implementados. Suite final 238/238.
+spawn seguro y golpe bloqueado por paredes implementados. Suite de la primera integración: 238/238; la etapa final registró 313.
 Evidencia nueva: [upgrade zombie](testing/zombie-upgrade.md) e
 [integración](testing/integration-20260926.md). El reporte base de Jasub se conserva
 como historia: [REPORTE_ENEMY_AI_JASUB.md](REPORTE_ENEMY_AI_JASUB.md).

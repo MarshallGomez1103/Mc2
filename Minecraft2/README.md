@@ -1,6 +1,6 @@
 # Minecraft 2
 
-Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; los tres frentes del Corte 2 están integrados en `main`.
+Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; el Corte 2 queda cerrado con los tres frentes integrados en `main`.
 
 > Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
 
@@ -13,7 +13,7 @@ cuatro chunks, bloques, jugador, cámara, movimiento, salto, gravedad, colisione
 raycast e interacción, renderizado 3D y persistencia JSON. Incluye Factory,
 Singleton, Observer y texturas de bloques ON/OFF. Baseline: 41 pruebas JUnit.
 
-### Corte 2 — Integrado en main, ampliación de jugabilidad
+### Corte 2 — cerrado
 
 Biomas PLAINS/DESERT/MOUNTAINS, aldea, mundos finitos, zombies FSM + A* y oleadas
 están integrados. El inicio normal abre el menú gráfico para crear/listar/cargar/
@@ -66,8 +66,9 @@ Detalle actual: [oleadas y restos](docs/corte2/testing/final-horde-20260926.md).
 La validación anterior de combate se conserva como evidencia histórica.
 
 Gate real 2026-09-26: **313 pruebas, cero fallos/errores/ignoradas**.
-El smoke gráfico automatizado pasó menú, sprint, pausa, opciones, fullscreen,
-resize y guardado/carga. No equivale a un playtest humano de diversión.
+El registro histórico describe un smoke gráfico de menú, sprint, pausa, opciones,
+fullscreen, resize y guardado/carga. Su harness de flujo no está versionado: no
+se declara reproducible a partir del repositorio ni equivale a un playtest humano.
 Resultados nuevos de PIT/carga y fronteras de evidencia:
 [reporte de integración](docs/corte2/testing/integration-20260926.md).
 
@@ -292,8 +293,7 @@ el mundo actual. JSON versión 1 se conserva; enemigos y estamina son de sesión
 
 La ruta se resuelve desde IDE/JAR hasta la raíz del proyecto, no desde el cwd.
 Puede fijarse `-Dmc2.worlds.dir=/ruta/absoluta/worlds`. Copiar el JAR fuera del
-proyecto puede cambiar la carpeta por defecto. El archivo local Jaimito.json
-incompleto se preservó: no se elimina ni se presenta como lista vacía.
+proyecto puede cambiar la carpeta por defecto. Los archivos inválidos se conservan y se muestran con su error de lectura.
 
 ### Gráficos y GPU
 
@@ -344,15 +344,15 @@ Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Es
 
 ## Modelado UML
 
-El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el diagrama de clases obligatorio y vistas complementarias de casos de uso, patrones, componentes y secuencias, actualizadas con la ventana 3D, los controles básicos y el observador visual concreto.
+El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el diagrama de clases obligatorio y vistas complementarias de casos de uso, patrones, componentes y secuencias, de las etapas anteriores con ventana 3D, controles y observador visual; deben contrastarse con el código antes de una nueva entrega.
 
-## Backlog del Corte 2
+## Registro del Corte 2
 
 Consultar [TODO.md](TODO.md) para tareas por estudiante y dependencias, y
-[ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md) para fases, ownership y gates.
-La documentación de arquitectura está en `docs/corte2/`; los resultados vigentes
-están en `docs/corte2/testing/integration-20260926.md`. Los resultados históricos
-se conservan identificados por fecha. `docs/uml.md` incluye la arquitectura integrada.
+[ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md) como registro de fases y validaciones.
+La documentación de arquitectura está en `docs/corte2/`; el cierre funcional
+está registrado en `docs/corte2/testing/final-horde-20260926.md`. Los resultados históricos
+se conservan identificados por fecha. `docs/uml.md` conserva vistas de las etapas anteriores; no se considera actualizado para una nueva entrega.
 
 ## Actualizar desde main y jugar
 

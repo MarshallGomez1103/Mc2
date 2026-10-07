@@ -1,7 +1,9 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Zombis: modelo, separación y balance — 2026-09-26
 
 > Evidencia de la primera integración. Los ajustes posteriores y su validación están en
-> [feedback-20260926.md](feedback-20260926.md); ese documento y el README describen el estado actual.
+> [feedback-20260926.md](feedback-20260926.md); el README y el registro final de oleadas describen la última etapa del Corte 2.
 
 ## Implementado
 
@@ -26,7 +28,7 @@ antes de buscar otra ruta; una cola de zombis espera localmente sin generar rein
 
 ## Probado automáticamente
 
-Comando focalizado (sin clean, coordinado con otros agentes):
+Comando focalizado (sin clean, sin otras ejecuciones Maven simultáneas):
 
 ```sh
 mvn -q -Dtest=ZombieAtlasTest,ZombieSkinTest,ZombieSeparationTest,NavigationMovementAgreementTest,ZombieMovementTest,EnemyUpdateServiceTest,DifficultyTest,HordeManagerTest test
@@ -38,7 +40,7 @@ mvn -q -Dtest=ZombieAtlasTest,ZombieSkinTest,ZombieSeparationTest,NavigationMove
 para aislar coordinación y tiempos de IA; prueba de dificultad se mueve de distancia15 a26 para
 seguir comprobando el rango intermedio tras el balance, manteniendo todas sus aserciones.
 
-Gate global, PIT y carga son coordinados por el agente integrador y se registran por separado.
+Gate global, PIT y carga constan en el reporte histórico de integración y se registran por separado.
 
 ## Smoke visual OpenGL real
 
@@ -50,8 +52,8 @@ java -cp target/classes:target/test-classes:target/minecraft2-0.1.0-SNAPSHOT.jar
 ```
 
 Ejecutado exitosamente con contexto gráfico real: **Mesa Intel(R) Graphics (RPL-S)**.
-Capturas disponibles en entregable `outputs/validation/zombie-{front,back,side,top,walking,textures-off}.png`.
-Frente/espalda/lateral/marcha inspeccionadas visualmente por el agente: cabeza al derecho,
+Las capturas de estas vistas no están versionadas en el repositorio.
+Frente, espalda, lateral y marcha se revisaron visualmente: cabeza al derecho,
 ojos/boca únicamente de frente, brazos extendidos y piernas diferenciadas. Capturas framebuffer
 usan flipY al escribir PNG; este ajuste es de captura, no de orientación del modelo.
 
@@ -63,7 +65,7 @@ usan flipY al escribir PNG; este ajuste es de captura, no de orientación del mo
   imposible.32pasadas máximas por actualización, interrupción temprana si no hay correcciones.
 - IA mantiene detección por distancia sin línea de visión y navegación2.5D, sin gravedad continua.
 - No se probaron AMD ni cambio de GPU dentro de este smoke.
-- Agente integrador debe validar melee/oleadas/juego y confirmar gates finales sobre estado conjunto.
+- Validar melee/oleadas/juego y confirmar gates finales sobre estado conjunto.
 
 ## Revisión adicional: paredes como refugio
 

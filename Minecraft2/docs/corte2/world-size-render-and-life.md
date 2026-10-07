@@ -97,5 +97,3 @@ Se editaron temporalmente `World.java`, `MainMenu.java` y `VoxelGame.java` con p
 del Estudiante 1 antes de que los Estudiantes 2 y 3 comenzaran. Antes de integrar
 EnemyUpdateService, el Estudiante 2 debe leer el nuevo loop de mallas y `PlayerLife`;
 el Estudiante 3 debe preservar la pregunta de tamaño al añadir opciones al menú.
-La integración de ramas y el push se realizan solamente tras autorización explícita
-del equipo; este documento no prescribe reescritura de historia ni force-push.

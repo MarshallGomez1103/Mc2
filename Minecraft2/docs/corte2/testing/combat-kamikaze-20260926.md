@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Combate, pistola y zombis kamikaze — 26 septiembre 2026
 
 ## Implementado
@@ -34,16 +36,14 @@
 - Menús, sonidos, dificultad/rondas y formato JSON conservados. Vida, pistola, oleadas
   y zombis son de sesión: cerrar/cargar inicia otra sesión; morir/reaparecer conserva arma.
 
-## Arquitectura y trabajo paralelo
+## Arquitectura
 
-Tres agentes tuvieron archivos separados: física/enemigos; salud/efectos; arma/input.
-El principal integró servicios, HUD, causas reales, recompensa en pozos, memoria de
-entrada y verificó conjuntamente. ZombiePhysics/KamikazePolicy son dominio puro;
+ZombiePhysics/KamikazePolicy son dominio puro;
 PistolService/ZombieTargeting son aplicación; renderers/HUD solo dibujan. GameSession
 avanza salud, enemigos, horda y pistola una vez por frame activo. El daño de los puños
 ya utiliza el mismo targeting que la pistola, sin duplicar rayos ni oclusión.
 
-## Verificación actual
+## Verificación de esa etapa
 
 - `mvn package`:303pruebas,0fallos,0errores,0ignoradas; JAR completo generado.
 - Física: velocidad y gravedad del jugador, salto/techo/aterrizaje, pendiente de tres
@@ -62,5 +62,3 @@ ya utiliza el mismo targeting que la pistola, sin duplicar rayos ni oclusión.
   capturar los efectos; no es un playtest humano ni una medición de diversión.
 - Capturas revisadas. PIT/carga anteriores siguen siendo históricos; no se ejecutaron
   de nuevo. No se tocó la selección de GPU ni se requiere instalar nada.
-- Respaldo completo anterior a esta etapa; mundos existentes verificados con SHA-256.
-  Sin commit,push,reset ni clean de Git. Retorno se detiene si hay cambios posteriores.

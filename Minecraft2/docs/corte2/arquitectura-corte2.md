@@ -1,7 +1,7 @@
 # Arquitectura Corte 2 — estado integrado 2026-09-26
 
 Los tres frentes y la ampliación R1–R10 están implementados localmente.
-Pruebas y límites: [integración](testing/integration-20260926.md).
+Registro histórico de pruebas y límites: [integración](testing/integration-20260926.md).
 Se conservan Java objetivo 17, Maven, LibGDX 1.12.1, JSON v1 y capas existentes.
 No se introdujeron dependencias, singletons ni una reescritura global.
 
@@ -91,7 +91,7 @@ No se instalaron drivers ni hay CUDA/cambio de GPU en caliente.
 
 ## Validación y límites
 
-238 pruebas automatizadas y smoke OpenGL programado con entradas simuladas.
+238 pruebas automatizadas en la primera integración; 313 en la etapa final y smoke OpenGL programado con entradas simuladas.
 PIT seleccionado y carga headless nuevos en el reporte. Capturas zombie de
 frente/espalda/lateral/superior/marcha y OFF revisadas. Prueba GPU Intel + NVIDIA
 real; AMD y otros SO no físicamente probados. Playtest humano de diversión y

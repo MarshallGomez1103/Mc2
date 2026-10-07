@@ -1,7 +1,6 @@
 # Reporte de trabajo — Enemy AI (Estudiante 2, Jasub)
 
-Fecha: 2026-09-21. Base: `master` en `6202362`. Trabajo en working tree, **sin commit** (pendiente
-de revisión y aprobación de Jasub; el plan pedía rama `feature/c2-jasub`, que no existe localmente).
+Fecha: 2026-09-21. Registro histórico del frente de IA.
 
 ## Resumen
 
@@ -39,7 +38,7 @@ Suite: **110 pruebas, 0 fallos** (63 baseline + 47 nuevas). Dos capturas automá
 | Archivo | Cambio | Nota de coordinación |
 | --- | --- | --- |
 | `src/presentation/game/GameInput.java` | constructor recibe `ZombieMeleeService` y `EnemyUpdateService`; clic izquierdo golpea zombi en alcance antes de romper bloque | zona de Estudiante 2 |
-| `src/presentation/game/VoxelGame.java` | crea servicios y renderer; `update` de IA con tope 0.05 s; dibuja zombis en el mismo batch; HUD «Zombis: N»; tecla Z y `-Dmc2.zombies=N` provisionales; `dispose` del renderer | **hotspot compartido**: el plan autorizaba integrar en ventana coordinada; avisar al equipo antes de integrar |
+| `src/presentation/game/VoxelGame.java` | crea servicios y renderer; `update` de IA con tope 0.05 s; dibuja zombis en el mismo batch; HUD «Zombis: N»; tecla Z y `-Dmc2.zombies=N` provisionales; `dispose` del renderer | Integración en el bucle gráfico compartido |
 
 Constructores públicos de `VoxelGame` intactos; `VoxelGameObserverTest` y `GameWindow` no cambian.
 No se tocaron `World.java`, `MainMenu.java`, `pom.xml`, `README.md`, JSON ni generación.
@@ -52,7 +51,7 @@ No se tocaron `World.java`, `MainMenu.java`, `pom.xml`, `README.md`, JSON ni gen
 
 ### Nuevos — documentación
 
-`docs/corte2/WIKI_ENEMY_AI_JASUB.md` (guía de estudio en 8 secciones), este reporte,
+Este reporte,
 `docs/corte2/enemy-ai.md` reescrito, `docs/corte2/testing/tdd-zombie-fsm.md` con evidencia real,
 `docs/corte2/evidencias/enemy-ai-chase.png` y `enemy-ai-death.png`, `TODO.md` actualizado.
 
@@ -108,13 +107,3 @@ contrato de registro `register/spawnAt/zombies/setEnabled` propuesto a Estudiant
 - Mundo **Grande** con zombis (solo `test1`, Mediano).
 - Línea de visión: no implementada; los zombis detectan a través de paredes.
 - Texturas de enemigos ON/OFF, dificultad y HordeManager: Estudiante 3.
-
-## Siguientes pasos sugeridos
-
-1. Jasub revisa el diff y decide crear `feature/c2-jasub` y commitear en pasos pequeños
-   (dominio+TDD, navegación, servicio, integración visual, docs).
-2. Avisar al equipo del cambio en `VoxelGame.java` (hotspot) y de la firma nueva de `GameInput`.
-3. Smoke manual del equipo con la lista de arriba; registrar resultado en `enemy-ai.md`.
-4. Acordar con Ethian: `ZombieParameters` por `Difficulty`, quién llama a `register/spawnAt`,
-   y retirar la tecla Z y `mc2.zombies` cuando exista HordeManager.
-5. Marcar en `arquitectura-corte2.md` los acuerdos ya cerrados (edición del owner de ese doc).

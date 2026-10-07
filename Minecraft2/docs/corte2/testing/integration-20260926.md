@@ -1,37 +1,19 @@
-# Integración Minecraft 2 — evidencia vigente 2026-09-26
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
+# Primera integración Minecraft 2 — registro histórico 2026-09-26
 
 > Evidencia de la primera integración. Los ajustes posteriores y su validación están en
-> [feedback-20260926.md](feedback-20260926.md); ese documento y el README describen el estado actual.
+> [feedback-20260926.md](feedback-20260926.md); el README y el registro final de oleadas describen la última etapa del Corte 2.
 
 ## Alcance y estado
 
-El usuario autorizó ejecutar el plan completo en una sesión con subagentes.
-Los stops por bloque del adjunto se sustituyeron por esa autorización directa;
-se conservaron respaldo, baseline, pruebas, revisión y el límite de no commit/push.
-Tres subagentes tuvieron archivos separados: zombies; estamina/input;
-menús/ventana/GPU. El integrador fue owner de VoxelGame/sesión/HUD/persistencia/tests/docs.
-
 **IMPLEMENTADO:** R1–R10. **PROBADO AUTOMÁTICAMENTE:** 238 pruebas JUnit y smoke
-OpenGL programado. **PROBADO MANUALMENTE:** inspección de capturas del renderer/UI,
+OpenGL programado. **INSPECCIÓN VISUAL REGISTRADA:** inspección de capturas del renderer/UI,
 no playtest humano con ratón/teclado durante una sesión de diversión.
 **PENDIENTE:** playtest humano prolongado, AMD físico y endurance gráfico prolongado.
 El quality gate automático pasó; no se presenta como aceptación humana final del equipo.
 
-## Preservación y Git
-
-- HEAD inicial/final: `0e60f94f126c91e3afa7b39a4d4be96321d39f9d` (verificar head.txt).
-- Rama main local, un commit por delante de origin/main antes de esta sesión.
-- Había siete archivos modificados: README, TODO, arquitectura-corte2, enemy-ai,
-  GameWindow, VoxelGame y ZombieRenderer. Se conservaron sus contenidos reales.
-- Snapshot completo de fuentes/test/docs/config en `/home/marshall/Documents/Codex/2026-09-26/hola-muchacho-c-mo-vamos-te/work/return-point-20260926`.
-- `local.patch`, `git-status.txt`, `head.txt` y manifiesto SHA256 de worlds en el respaldo.
-- 14 archivos de mundos (aprox. 470 MiB) copiados y comprobados byte a byte mediante SHA256.
-- Verificación posterior: los mismos 14 archivos originales permanecen idénticos.
-- Jaimito.json incompleto se preservó; no se reparó ni se eliminó silenciosamente.
-- No fetch/merge/commit/push/reset/clean de Git, ni historial reescrito. `mvn clean`
-  se usó sólo para el directorio de build target como exige el plan.
-
-## Baseline real y gate final
+## Baseline real y gate de esa etapa
 
 | Ejecución | Resultado |
 | --- | --- |
@@ -80,9 +62,9 @@ LibGDX1.12.1/LWJGL3/Surefire3.2.5 sin nuevas dependencias.
   iniciar una vista fallida libera recursos parciales y permite volver al menú.
 - Factory/WorldManager Singleton/Observer/FSM/A* y JSON1 se preservan.
 
-## Smoke gráfico real
+## Smoke gráfico histórico
 
-El harness `GameFlowSmoke.java` del paquete de entrega instala entradas programadas,
+Un harness de flujo gráfico externo, no versionado en este repositorio, instaló entradas programadas,
 usa callbacks Scene2D reales y un contexto OpenGL real. No es un usuario humano.
 Resultado final: `FLOW_SMOKE_SUCCESS`, proceso exit0, 224 frames, JAR final.
 
@@ -123,7 +105,7 @@ errores de archivo sin convertirlos en una lista vacía.
 - Resolución de ruta sin override desde clases y JAR coincide con worlds del proyecto.
 - WorldDirectoryTest cubre layouts IDE/JAR y override; no se abrió IntelliJ como UI.
 - JSON versión1 sin cambios para zombies/stamina/settings; ningún autosave oculto.
-- Archivo inválido Jaimito conserva sus bytes originales y aparece en la lista.
+- El archivo inválido conserva sus bytes originales y aparece en la lista.
 
 ## GPU: prueba efectiva, no sólo hardware instalado
 
@@ -218,20 +200,15 @@ java -cp target/classes:target/test-classes loadtest.EnemyLoadHarness FUNCTIONAL
 java -cp target/classes:target/test-classes loadtest.EnemyLoadHarness ENDURANCE 1
 ```
 
-## Artefactos y retorno
+## Disponibilidad de evidencia
 
-Logs, reportes Surefire/PIT, CSV y screenshots de esta sesión:
-`/home/marshall/Documents/Codex/2026-09-26/hola-muchacho-c-mo-vamos-te/outputs/validation`.
-El paquete de entrega incluye GameFlowSmoke.java portable y el informe de retorno.
-El snapshot previo es el punto de retorno; contiene cambios locales anteriores,
-no sólo HEAD. El script volver_al_estado_previo.py valida hashes antes de restaurar
-fuente/docs/tests y puede recompilar. Los mundos originales se verificaron intactos;
-el respaldo worlds se conserva por separado. Consultar instrucciones de la entrega.
+Los logs, capturas, reportes y el harness completo de flujo gráfico se conservaron
+fuera del repositorio. Esta transcripción es histórica y no proporciona por sí sola
+esos artefactos ni permite reproducir todo el smoke gráfico.
 
-## Pendientes humanos explícitos
+## Pendientes de validación
 
 - Sesión prolongada jugando: melee/clics reales, salto, R/J/K, borde, estructuras,
   hordas, ritmo de estamina y percepción del bob/FOV.
 - Confirmar que el balance resulte divertido para el equipo; tests no deciden diversión.
 - AMD físico y otros sistemas; prueba prolongada gráfica de recursos/temperatura.
-- Revisión del diff y autorización de commit/push por el usuario/equipo.

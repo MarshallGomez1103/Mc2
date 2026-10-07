@@ -1,12 +1,12 @@
+> Contratos y reparto históricos del Corte 2.
+
 # Contratos de trabajo — Minecraft 2, Corte 2
 
 > Actualización tras el frente de generación: se entregan biomas, casa con ventanas,
 > tamaños finitos, J/K, FPS, Shift y `PlayerLife`. El gate local actual es 63 pruebas
 > verdes; la referencia a 41 más abajo es el baseline histórico del Corte 1.
-> Checkpoints vigentes para los agentes: [Jasub](PLAN_AGENTE_JASUB.md) y
-> [Ethian](PLAN_AGENTE_ETHIAN.md). Preservar estas capacidades al integrar.
 
-Especificación compartida para los tres estudiantes y sus agentes de IA.
+Especificación compartida para los tres estudiantes.
 Define responsabilidades y contratos conceptuales; no afirma que las capacidades
 planificadas ya funcionen ni congela firmas Java todavía no acordadas.
 Complementa [TODO.md](../../TODO.md), [ROADMAP_CORTE_2.md](../../ROADMAP_CORTE_2.md)
@@ -19,7 +19,6 @@ y [los acuerdos de arquitectura](arquitectura-corte2.md).
 - El Corte 2 tiene tres frentes: generación procedural, Enemy AI y hordas/configuración/calidad.
 - Los tres trabajan sobre el mismo repositorio y la misma base main; las ramas de
   trabajo siguen el roadmap. No integrar ni editar hotspots simultáneamente.
-- Cada estudiante limita su agente a su responsabilidad y backlog actual.
 - Antes de trabajar: revisar `git status` y hacer pull en la rama correspondiente
   (`git pull --ff-only`). Si hay cambios locales o divergencia que impidan actualizar,
   detenerse y coordinar; no resetear, descartar ni guardar cambios ajenos automáticamente.
@@ -242,37 +241,3 @@ Una tarea no termina solo porque compila. Requiere:
 - TODO actualizado cuando corresponda, con coordinación para evitar conflictos.
 - Documentación actualizada cuando corresponda, sin afirmar trabajo no probado.
 - Commit pequeño y descriptivo, realizado por estudiante o con autorización explícita.
-
-Sin autorización de commit, el agente entrega diff probado para revisión: no se
-autoautoriza por esta Definition of Done. Un RED local documentado es etapa de TDD,
-no una funcionalidad terminada ni un quality gate de integración aprobado.
-
-## 8. PROTOCOLO OBLIGATORIO PARA AGENTES DE IA
-
-**ANTES DE MODIFICAR:**
-
-1. Leer TODO.md.
-2. Leer ROADMAP_CORTE_2.md.
-3. Leer este documento.
-4. Identificar estudiante actual; si no se indicó, preguntar antes de editar.
-5. Trabajar solamente su backlog autorizado y comprobar ownership/hotspots.
-6. Revisar `git diff` antes de finalizar; incluir archivos nuevos en la revisión
-   mediante `git status --short` y lectura directa (no aparecen en diff por defecto).
-
-Leer también las instrucciones aplicables del repositorio y documentación específica
-del frente. Revisar estado Git, actualizar con pull de manera segura y ejecutar baseline.
-Ante contradicción, API pendiente o tarea ajena necesaria: reportar y coordinar,
-no ampliar alcance automáticamente. Al finalizar ejecutar tests y `git diff --check`.
-
-**PROHIBIDO PARA EL AGENTE:**
-
-- Reestructurar todo el proyecto o cambiar arquitectura sin autorización.
-- Implementar tareas de otro estudiante o editar hotspots sin coordinación.
-- Hacer commit/push automáticamente.
-- Eliminar tests o reducir assertions para lograr build verde.
-- Inventar evidencia, resultados de PIT, carga o TDD.
-- Declarar funcionalidades completas sin probarlas.
-- Persistir zombies, implementar streaming o diseñar Corte 3.
-
-Entrega mínima: archivos tocados, resultados reales, límites/no probado y siguiente
-paso dentro del frente. Documentación no reemplaza implementación ni verificación.

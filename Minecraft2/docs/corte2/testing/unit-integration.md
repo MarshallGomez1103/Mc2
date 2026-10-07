@@ -1,3 +1,5 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Pruebas unitarias e integración — preparación
 
 > Actualización 2026-09-26: resultados nuevos y scope ampliado en

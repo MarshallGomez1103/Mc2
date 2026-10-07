@@ -1,7 +1,9 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # UI integrada, fullscreen y diagnóstico gráfico
 
 > Evidencia de la primera integración. Los ajustes posteriores y su validación están en
-> [feedback-20260926.md](feedback-20260926.md); ese documento y el README describen el estado actual.
+> [feedback-20260926.md](feedback-20260926.md); el README y el registro final de oleadas describen la última etapa del Corte 2.
 
 ## Implementado
 
@@ -31,7 +33,7 @@ Estos tests usan proxy Graphics sin contexto OpenGL. No demuestran resultado fí
 
 ## Pruebas gráficas
 
-Integración y smoke final se registran por el agente coordinador. `-Dmc2.screenshot=/ruta.png` captura menú y termina; `-Dmc2.play.world=id` permite cargar directamente un mundo para smoke de sesión. Las propiedades están desactivadas en arranque normal.
+La integración y el smoke de esta etapa constan en el reporte histórico. `-Dmc2.screenshot=/ruta.png` captura menú y termina; `-Dmc2.play.world=id` permite cargar directamente un mundo para smoke de sesión. Las propiedades están desactivadas en arranque normal.
 
 ## Limitaciones
 

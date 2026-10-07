@@ -1,7 +1,9 @@
+> Registro histórico del Corte 2. Los conteos, parámetros y métricas corresponden a la etapa descrita; no son resultados del Corte 3.
+
 # Sprint y estamina — implementación y evidencia
 
 > Evidencia de la primera integración. Los ajustes posteriores y su validación están en
-> [feedback-20260926.md](feedback-20260926.md); ese documento y el README describen el estado actual.
+> [feedback-20260926.md](feedback-20260926.md); el README y el registro final de oleadas describen la última etapa del Corte 2.
 
 ## Implementado
 
@@ -49,7 +51,7 @@ rechazo de tiempos inválidos, Shift quieto, teclas contrarias, pared bloqueante
 velocidad de caminar tras agotamiento, offset moderado/atenuación/aire y regresión
 original de normalización diagonal. `git diff --check` sin errores.
 
-No se ejecutó `clean` concurrentemente con otros agentes. El gate completo pertenece
+El gate completo pertenece
 al responsable de integración.
 
 ## Revisión visual / limitaciones
@@ -62,7 +64,7 @@ Balance de dificultad/hordas pertenece al frente de enemigos y no se cambió en 
 
 ## Smoke gráfico automatizado de integración
 
-Se ejecutó `work/GameFlowSmoke.java` (workspace de Codex) con OpenGL real y backendLWJGL3,
+Se ejecutó un harness de flujo gráfico externo, no versionado, con OpenGL real y backendLWJGL3,
 Input/Graphics delegados al backend salvo teclas programadas y delta1/60. El harness
 dispara callbacks reales `ChangeEvent` de botones Scene2D y escribe TextField. No es
 un playtest humano ni verifica ergonomía subjetiva. Resultado final exit0,
@@ -80,9 +82,9 @@ un playtest humano ni verifica ergonomía subjetiva. Resultado final exit0,
 - Cancelar salida preserva partida, cancelar eliminación preserva JSON; confirmación
   elimina únicamente mundo temporal seleccionado.
 
-Sólo se usó `work/smoke-worlds`; ningún mundo personal fue modificado. Intentos previos
+Se usaron mundos temporales; ningún guardado personal fue modificado. Intentos previos
 del harness corrigieron su propia instalación de proxy porframe y selección de lista,
-sin cambios al producto. Screenshots inspeccionados por agente: pausa/opciones legibles.
-Artefactos del workspace `outputs/validation/`: `game-flow-smoke.log`, `main-menu.png`,
+sin cambios al producto. Capturas inspeccionadas: pausa/opciones legibles.
+Artefactos externos no versionados: `game-flow-smoke.log`, `main-menu.png`,
 `gameplay.png`, `stamina.png`, `pause-menu.png`, `options.png`, `gameplay-resized.png`.
 El playtest humano completo permanece pendiente.
