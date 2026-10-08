@@ -31,8 +31,9 @@ public final class GameHud implements Disposable {
         batch.setProjectionMatrix(projection);
         shapes.setProjectionMatrix(projection);
     }
-    public void draw(World world, GameInput input, GameSession session, RenderDistance distance, int meshes, boolean managedByShell) {
+    public void draw(World world, GameSession session, RenderDistance distance, int meshes, boolean managedByShell) {
         float w = Gdx.graphics.getWidth(), h = Gdx.graphics.getHeight();
+        var controls = session.controls();
         boolean running = session.state() == GameSession.State.RUNNING;
         String deathMessage = deathMessages.observe(session.life().deathCause());
         if (running && session.life().hitFlashSeconds() > 0) {
@@ -49,8 +50,8 @@ public final class GameHud implements Disposable {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(Color.DARK_GRAY);
         shapes.rect(w / 2 - 100, h - 24, 200, 12);
-        shapes.setColor(input.stamina().exhausted() ? Color.ORANGE : Color.GREEN);
-        shapes.rect(w / 2 - 100, h - 24, 200 * (float) input.stamina().fraction(), 12);
+        shapes.setColor(controls.exhausted() ? Color.ORANGE : Color.GREEN);
+        shapes.rect(w / 2 - 100, h - 24, 200 * (float) controls.staminaFraction(), 12);
         shapes.setColor(Color.DARK_GRAY);
         shapes.rect(w / 2 - 100, h - 43, 200, 8);
         shapes.setColor(.88f, .16f, .18f, 1);
@@ -67,7 +68,7 @@ public final class GameHud implements Disposable {
         batch.begin();
         font.draw(batch, "Mundo: " + world.getName(), 12, h - 12);
         font.draw(batch, "Posicion: " + p.x() + ", " + p.y() + ", " + p.z(), 12, h - 32);
-        font.draw(batch, "Bloque: " + input.getSelectedType() + " (1-7)", 12, h - 52);
+        font.draw(batch, "Bloque: " + controls.selectedType() + " (1-7)", 12, h - 52);
         font.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond() + " | Radio: " + distance.radius()
                 + " (J/K) | Mallas: " + meshes, 12, h - 72);
         font.draw(batch, "Zombis: " + session.enemies().zombies().size() + " | " + session.difficulty(), 12, h - 92);

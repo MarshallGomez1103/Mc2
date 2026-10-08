@@ -13,12 +13,14 @@ Esta sección registra la recuperación. Las secciones que siguen conservan el h
 
 ## Thomas — arquitectura e integración
 
-- [ ] REC-T1: trasladar coordinación de movimiento/física/estamina a aplicación sin cambiar reglas.
-- [ ] REC-T2: conectar GameInput/GameSession y adaptar VoxelGame, HUD, cámara y respawn.
-- [ ] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
-- [ ] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
-- [ ] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
+- [x] REC-T1: trasladar coordinación de movimiento/física/estamina a aplicación sin cambiar reglas.
+- [x] REC-T2: conectar GameInput/GameSession y adaptar VoxelGame, HUD, cámara y respawn.
+- [x] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
+- [x] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
+- [x] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
 - [ ] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
+
+Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La documentación/tabla y la comprobación en copia limpia de Thomas están disponibles; REC-T6 permanece abierto hasta integrar y validar los frentes de Jasub y Ethian. No se da por terminada la recuperación conjunta.
 
 ## Jasub — pruebas y flujo público
 

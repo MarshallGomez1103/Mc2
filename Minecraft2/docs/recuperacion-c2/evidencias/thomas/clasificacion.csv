@@ -1,0 +1,64 @@
+source,runner,executed_cases,reason
+test/application/GameSettingsTest.java,surefire,5,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/application/PlayerFrameInputTest.java,surefire,2,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/application/WorldSizeTest.java,surefire,2,Caso de uso aislado del almacenamiento con RecordingStorage
+test/domain/enemy/AStarPathfinderTest.java,surefire,8,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/NavigationDiagonalTest.java,surefire,11,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/NavigationGridTest.java,surefire,6,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/NavigationMovementAgreementTest.java,surefire,1,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/WaveRulesTest.java,surefire,7,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombieDebrisTest.java,surefire,2,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombieHeadRegressionTest.java,surefire,2,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombieMovementTest.java,surefire,4,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombiePhysicsTest.java,surefire,10,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombieStateMachineTest.java,surefire,13,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/enemy/ZombieTest.java,surefire,4,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/player/CollisionRecoveryTest.java,surefire,1,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/player/PlayerLifeTest.java,surefire,7,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/player/PlayerMovementSprintTest.java,surefire,1,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/player/StaminaTest.java,surefire,5,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/world/BiomeResolverTest.java,surefire,3,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/world/ChunkBoundsTest.java,surefire,4,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/domain/world/WorldChunkIndexTest.java,surefire,1,Reglas de dominio aisladas en memoria; sin archivos/red/render
+test/patterns/factory/BlockFactoryTest.java,surefire,10,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/persistence/InvalidWorldFileTest.java,surefire,26,Parser/códec aislado en memoria; no acceso a disco
+test/persistence/JsonParserTest.java,surefire,24,Parser/códec aislado en memoria; no acceso a disco
+test/persistence/UnloadableSaveTest.java,surefire,3,Parser/códec aislado en memoria; no acceso a disco
+test/persistence/WorldJsonCodecTest.java,surefire,5,Parser/códec aislado en memoria; no acceso a disco
+test/presentation/game/DeathMessagesTest.java,surefire,2,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/FullscreenControllerTest.java,surefire,3,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/GameInputMappingTest.java,surefire,3,Traductor de dispositivos aislado con doble Input
+test/presentation/game/GraphicsDiagnosticsTest.java,surefire,1,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/RenderDistanceTest.java,surefire,2,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/SprintCameraEffectTest.java,surefire,3,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/ZombieAtlasTest.java,surefire,2,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/ZombiePoseTest.java,surefire,3,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/presentation/game/ZombieSkinTest.java,surefire,5,"Estado, contrato, fábrica o adaptador aislado; sin infraestructura real"
+test/application/CombatSessionRegressionTest.java,failsafe,5,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/DifficultyTest.java,failsafe,8,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/EnemyKamikazeTest.java,failsafe,9,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/EnemyUpdateServiceTest.java,failsafe,11,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/EnemyWallAttackTest.java,failsafe,2,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/GameSessionTest.java,failsafe,11,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/HordeManagerTest.java,failsafe,16,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/HordeSpawnSafetyTest.java,failsafe,3,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/LocalWorldPersistenceTest.java,failsafe,3,Infraestructura de archivos reales temporales
+test/application/PersistentPursuitTest.java,failsafe,1,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/PistolServiceTest.java,failsafe,9,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/PlayerControlServiceTest.java,failsafe,8,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/PlayerControlStaminaTest.java,failsafe,5,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/PlayerInteractionPlacementTest.java,failsafe,2,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/SameSeedTest.java,failsafe,2,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/SaveEdgeCasesTest.java,failsafe,3,Infraestructura de archivos reales temporales
+test/application/WorldLifecycleTest.java,failsafe,1,Infraestructura de archivos reales temporales
+test/application/ZombieContactRegressionTest.java,failsafe,2,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/ZombieMeleeServiceTest.java,failsafe,4,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/application/ZombieTargetingTest.java,failsafe,5,Coordinación de aplicación con mundo/reglas/servicios reales en memoria
+test/bootstrap/GpuPreferenceTest.java,failsafe,5,Infraestructura de archivos reales temporales
+test/bootstrap/WorldDirectoryTest.java,failsafe,1,Infraestructura de archivos reales temporales
+test/domain/enemy/ZombieSeparationTest.java,failsafe,7,Separación y spawn/actualización mediante EnemyUpdateService real
+test/domain/world/TerrainGenerationTest.java,failsafe,6,"Generación, Factory y códec JSON reales en memoria"
+test/persistence/JsonWorldStorageTest.java,failsafe,6,Infraestructura de archivos reales temporales
+test/presentation/MainMenuSettingsTest.java,failsafe,5,Infraestructura de archivos reales temporales
+test/presentation/game/GameWindowTextureModeTest.java,failsafe,1,Vista/menu con componentes de aplicación o dominio reales
+test/presentation/game/VoxelGameObserverTest.java,failsafe,3,Vista/menu con componentes de aplicación o dominio reales

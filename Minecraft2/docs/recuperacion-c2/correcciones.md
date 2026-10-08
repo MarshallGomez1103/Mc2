@@ -1,0 +1,19 @@
+# Índice de correcciones — recuperación del Corte 2
+
+Estado del frente Thomas; la entrega conjunta aún requiere integración de Jasub y Ethian. La versión comprobada se identifica mediante [base y hashes de fuentes](evidencias/thomas/manifest.json). Los comandos se ejecutan desde `Minecraft2/`.
+
+| Observación | Cambio o estado | Ubicación | Comprobación | Resultado |
+| --- | --- | --- | --- | --- |
+| Tabla de trazabilidad ausente del README | Tabla de seis columnas con reto oral único y resultados/límites | [README raíz](../../../README.md#tabla-de-trazabilidad) | Revisar fila, seis columnas y enlaces | Disponible; nueva carga/caja negra declaradas pendientes |
+| Física/movimiento coordinados desde GameInput | Entrada inmutable; coordinación en aplicación; sin callback Runnable | [GameInput](../../src/presentation/game/GameInput.java), [GameSession](../../src/application/GameSession.java), [PlayerControlService](../../src/application/PlayerControlService.java) | `mvn clean verify`; smoke OpenGL del README | Regresiones y gráfico aprobados |
+| Pausa, muerte y reaparición debían conservarse | Sesión congela tick; respawn restablece controles; material/pausa conservados | [GameSessionTest](../../test/application/GameSessionTest.java), [PlayerControlStaminaTest](../../test/application/PlayerControlStaminaTest.java) | `mvn clean verify` | Casos activos, límites e inmovilidad aprobados |
+| Debía preservarse combate y prioridad de acciones | Mirada/movimiento antes de acción; pistola, melee y bloque conservan prioridad | [PlayerControlServiceTest](../../test/application/PlayerControlServiceTest.java) | `mvn clean verify`; smoke OpenGL | Ocho regresiones de control aprobadas |
+| Cobertura de dominio y separación de pruebas ausentes | JaCoCo domain, Surefire/Failsafe disjuntos; JAR antes de integración | [pom.xml](../../pom.xml), [reporte](../pruebas.md) | `mvn clean test`; `mvn clean verify -DskipUnitTests=true` | 191 unitarias/adaptadores + 144 integración; cero fallos/errores/omitidas |
+| Cifras y documentación dispersas | Entrada raíz, arquitectura/reporte canónicos e índice; etapas previas históricas | [arquitectura](../arquitectura.md), [pruebas](../pruebas.md), [Wiki](../../../Wiki.md) | CSV, inventario, enlaces y hashes | 335 actuales separados de 238/313 históricos |
+| Sin comparación/ADR formal | Resumen de alternativas en arquitectura; ADR pendiente de Ethian | [arquitectura §3](../arquitectura.md#3-estilo-y-alternativas), [plan](plan-equipo.md) | Integrar ADR y contrastarlo con código final | Pendiente; no se declara publicado |
+| Sin contexto/componentes completos y UML desactualizado | UML previo identificado como histórico; flujo de controles actual en arquitectura | [arquitectura §4](../arquitectura.md#4-arquitectura-inicial-y-evolucionada), [UML](../uml.md) | Integrar vistas de Ethian y revisar cada dependencia | Pendiente de vistas completas |
+| Flujo GameFlowSmoke ausente | No se afirma su ejecución; Failsafe preparado para IT | [plan de Jasub](plan-equipo.md) | Integrar GameFlowSmokeIT y ejecutarlo sobre JAR | Pendiente; smoke gráfico no lo sustituye |
+| Carga sin evidencia completa de recuperación | Harness histórico conservado; scripts y resultados nuevos pendientes de Ethian | [reporte](../pruebas.md#evidencias-históricas-y-pendientes) | SLO previo, baseline/estrés, p95, throughput, errores | Pendiente; no hay afirmación nueva de rendimiento |
+| Texto privado en entregables | Exclusiones existentes conservadas; reportes seleccionados sin propiedades Maven/rutas personales | `.gitignore`; README/docs/evidencias | Revisión completa de archivos nuevos/modificados e índice antes de publicar | Contenido técnico revisado; fuentes y resultados identificados mediante hashes |
+
+Los criterios pendientes no se marcan resueltos por tener una suite verde. La coevaluación no forma parte de estas correcciones de código y no se promete recuperar sus puntos.

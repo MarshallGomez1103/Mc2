@@ -4,7 +4,6 @@ import application.GameSession;
 import application.GameSettings;
 import domain.enemy.Difficulty;
 import application.PlayerInteractionService;
-import application.ZombieMeleeService;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -39,7 +38,7 @@ import java.util.Set;
  *
  * <p>Es presentación: dibuja y recoge la entrada, pero no contiene reglas. El movimiento, la
  * física, la colisión y la interacción los resuelven los servicios del dominio y de aplicación
- * a través de {@link GameInput}.
+ * a través de {@link GameSession}; {@link GameInput} solo produce los datos de entrada.
  *
  * <p>Implementa {@link Observer} de {@link BlockChange}: cuando el jugador coloca o elimina un
  * bloque, {@link World} ya emite la notificación y aquí solo se marca ese chunk para reconstruir
@@ -51,7 +50,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private static final float FAR_PLANE = 300f;
     private static final int MESHES_PER_FRAME = 2;
     private static final Color SKY = new Color(0.45f, 0.68f, 0.92f, 1f);
-    /** Mismo tope que GameInput para mantener estable el paso completo de simulación. */
+    /** Tope visual del efecto de cámara; GameSession limita el paso de simulación. */
     private static final float MAX_SIMULATION_DELTA_SECONDS = 0.05f;
     private final World world;
     private final PlayerInteractionService interactionService;
@@ -127,10 +126,10 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         modelBatch = new ModelBatch();
         textureAtlas = new BlockTextureAtlas();
         meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
-        session = new GameSession(world, gameSettings);
+        session = new GameSession(world, gameSettings, interactionService);
         zombieRenderer = new ZombieRenderer(gameSettings.enemyTexturesEnabled());
         pistolRenderer = new PistolRenderer();
-        input = new GameInput(interactionService, new ZombieMeleeService(world), session.enemies(), session.pistol());
+        input = new GameInput();
         sprintEffect = new SprintCameraEffect();
         renderDistance = RenderDistance.forWorld(world);
         playerLife = session.life();
@@ -184,8 +183,8 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
                 skipInputFrames--;
             } else {
                 float delta = Math.min(Gdx.graphics.getDeltaTime(), MAX_SIMULATION_DELTA_SECONDS);
-                session.advance(delta, () -> input.update(player, world, delta));
-                sprintEffect.update(delta, input.isSprinting(), input.isMoving(), player.isOnGround());
+                session.advance(delta, input.read());
+                sprintEffect.update(delta, session.controls().sprinting(), session.controls().moving(), player.isOnGround());
             }
         } else if (session.state() == GameSession.State.DEAD
                 && Gdx.input.isKeyJustPressed(Input.Keys.R)) {
@@ -214,7 +213,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
             pistolRenderer.renderHeld(modelBatch, environment, camera, session.pistol());
             modelBatch.end();
         }
-        hud.draw(world, input, session, renderDistance, meshes.size(), managedByShell);
+        hud.draw(world, session, renderDistance, meshes.size(), managedByShell);
 
         frame++;
         if (screenshotPath != null && frame == screenshotFrame) {
@@ -317,7 +316,6 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     }
     public void respawn() {
         session.respawn();
-        input.resetAfterRespawn();
         sprintEffect.reset();
         skipInputFrames = 1;
     }

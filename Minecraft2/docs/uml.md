@@ -1,10 +1,10 @@
 # Diagramas UML de Minecraft 2
 
-> La base MVP de agosto se conserva en las vistas 1–6. La vista 7 se actualizó el 2026-09-26 con el flujo gráfico, sesión, enemigos, estamina y gráficos integrados. Los usos de MainMenu de consola en las vistas históricas se sustituyen por GraphicalGame en el arranque normal.
+> Documento histórico: las vistas 1–6 describen el MVP de agosto; la vista 7 describe la integración del 26 de septiembre. No representan la recuperación actual. El flujo vigente de controles está en [arquitectura.md](arquitectura.md#4-arquitectura-inicial-y-evolucionada); el modelado completo de recuperación aún corresponde al frente de Ethian.
 
 ## Guía rápida
 
-La rúbrica exige un **diagrama de clases UML** consistente con el código. Este documento incluye ese diagrama principal y cuatro vistas complementarias: casos de uso, patrones, componentes y secuencias. Cada una responde una pregunta distinta sin inventar clases ni patrones que el proyecto no tiene.
+Este documento conserva el **diagrama de clases UML** de etapas anteriores y cuatro vistas complementarias: casos de uso, patrones, componentes y secuencias. Cada una responde una pregunta distinta sin inventar clases ni patrones que el proyecto no tiene.
 
 | Vista | Pregunta que responde | Evidencia principal |
 | --- | --- | --- |
@@ -327,7 +327,7 @@ sequenceDiagram
 - DAO, Strategy, Command y otros patrones no forman parte del alcance acordado y no se incorporan al modelo.
 - El diagrama de clases se mantiene consistente porque cada clase, atributo público relevante y relación mostrada existe en `src/`.
 
-## 7. Clases de la integración vigente
+## 7. Clases de la integración del 26 de septiembre — histórica
 
 ```mermaid
 classDiagram

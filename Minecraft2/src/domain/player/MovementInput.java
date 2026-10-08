@@ -1,11 +1,6 @@
 package domain.player;
 
-/**
- * Estado mínimo de entrada de movimiento para un frame/tick dado.
- * No conoce teclado ni ratón: quien conecte la entrada real (fuera de este
- * plan, en la capa de presentación/LibGDX) construye esta clase y se la
- * pasa a {@link PlayerMovementService}.
- */
+/** Intención inmutable de movimiento, sin dependencia de dispositivos ni gráficos. */
 public final class MovementInput {
     private final boolean forward;
     private final boolean backward;

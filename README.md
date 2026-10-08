@@ -4,43 +4,29 @@ Videojuego voxel de escritorio desarrollado en Java 17, Maven y LibGDX por Eliot
 
 ## Recuperación del Corte 2
 
-El trabajo actual completa la arquitectura, la trazabilidad y la evidencia del proyecto existente. Los cambios se organizan según la rúbrica del Corte 2; las tareas de implementación siguen pendientes en el [TODO](Minecraft2/TODO.md).
+La rama `feature/c2-Thomas` incorpora la frontera de aplicación para los controles, cobertura del dominio y ejecución separada de pruebas. La entrega conjunta sigue pendiente de integrar el flujo público de Jasub y el ADR, diagramas y carga de Ethian. [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
 
-| Integrante | Rama de trabajo | Responsabilidad |
+| Integrante | Rama | Responsabilidad |
 | --- | --- | --- |
-| Thomas | `feature/c2-Thomas` | Frontera de aplicación, conexión gráfica, cobertura/configuración de pruebas, documentación canónica e integración |
-| Jasub | `feature/c2-jasub` | Pruebas de integración, flujo público de caja negra y comprobación de fronteras arquitectónicas |
-| Ethian | `feature/c2-Ethian` | Comparación de estilos, ADR, diagramas y evidencia de carga |
+| Thomas | `feature/c2-Thomas` | Controles en aplicación, regresiones, cobertura, build, documentación e integración final |
+| Jasub | `feature/c2-jasub` | Integración, flujo público de caja negra y comprobación de fronteras |
+| Ethian | `feature/c2-Ethian` | Comparación de estilos, ADR, contexto/componentes y carga |
 
-Las tres ramas parten de la misma base de preparación. `main` reúne los cambios revisados del equipo. El [plan de trabajo](Minecraft2/docs/recuperacion-c2/plan-equipo.md) define archivos exclusivos, dependencias, pruebas y criterios de aceptación.
+El [plan compartido](Minecraft2/docs/recuperacion-c2/plan-equipo.md) y el [TODO](Minecraft2/TODO.md) delimitan los archivos de cada frente. `main` conserva la base publicada hasta integrar y validar las tres ramas.
 
-## Trazabilidad del reto
+## Tabla de trazabilidad
 
-El reto comunicado oralmente al equipo fue incorporar un enemigo. La conducta, coordinación y coste de actualización son aspectos de ese reto; no se presentan como retos adicionales asignados.
+El reto comunicado oralmente fue **incorporar un enemigo**. Conducta, coordinación y coste de actualización son aspectos del mismo reto; no se inventa una lista adicional de retos docentes.
 
 | Reto | Atributo de calidad | Decisión arquitectónica | Dónde está | Prueba | Resultado |
 | --- | --- | --- | --- | --- | --- |
-| Incorporar un enemigo con conducta y navegación integradas en la partida | Mantenibilidad, testabilidad y rendimiento de actualización | Separar FSM y navegación del render; coordinar los servicios en aplicación. La recuperación trasladará también la coordinación del control del jugador desde presentación a aplicación y comparará capas con puertos/adaptadores | [FSM](Minecraft2/src/domain/enemy/ZombieStateMachine.java), [A*](Minecraft2/src/domain/enemy/AStarPathfinder.java), [servicio de enemigos](Minecraft2/src/application/EnemyUpdateService.java), [sesión](Minecraft2/src/application/GameSession.java), [entrada actual](Minecraft2/src/presentation/game/GameInput.java) | [Pruebas FSM](Minecraft2/test/domain/enemy/ZombieStateMachineTest.java), [pruebas A*](Minecraft2/test/domain/enemy/AStarPathfinderTest.java), [pruebas de sesión](Minecraft2/test/application/GameSessionTest.java), [harness de carga](Minecraft2/test/loadtest/EnemyLoadHarness.java). La integración y el flujo público previstos se detallan en el plan | Evidencia histórica: suite de 313 pruebas aprobadas el 26 de septiembre, según el [reporte de cierre](Minecraft2/docs/corte2/testing/final-horde-20260926.md). La recuperación está pendiente de implementar y medir; este registro no acredita un resultado nuevo |
+| Incorporar un enemigo con conducta/navegación que coexista con movimiento, interacción y estado de partida | Mantenibilidad, testabilidad y rendimiento de actualización | Capas con coordinación explícita en aplicación: FSM y navegación en dominio; GameSession coordina controles, vida, hordas y enemigos; presentación convierte dispositivos en datos y renderiza | [GameSession](Minecraft2/src/application/GameSession.java), [PlayerControlService](Minecraft2/src/application/PlayerControlService.java), [entrada inmutable](Minecraft2/src/application/PlayerFrameInput.java), [GameInput](Minecraft2/src/presentation/game/GameInput.java), [FSM](Minecraft2/src/domain/enemy/ZombieStateMachine.java), [A*](Minecraft2/src/domain/enemy/AStarPathfinder.java) | [FSM](Minecraft2/test/domain/enemy/ZombieStateMachineTest.java), [A*](Minecraft2/test/domain/enemy/AStarPathfinderTest.java), [sesión](Minecraft2/test/application/GameSessionTest.java), [controles/combate](Minecraft2/test/application/PlayerControlServiceTest.java), [estamina](Minecraft2/test/application/PlayerControlStaminaTest.java), [smoke OpenGL](Minecraft2/test/presentation/game/PlayerControlsVisualSmoke.java). El [harness histórico de IA](Minecraft2/test/loadtest/EnemyLoadHarness.java) se conserva; flujo público y nueva carga pendientes | Verificación de la rama Thomas: **191 unitarias/adaptadores aislados + 144 integración; 0 fallos, errores u omitidas**. Dominio con unitarias: líneas **885/982 (90,12 %)**, ramas **555/693 (80,09 %)**. Smoke gráfico automatizado aprobado. [Reporte y evidencia](Minecraft2/docs/pruebas.md). La fila aún no acredita flujo público de caja negra ni nueva carga; esos resultados dependen de la integración del equipo |
 
-Los resultados nuevos incorporarán comandos, versión, pruebas ejecutadas, fallos/errores/omitidas, cobertura del dominio y métricas de carga. El ADR y los diagramas se enlazarán cuando estén terminados y revisados.
+La separación añade contratos, cableado y una conversión por tick. No demuestra aceleración de A*, FPS gráficos bajo carga ni eliminación de los ciclos internos del dominio.
 
-## Empezar a trabajar
+## Compilar y jugar
 
-Desde la raíz del clon, con los cambios locales previamente conservados:
-
-```bash
-git fetch origin
-git switch feature/c2-Thomas
-git pull --ff-only origin feature/c2-Thomas
-```
-
-Jasub usa `feature/c2-jasub` y Ethian `feature/c2-Ethian` en los dos últimos comandos. Si la rama todavía no existe localmente, se puede crear con `git switch --track origin/feature/c2-Thomas`, usando el nombre correspondiente. Si Git informa cambios locales o divergencia, revisarlos antes de continuar; no descartarlos.
-
-Cada integrante modifica únicamente sus archivos del plan. Thomas integra el control de aplicación primero; Jasub y Ethian incorporan ese avance para validar sus consumidores. La integración final reúne Jasub y después Ethian y ejecuta la verificación combinada.
-
-## Compilar, jugar y ejecutar la suite existente
-
-Requisitos: JDK 17, Maven y entorno gráfico compatible con OpenGL para jugar. Desde la raíz del repositorio:
+Requisitos: **JDK 17**, Maven y una sesión gráfica compatible con OpenGL para jugar. Verificar el JDK de Maven con `mvn -version`. Desde la raíz Git:
 
 ```bash
 cd Minecraft2
@@ -48,22 +34,58 @@ mvn clean package
 java -Dfile.encoding=UTF-8 -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 ```
 
-La suite existente se ejecuta desde `Minecraft2/` con:
+El empaquetado ejecuta unitarias; la verificación completa requiere `verify`. [Controles, consola y guardados](Minecraft2/README.md).
+
+## Ejecutar pruebas por nivel
+
+Desde `Minecraft2/`:
 
 ```bash
+# Unitarias y adaptadores aislados; sin la selección de integración
 mvn clean test
+
+# Integración; compila y empaqueta el JAR sin ejecutar unitarias
+mvn clean verify -DskipUnitTests=true
+
+# Verificación completa: unitarias, JAR, integración y cobertura separada
+mvn clean verify
+
+# Mutación con la selección existente de PIT
+mvn test-compile org.pitest:pitest-maven:mutationCoverage
 ```
 
-Esa suite contiene pruebas de distintos niveles; su total no se presenta íntegramente como pruebas unitarias aisladas. La separación de niveles y el reporte JaCoCo del dominio forman parte de la recuperación.
+Surefire genera `target/surefire-reports/`; Failsafe genera `target/failsafe-reports/`. JaCoCo genera `target/site/jacoco-domain-unit/` y `target/site/jacoco-domain-integration/`, con HTML, XML y CSV de `domain/**`. No se suman ambos porcentajes ni se configura un umbral atribuido a la rúbrica. Ejecutar un JAR separado no incorpora automáticamente su cobertura al reporte.
 
-Controles, ejecución por IDE, guardados, limitaciones y evidencias históricas: [README de la aplicación](Minecraft2/README.md).
+La clasificación conserva clases heredadas con sufijo `Test` en Failsafe cuando conectan componentes o archivos reales. Los nuevos sufijos `IT` también van a Failsafe. El [inventario y los resultados seleccionados](Minecraft2/docs/pruebas.md) permiten comprobar que ninguna clase quedó omitida o duplicada.
 
-## Documentación
+### Controles con OpenGL real
 
-- [Plan de trabajo y reparto por archivos](Minecraft2/docs/recuperacion-c2/plan-equipo.md).
-- [Checklist y registro de etapas](Minecraft2/TODO.md).
-- [Arquitectura existente, pendiente de consolidar para la recuperación](Minecraft2/docs/arquitectura.md).
-- [Vistas UML históricas, pendientes de contrastar con la nueva versión](Minecraft2/docs/uml.md).
-- [Evidencia histórica de carga y límites de medición](Minecraft2/docs/corte2/testing/load-testing.md).
+Comprobación automatizada, distinta del flujo público de consola y de una sesión humana. Desde `Minecraft2/`, en Linux/macOS con entorno gráfico:
 
-Los mundos son finitos y permanecen en memoria. Enemigos y oleadas son estado de sesión y no se guardan en JSON. Las métricas headless no demuestran FPS gráficos. Se conservan los controles y el formato JSON v1 durante la reorganización.
+```bash
+mvn test-compile dependency:build-classpath -Dmdep.outputFile=target/test-classpath.txt
+java -cp "target/classes:target/test-classes:$(cat target/test-classpath.txt)" presentation.game.PlayerControlsVisualSmoke target/control-smoke.png
+```
+
+En PowerShell, después del comando Maven:
+
+```powershell
+$mc2Classpath = "target/classes;target/test-classes;$(Get-Content -Raw target/test-classpath.txt)"
+java -cp $mc2Classpath presentation.game.PlayerControlsVisualSmoke target/control-smoke.png
+```
+
+La comprobación abre una ventana temporal, usa un mundo determinista en memoria y verifica controles, combate, pausa/muerte y R. Falla si una aserción falla o se cierra antes de terminar; no usa mundos personales. Solo se ejecutó en Linux/Intel; el comando de PowerShell no está verificado aquí.
+
+### Carga y flujo público
+
+Los scripts nuevos de `perf/`, el flujo `GameFlowSmokeIT` y sus reportes aún no están integrados. Sus comandos se documentarán después de recibir y ejecutar esos artefactos. La [evidencia de carga del 26 de septiembre](Minecraft2/docs/corte2/testing/load-testing.md) es histórica y no acredita la recuperación actual.
+
+## Documentación y límites
+
+- [Arquitectura canónica: evolución, reglas, comparación y pendientes](Minecraft2/docs/arquitectura.md).
+- [Pruebas, cobertura y aportes de la recuperación](Minecraft2/docs/pruebas.md).
+- [Índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md).
+- [Wiki e índice de etapas](Wiki.md).
+- [UML histórico](Minecraft2/docs/uml.md); las vistas completas de contexto/componentes de recuperación están pendientes del frente de Ethian.
+
+Mundos finitos en memoria; enemigos, restos, estamina y arma son estado de sesión sin persistencia JSON. Se conserva JSON v1. La prueba gráfica automatizada no acredita equilibrio de jugabilidad, usabilidad ni rendimiento gráfico bajo carga. La entrega completa requiere los artefactos y comprobaciones pendientes del equipo.

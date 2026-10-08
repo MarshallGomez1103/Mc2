@@ -1,3 +1,13 @@
+# Minecraft2 — índice de documentación
+
+La recuperación del Corte 2 se documenta en el [README principal](README.md), [arquitectura canónica](Minecraft2/docs/arquitectura.md), [pruebas y cobertura](Minecraft2/docs/pruebas.md) e [índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md). La tabla obligatoria de seis columnas está en el README principal.
+
+En el frente Thomas la coordinación de controles está en aplicación y la verificación actual es 191 unitarias/adaptadores y 144 integración, sin fallos/errores/omitidas. Los resultados, fuentes y límites se reúnen en el reporte canónico. ADR/vistas completas/carga y flujo público siguen pendientes del candidato conjunto.
+
+El contenido siguiente describe la entrega del Corte 1 y conserva sus decisiones y roles históricos. Sus ejemplos, límites y estructura no se rotulan como arquitectura de la recuperación.
+
+---
+
 # Proyecto de Diseño de Software – Corte Uno
 ## Minecraft 2 — Voxel World Java
 

@@ -1,6 +1,6 @@
 # Minecraft 2
 
-Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; el Corte 2 queda cerrado con los tres frentes integrados en `main`.
+Videojuego voxel universitario sencillo inspirado en Minecraft Classic, desarrollado en Java por tres estudiantes. El MVP del Corte 1 está completado; la recuperación del Corte 2 reorganiza los controles y completa evidencia arquitectónica sobre la base existente.
 
 > Este proyecto no es todavía un videojuego completo. Incluye estructuras, contratos, conexiones entre capas, generación de terreno, movimiento, física, interacción por raycast, renderizado voxel, controles básicos y persistencia JSON.
 
@@ -13,7 +13,7 @@ cuatro chunks, bloques, jugador, cámara, movimiento, salto, gravedad, colisione
 raycast e interacción, renderizado 3D y persistencia JSON. Incluye Factory,
 Singleton, Observer y texturas de bloques ON/OFF. Baseline: 41 pruebas JUnit.
 
-### Corte 2 — cerrado
+### Corte 2 — base funcional histórica
 
 Biomas PLAINS/DESERT/MOUNTAINS, aldea, mundos finitos, zombies FSM + A* y oleadas
 están integrados. El inicio normal abre el menú gráfico para crear/listar/cargar/
@@ -62,7 +62,7 @@ La muerte por kamikaze dice «Te mató el zombi kamikaze»; por vacío «Aquí n
 El menú de pausa es transparente. La barra de estamina aparece arriba sin etiquetas.
 El radio inicial de chunks es 2 (limitado por el tamaño del mundo). Los mensajes de
 muerte recorren únicamente las tres frases restantes, una por muerte.
-Detalle actual: [oleadas y restos](docs/corte2/testing/final-horde-20260926.md).
+Detalle histórico del 26 de septiembre: [oleadas y restos](docs/corte2/testing/final-horde-20260926.md).
 La validación anterior de combate se conserva como evidencia histórica.
 
 Gate real 2026-09-26: **313 pruebas, cero fallos/errores/ignoradas**.
@@ -71,6 +71,14 @@ fullscreen, resize y guardado/carga. Su harness de flujo no está versionado: no
 se declara reproducible a partir del repositorio ni equivale a un playtest humano.
 Resultados nuevos de PIT/carga y fronteras de evidencia:
 [reporte de integración](docs/corte2/testing/integration-20260926.md).
+
+### Recuperación — frente Thomas
+
+La entrada sigue `GameInput.read()` → `GameSession.advance(delta, PlayerFrameInput)` → `PlayerControlService`. HUD/cámara consultan `session.controls()`, una instantánea inmutable. Pausa y muerte congelan el tick; R restablece estamina y flags; se conserva prioridad de combate y JSON v1.
+
+Verificación actual: 191 unitarias/adaptadores aislados y 144 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
+
+ADR, vistas completas, carga y flujo público siguen pendientes de integrar desde los otros frentes. Las evidencias de septiembre no se presentan como resultados de recuperación.
 
 ### Corte 3
 
@@ -86,7 +94,7 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 
 - una arquitectura por capas;
 - los modelos principales del dominio;
-- los únicos tres patrones permitidos: Factory, Singleton y Observer;
+- los tres patrones elegidos por el equipo: Factory, Singleton y Observer;
 - operaciones CRUD conceptuales para mundos guardados como JSON;
 - un menú principal de consola desde el cual conectar los casos de uso.
 
@@ -116,7 +124,7 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 
 ## Tecnologías
 
-- Java 17 o superior.
+- Java 17.
 - IntelliJ IDEA.
 - Maven para compilación reproducible.
 - LibGDX 1.12.1 con backend LWJGL3 para la ventana y el renderizado 3D.
@@ -124,25 +132,9 @@ Ofrecer un esqueleto pequeño, claro y compilable que establezca:
 
 ## Arquitectura
 
-El código mantiene las tres capas solicitadas. Dentro de Domain/Game Logic se separa `application` (coordinación de casos de uso) de `domain` (modelo y reglas), sin convertirlas en capas independientes. Las dependencias avanzan hacia el dominio y no existe una dependencia desde este hacia la presentación o la persistencia.
+La versión actual mantiene capas con coordinación explícita en aplicación. `GameInput` convierte dispositivos en `PlayerFrameInput`; `GameSession` coordina el tick y `PlayerControlService` integra las reglas existentes de movimiento/física/colisión/estamina e interacción. Presentación conserva cámara, HUD y render; dominio no depende de capas superiores ni LibGDX. Persistencia conserva JSON v1.
 
-```text
-bootstrap ──> presentation ──> application ──> domain
-   │              │                  │
-   │              └──> presentation.game ──> domain
-   ├──> persistence ──> domain       ├──> persistence
-   └──> application                  └──> patterns.singleton ──> domain
-
-domain.world ──> patterns.observer
-patterns.factory ──> domain
-```
-
-- **Presentation:** `presentation` muestra el menú y `presentation.game` abre la ventana, traduce los controles y dibuja el mundo; las reglas se delegan hacia `application` y `domain`.
-- **Domain/Game Logic:** `application` coordina casos de uso y `domain` representa mundo, chunks, bloques, jugador y posiciones.
-- **Persistence:** el paquete `persistence` define y realiza las operaciones locales CREATE, READ, UPDATE y DELETE.
-- **Apoyo arquitectónico:** `patterns` aloja únicamente Factory, Singleton y Observer; `bootstrap` solo conecta objetos al iniciar.
-
-La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectura.md). Las decisiones compartidas de dimensiones, coordenadas, JSON, tecnología gráfica y pruebas están congeladas en [docs/decisiones-compartidas.md](docs/decisiones-compartidas.md).
+`application` aún depende de la abstracción `persistence.WorldStorage`; no se presenta como una arquitectura hexagonal completa. Se conservan Factory, Observer, Singleton y los ciclos internos declarados. [Comparación, costes, antes/después y pendientes](docs/arquitectura.md).
 
 ## Patrones utilizados
 
@@ -158,95 +150,32 @@ La explicación ampliada se encuentra en [docs/arquitectura.md](docs/arquitectur
 
 `World` actúa como sujeto de notificaciones `BlockChange`. Al colocar o eliminar un bloque, comunica un cambio `PLACED` o `REMOVED` a los observadores registrados. No hay bus global ni sistema complejo de eventos. Véase [docs/observer.md](docs/observer.md).
 
-## Estructura del proyecto
+## Estructura resumida del proyecto
 
 ```text
 Minecraft2/
-├── docs/
-│   ├── evidencias/
-│   │   ├── ct-10-render.md
-│   │   ├── ct-10-render.png
-│   │   └── ct-11-flujo-mvp.md
-│   ├── arquitectura.md
-│   ├── decisiones-compartidas.md
-│   ├── factory.md
-│   ├── observer.md
-│   ├── singleton.md
-│   └── uml.md
-├── src/
-│   ├── bootstrap/
-│   │   └── Minecraft2Application.java
-│   ├── application/
-│   │   ├── ChunkGenerationService.java
-│   │   ├── PlayerInteractionService.java
-│   │   ├── TargetedBlock.java
-│   │   └── WorldApplicationService.java
-│   ├── presentation/
-│   │   ├── ConsoleIO.java
-│   │   ├── MainMenu.java
-│   │   └── game/
-│   │       ├── BlockAppearance.java
-│   │       ├── ChunkMeshBuilder.java
-│   │       ├── GameInput.java
-│   │       ├── GameWindow.java
-│   │       └── VoxelGame.java
-│   ├── domain/
-│   │   ├── Position.java
-│   │   ├── block/
-│   │   │   ├── Block.java
-│   │   │   └── BlockType.java
-│   │   ├── player/
-│   │   │   ├── CollisionResolver.java
-│   │   │   ├── MovementInput.java
-│   │   │   ├── Player.java
-│   │   │   ├── PlayerMovementService.java
-│   │   │   └── PlayerPhysics.java
-│   │   └── world/
-│   │       ├── BlockChange.java
-│   │       ├── Chunk.java
-│   │       ├── SimpleTerrainGenerator.java
-│   │       └── World.java
-│   ├── manualtest/
-│   │   ├── BlockInteractionAndPatternsManualTest.java
-│   │   ├── CollisionManualTest.java
-│   │   ├── PlayerMovementManualTest.java
-│   │   ├── PlayerPhysicsManualTest.java
-│   │   └── WorldBlockOperationsTest.java
-│   ├── patterns/
-│   │   ├── factory/BlockFactory.java
-│   │   ├── observer/
-│   │   │   ├── Observer.java
-│   │   │   └── Subject.java
-│   │   └── singleton/WorldManager.java
-│   └── persistence/
-│       ├── InvalidWorldFileException.java
-│       ├── JsonParser.java
-│       ├── JsonWorldStorage.java
-│       ├── WorldJsonCodec.java
-│       └── WorldStorage.java
-├── test/
-│   ├── application/
-│   │   └── WorldLifecycleTest.java
-│   ├── presentation/game/
-│   │   └── VoxelGameObserverTest.java
-│   └── persistence/
-│       ├── InvalidWorldFileTest.java
-│       ├── JsonWorldStorageTest.java
-│       ├── WorldJsonCodecTest.java
-│       └── WorldSamples.java
-├── .gitignore
-├── Minecraft2.iml
-├── pom.xml
-├── README.md
-└── TODO.md
+├── src/bootstrap/        composición y arranque
+├── src/presentation/     consola y juego gráfico
+├── src/application/      sesión, controles y casos de uso
+├── src/domain/           reglas, jugador, mundo e IA
+├── src/persistence/      contrato y almacenamiento JSON
+├── src/patterns/         Factory, Observer y Singleton
+├── test/                 unitarias, integración y arneses
+├── docs/arquitectura.md  documento canónico
+├── docs/pruebas.md       estrategia, resultados y evidencia
+├── docs/recuperacion-c2/ seguimiento y evidencias seleccionadas
+├── pom.xml               build, Surefire, Failsafe, JaCoCo y PIT
+└── TODO.md               tareas y registro histórico
 ```
+
+Las carpetas ADR/diagramas de recuperación y perf/ se incorporarán con el frente de Ethian. Esta vista resumida no enumera todos los archivos ni los presenta como ya integrados.
 
 ## Instrucciones de ejecución
 
 ### IntelliJ IDEA
 
 1. Abrir la carpeta raíz `Minecraft2`.
-2. Configurar un JDK 17 o superior si IntelliJ lo solicita.
+2. Configurar un JDK 17 si IntelliJ lo solicita.
 3. Esperar a que IntelliJ importe `pom.xml`.
 4. Ejecutar el método `main` de `bootstrap.Minecraft2Application`.
 
@@ -267,6 +196,19 @@ La consola histórica se conserva como compatibilidad y diagnóstico:
 java -Dmc2.console=true -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 ```
 
+### Pruebas
+
+Desde esta carpeta:
+
+```bash
+mvn clean test
+mvn clean verify -DskipUnitTests=true
+mvn clean verify
+mvn test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
+En orden: unitarias/adaptadores aislados; integración con JAR; verificación conjunta; mutación. Surefire/Failsafe y cobertura del dominio se documentan en el [README raíz](../README.md#ejecutar-pruebas-por-nivel). Allí también está el comando del arnés de controles con OpenGL real.
+
 ### Controles
 
 | Acción | Control |
@@ -276,6 +218,7 @@ java -Dmc2.console=true -jar target/minecraft2-0.1.0-SNAPSHOT.jar
 | Golpear zombie o eliminar bloque | Clic izquierdo |
 | Colocar / elegir bloque | Clic derecho / 1–7 |
 | Distancia visible | J/K |
+| Equipar / guardar pistola | Q |
 | Reaparecer | R |
 | Pausa y menú | ESC |
 | Pantalla completa / ventana | F |
@@ -292,7 +235,7 @@ Un archivo inválido permanece visible, y cargarlo informa el error sin sustitui
 el mundo actual. JSON versión 1 se conserva; enemigos y estamina son de sesión.
 
 La ruta se resuelve desde IDE/JAR hasta la raíz del proyecto, no desde el cwd.
-Puede fijarse `-Dmc2.worlds.dir=/ruta/absoluta/worlds`. Copiar el JAR fuera del
+Puede fijarse `-Dmc2.worlds.dir=target/mundos-prueba`. Copiar el JAR fuera del
 proyecto puede cambiar la carpeta por defecto. Los archivos inválidos se conservan y se muestran con su error de lectura.
 
 ### Gráficos y GPU
@@ -328,13 +271,13 @@ Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Es
 ## Limitaciones y revisión pendiente
 
 - Mundos finitos de 4/100/256 chunks en memoria; no hay streaming, crafting ni multiplayer.
-- Vida mínima: ataque enemigo letal, sin survival completo ni salud gradual.
+- Vida de sesión con daño y regeneración; sin survival completo ni persistencia de salud.
 - Percepción del zombie por distancia; detecta a través de paredes, pero navegación
   consulta terreno y el golpe cuerpo a cuerpo exige línea despejada.
 - Separación local; no es pathfinding multiagente. Corredores pueden formar filas.
 - Biomas/aldea/interacción están cubiertos por tests existentes; la revisión humana
   prolongada de equilibrio, cámara, melee, salto, R/J/K y estructuras queda pendiente.
-- ENDURANCE nuevo es un minuto real headless, no una prueba térmica/GPU prolongada.
+- La carga histórica de septiembre es headless y no acredita medición térmica/GPU ni nuevos resultados de recuperación.
 
 ## Integrantes
 
@@ -350,13 +293,13 @@ El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el
 
 Consultar [TODO.md](TODO.md) para tareas por estudiante y dependencias, y
 [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md) como registro de fases y validaciones.
-La documentación de arquitectura está en `docs/corte2/`; el cierre funcional
+La arquitectura vigente está en `docs/arquitectura.md`; los documentos de `docs/corte2/` son históricos; el cierre funcional
 está registrado en `docs/corte2/testing/final-horde-20260926.md`. Los resultados históricos
 se conservan identificados por fecha. `docs/uml.md` conserva vistas de las etapas anteriores; no se considera actualizado para una nueva entrega.
 
 ## Actualizar desde main y jugar
 
-Desde la raíz del repositorio Mc2, con JDK 17+ y Maven instalados:
+Desde la raíz del repositorio Mc2, con JDK 17 y Maven instalados:
 
 ```bash
 git pull origin main
@@ -366,5 +309,4 @@ git pull origin main
 El lanzador compila el código actualizado antes de abrir el juego. En IntelliJ:
 actualizar main, recargar Maven y ejecutar `bootstrap.Minecraft2Application`.
 `worlds/` y `graphics.properties` son locales y no se publican; cada computador
-conserva sus mundos y elige su propia tarjeta gráfica. Las ramas de estudiantes
-se mantienen sin cambios.
+conserva sus mundos y elige su propia tarjeta gráfica. La recuperación se desarrolla en las ramas del equipo antes de integrarse a main.
