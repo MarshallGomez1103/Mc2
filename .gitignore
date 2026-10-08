@@ -13,3 +13,12 @@ worlds/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Material privado de trabajo
+.codex-private/
+LECCIONES_DYAS_Y_REVISION_ANTES_DE_ENTREGAR.md
+PLAN_CONTINUACION_*.md
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+HANDOFF.md

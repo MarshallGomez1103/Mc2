@@ -1,3 +1,59 @@
+# Recuperación del Corte 2 — checklist activo
+
+Plan y reparto por archivos: [plan del equipo](docs/recuperacion-c2/plan-equipo.md).
+Meta interna: completar correcciones y solicitar revisión el 8 de octubre de 2026.
+
+Esta sección registra la recuperación. Las secciones que siguen conservan el historial anterior. Marcar `[x]` solo después de revisar implementación, pruebas y evidencia real.
+
+## Base común
+
+- [ ] Confirmar estilo, reglas de dependencia y contrato de entrada/sesión.
+- [ ] Actualizar cada clon a su rama de recuperación publicada y conservar cambios locales.
+- [ ] Confirmar los archivos exclusivos de cada integrante antes de trabajar.
+
+## Thomas — arquitectura e integración
+
+- [ ] REC-T1: trasladar coordinación de movimiento/física/estamina a aplicación sin cambiar reglas.
+- [ ] REC-T2: conectar GameInput/GameSession y adaptar VoxelGame, HUD, cámara y respawn.
+- [ ] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
+- [ ] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
+- [ ] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
+- [ ] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
+
+## Jasub — pruebas y flujo público
+
+- [ ] REC-J1: clasificar pruebas existentes y añadir casos propios con AAA, equivalencia, límites y dobles cuando apliquen.
+- [ ] REC-J2: GameSessionFlowIT con componentes reales y contrato de control.
+- [ ] REC-J3: WorldPersistenceIT con archivos temporales y aislamiento del Singleton.
+- [ ] REC-J4: GameFlowSmokeIT versionado y ejecutado mediante consola pública del JAR.
+- [ ] REC-J5: segundo escenario público de cancelación/eliminación o archivo inválido.
+- [ ] REC-J6: comprobación reproducible de fronteras arquitectónicas.
+- [ ] REC-J7: reporte con comandos, evidencia, resultados y límites de automatización.
+
+## Ethian — estilo, modelado y carga
+
+- [ ] REC-E1: comparación de al menos dos estilos y ADR con ganancias/costes.
+- [ ] REC-E2: diagramas de contexto, contenedor y componentes coherentes con código.
+- [ ] REC-E3: arquitectura inicial y recuperada con referencias de versión reales.
+- [ ] REC-E4: scripts reproducibles de baseline y estrés en perf/.
+- [ ] REC-E5: throughput real, tasa de errores y métricas headless bien definidas.
+- [ ] REC-E6: SLO definido antes de medir y población objetivo declarada.
+- [ ] REC-E7: corridas acotadas autorizadas, comparables y con parada definida.
+- [ ] REC-E8: CSV y manifiesto revisados/versionados fuera de target/.
+- [ ] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness.
+
+## Cierre del equipo
+
+- [ ] Revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica.
+- [ ] `mvn clean verify` aprobado; resultados actuales separados por nivel y cobertura de dominio.
+- [ ] Flujo público reproducible y revisión gráfica real de controles afectados.
+- [ ] ADR y diagramas corresponden al candidato final integrado.
+- [ ] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
+- [ ] Leer completos los archivos afectados, revisar evidencias y el índice antes del commit.
+- [ ] Publicación aprobada y verificada; solicitud de revisión enviada con enlaces de versión.
+
+---
+
 > Registro histórico del trabajo del Corte 2, cerrado. Las tareas y conteos de cada etapa no describen pendientes del Corte 3.
 
 # TODO — Minecraft 2
