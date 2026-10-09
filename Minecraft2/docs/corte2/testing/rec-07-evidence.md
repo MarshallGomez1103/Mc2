@@ -10,10 +10,23 @@ La exclusion esta declarada en `pom.xml` (`maven-surefire-plugin` excluye `**/*I
 `maven-failsafe-plugin` las recoge en su fase propia). Los reportes quedan en carpetas
 separadas: `target/surefire-reports/` y `target/failsafe-reports/`.
 
+Tras acuerdo con Thomas, se reclasificaron 4 clases que ya probaban componentes reales
+integrados (sin dobles) y estaban mal ubicadas bajo el sufijo `*Test`: se renombraron a
+`*IT` para que el reporte las cuente como integracion y no como unitarias.
+
+| Clase | Sufijo anterior | Sufijo nuevo | Tests |
+|---|---|---|---|
+| `EnemyUpdateServiceTest` -> `EnemyUpdateServiceIT` | Test | IT | 11 |
+| `LocalWorldPersistenceTest` -> `LocalWorldPersistenceIT` | Test | IT | 3 |
+| `SaveEdgeCasesTest` -> `SaveEdgeCasesIT` | Test | IT | 3 |
+| `WorldLifecycleTest` -> `WorldLifecycleIT` | Test | IT | 1 |
+
+Total reclasificado: 18 tests, de unitarias a integracion.
+
 ### Unitarias (Surefire)
 
-- Clases ejecutadas: 60
-- Tests run: 313
+- Clases ejecutadas: 56 (60 - 4 reclasificadas)
+- Tests run: 295 (313 - 18 reclasificados)
 - Failures: 0
 - Errors: 0
 - Skipped: 0
@@ -22,19 +35,27 @@ separadas: `target/surefire-reports/` y `target/failsafe-reports/`.
 
 ### Integracion (Failsafe)
 
-- Clases ejecutadas: 1 (`presentation.GameFlowSmokeIT`)
-- Tests run: 1
+- Clases ejecutadas: 5 (`presentation.GameFlowSmokeIT` + las 4 reclasificadas)
+- Tests run: 19 (1 + 18 reclasificados)
 - Failures: 0
 - Errors: 0
 - Skipped: 0
-- Caja negra sobre el jar empaquetado real (ver `rec-06-blackbox-flow.md` para el
-  detalle y el alcance declarado)
+- Caja negra sobre el jar empaquetado real: `GameFlowSmokeIT` (ver `rec-06-blackbox-flow.md`
+  para el detalle y el alcance declarado); el resto integra componentes reales de
+  aplicacion + dominio/persistencia sin mocks
 
 ### Totales de la entrega
 
-- Total ejecutado: 314 (313 unitarias + 1 integracion)
+- Total ejecutado: 314 (295 unitarias + 19 integracion)
 - Fallos: 0 / Errores: 0 / Omitidas: 0
 - BUILD SUCCESS
+
+Confirmado con una segunda corrida real de `mvn verify` tras el renombrado
+(2026-10-08): Surefire reporto 295 pruebas (0 fallos) y Failsafe reporto 19
+(0 fallos), con `EnemyUpdateServiceIT`, `LocalWorldPersistenceIT`, `SaveEdgeCasesIT`
+y `WorldLifecycleIT` apareciendo correctamente bajo
+`--- failsafe:3.2.5:integration-test ---` junto a `GameFlowSmokeIT`. Resultado:
+BUILD SUCCESS, 314 pruebas totales, 0 fallos, 0 errores, 0 omitidas.
 
 ## Clases de equivalencia y valores limite (muestra — dominio Enemy AI)
 
@@ -57,10 +78,10 @@ Estos casos ya existen en el codigo; aqui se documentan explicitamente como lo p
 - `GameFlowSmokeIT` (ver documento REC-06): integracion de extremo a extremo a traves
   del proceso real del jar empaquetado.
 
-Nota de alcance: la reclasificacion formal de cuales de las 60 clases unitarias son
-"integracion entre componentes reales" vs. "unitarias con fixtures de dominio" queda
-pendiente de confirmacion de Thomas/Jasub antes de renombrar nada a `*IT` — aqui solo
-se documentan los casos ya evidentes para no introducir reclasificaciones no acordadas.
+Nota de alcance: se revisaron las 60 clases unitarias originales y se identificaron y
+reclasificaron las 4 que integraban componentes reales sin dobles. El resto conserva
+el sufijo `Test` por tratarse de pruebas unitarias aisladas (una sola unidad bajo
+prueba, con fixtures de dominio o dobles donde aplica).
 
 ## Responsables
 

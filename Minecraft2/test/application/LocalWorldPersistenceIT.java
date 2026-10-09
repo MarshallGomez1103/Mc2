@@ -14,7 +14,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Reproducción del flujo local con un nuevo servicio y un archivo dañado en la misma carpeta. */
-class LocalWorldPersistenceTest {
+class LocalWorldPersistenceIT {
     @AfterEach void unload() { WorldManager.getInstance().unload(); }
     private WorldApplicationService service(Path dir) {
         BlockFactory f = new BlockFactory();
