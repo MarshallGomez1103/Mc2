@@ -26,4 +26,5 @@ public final class Minecraft2Application {
         if (Boolean.getBoolean("mc2.console")) new MainMenu(worldService, gameWindow).show();
         else gameWindow.openMenu(worldService, directory);
     }
+
 }

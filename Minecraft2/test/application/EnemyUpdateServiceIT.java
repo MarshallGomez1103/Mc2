@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Integración Enemy + World real: FSM, A*, repath y ataque sobre bloques que cambian en sesión. */
-class EnemyUpdateServiceTest {
+class EnemyUpdateServiceIT {
     private static final double FRAME = 1.0 / 60.0;
     private static final double FEET = GROUND_Y + 1;
 
