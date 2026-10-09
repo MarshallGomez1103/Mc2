@@ -36,7 +36,13 @@ import java.util.SplittableRandom;
  * mvn test-compile
  * java -cp "target/classes;target/test-classes" loadtest.EnemyLoadHarness BASELINE
  * java -cp "target/classes;target/test-classes" loadtest.EnemyLoadHarness ENDURANCE 30
+ * java -Xms1g -Xmx1g -Dmc2.load.out=DIR -cp ... loadtest.EnemyLoadHarness REC_STRESS [minutos reales máx.]
  * </pre>
+ *
+ * <p>REC_BASELINE y REC_STRESS siguen el protocolo de la recuperación (docs/recuperacion-c2/carga.md):
+ * mismo mundo 10×10, seed y dificultad VERY_HARD; 3 repeticiones de 30 s simulados por nivel. Los
+ * scripts de {@code perf/} los lanzan y guardan el manifiesto. Un tick fallido no entra en la
+ * latencia: se cuenta en {@code failed_ticks} y en {@code error_rate = failed_ticks / frames}.
  *
  * <p>Simula fotogramas de 1/60 s tan rápido como puede. Mide el tiempo real (wall-clock) de
  * {@code HordeManager.update + EnemyUpdateService.update} por fotograma, las búsquedas A*, los
@@ -52,20 +58,33 @@ public final class EnemyLoadHarness {
     private static final double PLAYER_SPEED = 2.0;
     private static final double RING_MIN = 8.0;
     private static final double RING_MAX = 18.0;
+    private static final int RECOVERY_CHUNKS = 10;
+    private static final double RECOVERY_SECONDS = 30.0;
+    private static final int RECOVERY_REPETITIONS = 3;
+    private static final double RECOVERY_WALL_MINUTES = 20.0;
 
     private EnemyLoadHarness() {
     }
 
     public static void main(String[] args) throws IOException {
         if (args.length == 0) {
-            System.err.println("Uso: EnemyLoadHarness BASELINE|PEAK|STRESS|ENDURANCE|FUNCTIONAL20 [minutos para ENDURANCE]");
+            System.err.println("Uso: EnemyLoadHarness BASELINE|PEAK|STRESS|ENDURANCE|FUNCTIONAL20|REC_BASELINE|REC_STRESS"
+                    + " [minutos: duración de ENDURANCE o límite real de REC_*]");
             System.exit(2);
         }
         String scenario = args[0].toUpperCase(Locale.ROOT);
-        Path results = Path.of("target", "load-results");
-        Files.createDirectories(results);
-        String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
-        Path csv = results.resolve(scenario.toLowerCase(Locale.ROOT) + "-" + stamp + ".csv");
+        String outDir = System.getProperty("mc2.load.out");
+        Path csv;
+        if (outDir != null && !outDir.isBlank()) {
+            Files.createDirectories(Path.of(outDir));
+            csv = Path.of(outDir, "results.csv");
+        } else {
+            Path results = Path.of("target", "load-results");
+            Files.createDirectories(results);
+            String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
+            csv = results.resolve(scenario.toLowerCase(Locale.ROOT) + "-" + stamp + ".csv");
+        }
+        double minutesArg = args.length > 1 ? Double.parseDouble(args[1]) : Double.NaN;
 
         printEnvironment(scenario);
         try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(csv, StandardCharsets.UTF_8))) {
@@ -75,14 +94,19 @@ public final class EnemyLoadHarness {
                 case "PEAK" -> constantLoad(out, 10, Difficulty.VERY_HARD, new int[]{25}, 60, 3, false);
                 case "STRESS" -> constantLoad(out, 10, Difficulty.VERY_HARD,
                         new int[]{10, 20, 40, 80, 160, 320, 640}, 30, 1, true);
-                case "ENDURANCE" -> endurance(out, args.length > 1 ? Double.parseDouble(args[1]) : 30.0);
+                case "ENDURANCE" -> endurance(out, Double.isNaN(minutesArg) ? 30.0 : minutesArg);
+                case "REC_BASELINE" -> recoveryLoad(out, new int[]{3}, false,
+                        Double.isNaN(minutesArg) ? RECOVERY_WALL_MINUTES : minutesArg);
+                case "REC_STRESS" -> recoveryLoad(out, new int[]{20, 40, 80, 160, 320}, true,
+                        Double.isNaN(minutesArg) ? RECOVERY_WALL_MINUTES : minutesArg);
                 default -> {
                     System.err.println("Escenario desconocido: " + scenario);
                     System.exit(2);
                 }
             }
         }
-        System.out.println("CSV: " + csv.toAbsolutePath());
+        // Ruta relativa o solo el nombre: la consola se publica y no debe llevar rutas del equipo.
+        System.out.println("CSV: " + (csv.isAbsolute() ? csv.getFileName() : csv));
     }
 
     private static void printEnvironment(String scenario) {
@@ -128,6 +152,63 @@ public final class EnemyLoadHarness {
                             stats.percentileMs(95), FRAME_BUDGET_MS, population);
                     return;
                 }
+            }
+        }
+    }
+
+    /**
+     * Protocolo de la recuperación: mundo 10×10, VERY_HARD, 3 × 30 s simulados por nivel tras 10 s de
+     * calentamiento. Con {@code stopOnBudget} no sube de nivel si la mediana del p95 supera el
+     * presupuesto o hubo ticks fallidos. Se detiene también al agotar {@code wallMinutes} de reloj.
+     */
+    private static void recoveryLoad(PrintWriter out, int[] populations, boolean stopOnBudget, double wallMinutes) {
+        Difficulty difficulty = Difficulty.VERY_HARD;
+        System.out.printf(Locale.ROOT, "Protocolo REC: %dx%d chunks · %s · %d rep × %.0f s simulados · "
+                        + "calentamiento 10 s · límite real %.2f min · presupuesto p95 %.2f ms%n",
+                RECOVERY_CHUNKS, RECOVERY_CHUNKS, difficulty, RECOVERY_REPETITIONS, RECOVERY_SECONDS,
+                wallMinutes, FRAME_BUDGET_MS);
+        out.println("chunks,difficulty,zombies,repetition,sim_seconds,frames,wall_seconds,update_mean_ms,"
+                + "update_p95_ms,update_max_ms,ticks_per_wall_s,update_capacity_ticks_per_s,"
+                + "zombie_updates_per_wall_s,astar_calls,astar_calls_per_sim_s,astar_expansions,avg_active,"
+                + "heap_mb,player_deaths,failed_ticks,error_rate");
+        long deadline = System.nanoTime() + (long) (wallMinutes * 60e9);
+        for (int population : populations) {
+            new Session(RECOVERY_CHUNKS, difficulty, false).runConstant(population, 10);
+            double[] p95s = new double[RECOVERY_REPETITIONS];
+            int failedInLevel = 0;
+            for (int repetition = 1; repetition <= RECOVERY_REPETITIONS; repetition++) {
+                if (System.nanoTime() > deadline) {
+                    System.out.printf(Locale.ROOT, "Límite real de %.2f min alcanzado antes de %d zombis · rep %d.%n",
+                            wallMinutes, population, repetition);
+                    return;
+                }
+                Session session = new Session(RECOVERY_CHUNKS, difficulty, false);
+                Stats stats = session.runConstant(population, RECOVERY_SECONDS);
+                long heap = session.heapAfterGc();
+                double wall = stats.wallNanos / 1e9;
+                double p95 = stats.percentileMs(95);
+                p95s[repetition - 1] = p95;
+                failedInLevel += stats.errors;
+                out.printf(Locale.ROOT, "%d,%s,%d,%d,%.0f,%d,%.3f,%.4f,%.4f,%.4f,%.1f,%.1f,%.0f,%d,%.2f,%d,%.1f,%d,%d,%d,%.6f%n",
+                        RECOVERY_CHUNKS * RECOVERY_CHUNKS, difficulty, population, repetition, RECOVERY_SECONDS,
+                        stats.attempted, wall, stats.meanMs(), p95, stats.maxMs(),
+                        stats.attempted / wall, stats.capacityTicksPerSecond(), stats.activeSum / wall,
+                        stats.searches, stats.searches / RECOVERY_SECONDS, stats.expansions, stats.averageActive(),
+                        heap, stats.playerDeaths, stats.errors, stats.errorRate());
+                out.flush();
+                System.out.printf(Locale.ROOT,
+                        "%3d zombis · rep %d · %.2f s reales · media %.3f ms · p95 %.3f ms · máx %.3f ms · "
+                                + "%.0f ticks/s · A* %d · heap %d MB · fallidos %d (%.4f%%)%n",
+                        population, repetition, wall, stats.meanMs(), p95, stats.maxMs(), stats.attempted / wall,
+                        stats.searches, heap, stats.errors, stats.errorRate() * 100);
+            }
+            Arrays.sort(p95s);
+            double medianP95 = p95s[p95s.length / 2];
+            System.out.printf(Locale.ROOT, "Nivel %d zombis: mediana p95 %.3f ms · fallidos %d%n",
+                    population, medianP95, failedInLevel);
+            if (stopOnBudget && (medianP95 > FRAME_BUDGET_MS || failedInLevel > 0)) {
+                System.out.printf(Locale.ROOT, "Parada: nivel %d supera el presupuesto o tuvo fallos.%n", population);
+                return;
             }
         }
     }
@@ -199,10 +280,12 @@ public final class EnemyLoadHarness {
         Stats runConstant(int population, double seconds) {
             Stats stats = new Stats();
             int frames = (int) Math.round(seconds / FRAME);
+            long start = System.nanoTime();
             for (int frame = 0; frame < frames; frame++) {
                 refill(population);
                 frame(stats);
             }
+            stats.wallNanos = System.nanoTime() - start;
             return stats;
         }
 
@@ -223,18 +306,22 @@ public final class EnemyLoadHarness {
             int searchesBefore = pathfinder.getSearchCount();
             long expansionsBefore = pathfinder.getTotalExpansions();
             long start = System.nanoTime();
+            boolean failed = false;
             try {
                 if (horde != null) {
                     horde.update(FRAME, world.getPlayer().getX(), world.getPlayer().getZ());
                 }
                 enemies.update(life, FRAME);
             } catch (RuntimeException failure) {
+                failed = true;
                 stats.errors++;
                 if (stats.errors == 1) {
                     failure.printStackTrace();
                 }
             }
-            stats.record(System.nanoTime() - start, enemies.zombies().size());
+            long elapsed = System.nanoTime() - start;
+            // Un tick fallido no terminó su trabajo: no entra en la latencia, solo en el conteo de errores.
+            stats.record(failed ? -1 : elapsed, enemies.zombies().size());
             stats.searches += pathfinder.getSearchCount() - searchesBefore;
             stats.expansions += pathfinder.getTotalExpansions() - expansionsBefore;
             if (horde != null) {
@@ -279,22 +366,42 @@ public final class EnemyLoadHarness {
         }
     }
 
-    /** Tiempos por fotograma y contadores de un tramo de simulación. */
+    /**
+     * Tiempos por fotograma y contadores de un tramo de simulación. {@code frames} son las muestras de
+     * latencia (ticks correctos) y {@code attempted} todos los ticks, incluidos los fallidos.
+     */
     private static final class Stats {
         long[] nanos = new long[4096];
         int frames;
+        int attempted;
         long activeSum;
+        long updateNanos;
+        long wallNanos;
         long searches;
         long expansions;
         int playerDeaths;
         int errors;
 
+        /** {@code elapsed < 0} marca un tick fallido: cuenta como intentado pero no como muestra. */
         void record(long elapsed, int active) {
+            attempted++;
+            activeSum += active;
+            if (elapsed < 0) {
+                return;
+            }
             if (frames == nanos.length) {
                 nanos = Arrays.copyOf(nanos, frames * 2);
             }
             nanos[frames++] = elapsed;
-            activeSum += active;
+            updateNanos += elapsed;
+        }
+
+        double capacityTicksPerSecond() {
+            return updateNanos == 0 ? 0 : frames / (updateNanos / 1e9);
+        }
+
+        double errorRate() {
+            return attempted == 0 ? 0 : errors / (double) attempted;
         }
 
         double meanMs() {
@@ -324,7 +431,7 @@ public final class EnemyLoadHarness {
         }
 
         double averageActive() {
-            return frames == 0 ? 0 : activeSum / (double) frames;
+            return attempted == 0 ? 0 : activeSum / (double) attempted;
         }
     }
 }
