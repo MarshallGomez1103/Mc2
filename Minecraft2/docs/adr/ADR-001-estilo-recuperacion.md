@@ -2,10 +2,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | **Implementado** en la integración. La revisión conjunta de los tres integrantes queda pendiente antes de entregar. |
+| Estado | **Implementado** en la integración. La revisión final del candidato queda a cargo de Ethian antes de entregar. |
 | Fecha | 2026-10-08 |
 | Autor | Ethian Daniel White Ortiz |
-| Revisan | Elioth Thomas Gomez Morales, Jasub Sastre |
+| Revisión final | Ethian Daniel White Ortiz; pendiente del candidato con evidencia de carga |
 | Corrección | REC-02 del [plan de recuperación](../recuperacion-c2/plan-equipo.md) |
 | Código evaluado | Base histórica `4220c40`; frontera implementada en `e730e9c`, incorporada con `jasub/final-a` y `feature/c2-Ethian`. Las fuentes comprobadas se identifican en el [manifiesto integrado](../recuperacion-c2/evidencias/integracion/manifest.json). |
 

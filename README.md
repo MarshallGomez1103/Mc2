@@ -4,15 +4,15 @@ Videojuego voxel de escritorio desarrollado en Java 17, Maven y LibGDX por Eliot
 
 ## Recuperación del Corte 2
 
-El candidato común integra Thomas (`e730e9c`), Jasub (`b7c95a3`, `jasub/final-a`) y Ethian (`d186d46`). Controles, cobertura, flujo público, ADR y diagramas están incorporados y comprobados. **Faltan las corridas y el análisis de carga de Ethian y la revisión final del equipo.** [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
+El candidato común integra Thomas (`e730e9c`), Jasub (`b7c95a3`, `jasub/final-a`) y Ethian (`d186d46`). Controles, cobertura, flujo público, ADR y diagramas están incorporados y comprobados. **Faltan las corridas y el análisis de carga de Ethian y la revisión final del candidato, a cargo de Ethian.** [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
 
 | Integrante | Rama | Responsabilidad |
 | --- | --- | --- |
-| Thomas | `feature/c2-Thomas` | Controles en aplicación, regresiones, cobertura, build, documentación e integración final |
+| Thomas | `feature/c2-Thomas` | Controles en aplicación, regresiones, cobertura, build, documentación e integración de los tres frentes |
 | Jasub | `jasub/final-a` | Integración, flujo público de caja negra y comprobación de fronteras |
-| Ethian | `feature/c2-Ethian` | Comparación de estilos, ADR, contexto/componentes y carga |
+| Ethian | `feature/c2-Ethian` | Comparación de estilos, ADR, contexto/componentes, carga y cierre de entrega |
 
-El [plan compartido](Minecraft2/docs/recuperacion-c2/plan-equipo.md) y el [TODO](Minecraft2/TODO.md) delimitan los archivos de cada frente. La integración conserva el historial de las tres ramas y un respaldo de la base. La entrega completa se cierra tras incorporar la evidencia de carga.
+El [plan compartido](Minecraft2/docs/recuperacion-c2/plan-equipo.md) y el [TODO](Minecraft2/TODO.md) delimitan los archivos de cada frente. La integración conserva el historial de las tres ramas y un respaldo de la base. Ethian completa la carga, actualiza sus resultados y realiza la verificación y publicación del candidato final. Los criterios técnicos de cierre están en [pruebas](Minecraft2/docs/pruebas.md#verificación-del-candidato-de-entrega). La entrega completa se cierra tras incorporar esa evidencia.
 
 ## Tabla de trazabilidad
 

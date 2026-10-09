@@ -106,10 +106,30 @@ public final class PlayerControlsVisualSmoke extends ApplicationAdapter {
             if(frame==95) {
                 var pixmap=com.badlogic.gdx.graphics.Pixmap.createFromFrameBuffer(0,0,960,640);
                 try { PixmapIO.writePNG(Gdx.files.absolute(output),pixmap,-1,true); } finally { pixmap.dispose(); }
-                completed=true;System.out.println("PASS: sprint, jump, look, pause, death, R, melee, mining, placement, pistol, selection, rendered HUD/camera");Gdx.app.exit();
+                verifyCloseAfterDeath();
+                completed=true;System.out.println("PASS: sprint, jump, look, pause, death, R, melee, mining, placement, pistol, selection, rendered HUD/camera, close after death");Gdx.app.exit();
             }
             frame++;
         } catch(Throwable problem) { failure=problem;Gdx.app.exit(); }
+    }
+    private void verifyCloseAfterDeath() {
+        var player = world.getPlayer();
+        player.setX(8.5); player.setY(21); player.setZ(5.5); player.setVelocityY(0);
+        session.advance(.05, new PlayerFrameInput(
+                new domain.player.MovementInput(true, false, false, false, true),
+                false, 0, 0, false, false, false, null));
+        check(session.controls().staminaCurrent() < 100, "close fixture consumes stamina");
+        var material = session.controls().selectedType();
+        session.life().die(domain.player.PlayerLife.DeathCause.VOID);
+        player.setY(-4);
+        game.setPaused(true);
+        game.dispose();
+        game = null;
+        check(!session.life().isDead() && player.getY() >= 1, "close restores a valid player");
+        check(session.controls().staminaCurrent() == 100 && !session.controls().moving()
+                && !session.controls().sprinting(), "close resets controls through application");
+        check(session.isPaused() && session.controls().selectedType() == material,
+                "close preserves pause and material");
     }
     public void dispose() {
         if(game!=null) game.dispose();

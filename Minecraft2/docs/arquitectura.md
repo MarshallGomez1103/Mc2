@@ -16,7 +16,7 @@ La [tabla obligatoria de seis columnas está en el README raíz](../../README.md
 
 ## 3. Estilo y alternativas
 
-Se implementa una aplicación por capas con frontera de aplicación explícita. La selección y comparación ampliada están en el [ADR-001 de Ethian](adr/ADR-001-estilo-recuperacion.md), contrastado con los controles implementados y las reglas de import. La revisión conjunta de los tres integrantes queda pendiente antes de entregar.
+Se implementa una aplicación por capas con frontera de aplicación explícita. La selección y comparación ampliada están en el [ADR-001 de Ethian](adr/ADR-001-estilo-recuperacion.md), contrastado con los controles implementados y las reglas de import. La revisión final del candidato queda a cargo de Ethian antes de entregar.
 
 | Criterio derivado del reto | Capas con coordinación explícita | Puertos y adaptadores completos |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ PlayerFrameInput contiene MovementInput, salto, mirada, acción primaria/secunda
 
 GameSession descarta deltas no finitos, negativos o cero antes de usar la entrada; pausa y muerte descartan el tick. Un delta positivo se limita a 0,05 s para todos los componentes. PlayerControlService, como operación directa, rechaza deltas negativos/no finitos mediante excepción; esta diferencia conserva el contrato anterior. No existe el avance por Runnable.
 
-Orden de control: mirar → mover/saltar/colisionar → alternar pistola → seleccionar material y desequipar → acción primaria/secundaria. Pistola equipada nunca pica un bloque al fallar o estar en cooldown; sin pistola, melee tiene prioridad y se pica únicamente si no hay enemigo alcanzable. El sprint consume según desplazamiento horizontal real; teclas opuestas y paredes no consumen. Respawn restaura estamina/flags y conserva el material; no levanta una pausa existente.
+Orden de control: mirar → mover/saltar/colisionar → alternar pistola → seleccionar material y desequipar → acción primaria/secundaria. Pistola equipada nunca pica un bloque al fallar o estar en cooldown; sin pistola, melee tiene prioridad y se pica únicamente si no hay enemigo alcanzable. El sprint consume según desplazamiento horizontal real; teclas opuestas y paredes no consumen. Respawn restaura estamina/flags y conserva el material; no levanta una pausa existente. El cierre de VoxelGame después de morir delega también en GameSession, sin invocar directamente la reaparición del dominio.
 
 ## 5. Estrategia de pruebas
 
@@ -101,5 +101,5 @@ PIT conserva su selección original y se comprobó nuevamente; [resultado de mut
 - Coordinación concentrada en GameSession/PlayerControlService; la separación hace comprobables las responsabilidades pero no elimina todos los acoplamientos de dominio.
 - JSON v1 conserva el mundo/jugador; vida, arma, enemigos, oleadas, restos y estamina son estado de sesión.
 - La carga headless de IA no garantiza FPS gráficos; la prueba visual automatizada tampoco acredita jugabilidad prolongada, equilibrio o SUS.
-- Antes de entregar se deben incorporar los resultados/análisis de carga de Ethian, actualizar la tabla y revisar el candidato final con el equipo. ADR, vistas, flujo público y fronteras están incorporados y comprobados.
+- Antes de entregar se deben incorporar los resultados/análisis de carga de Ethian, actualizar la tabla y completar la revisión final a cargo de Ethian. ADR, vistas, flujo público y fronteras están incorporados y comprobados.
 - El tercer corte requiere su consigna vigente antes de definir pipeline/DevSecOps o gates. No se agregan requisitos hipotéticos ni se presupone un umbral de cobertura del 80 %.

@@ -1,13 +1,13 @@
 # Recuperación del Corte 2 — checklist activo
 
 Plan y reparto por archivos: [plan del equipo](docs/recuperacion-c2/plan-equipo.md).
-Meta interna: completar correcciones y solicitar revisión el 8 de octubre de 2026.
+Estado de cierre al 9 de octubre de 2026: los tres frentes están integrados. Ethian completa la carga, verifica el candidato y entrega. La meta del 8 de octubre pertenece al calendario inicial.
 
 Esta sección registra la recuperación. Las secciones que siguen conservan el historial anterior. Marcar `[x]` solo después de revisar implementación, pruebas y evidencia real.
 
 ## Base común
 
-- [x] Estilo implementado y reglas/contrato comprobados; revisión conjunta del equipo pendiente.
+- [x] Estilo implementado y reglas/contrato comprobados; revisión final de Ethian pendiente.
 - [ ] Actualizar cada clon a su rama de recuperación publicada y conservar cambios locales.
 - [x] Aportes identificados e integrados en orden: Thomas, jasub/final-a y Ethian.
 
@@ -18,9 +18,9 @@ Esta sección registra la recuperación. Las secciones que siguen conservan el h
 - [x] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
 - [x] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
 - [x] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
-- [ ] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
+- [x] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
 
-Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La integración, tabla/arquitectura, flujo público y comprobación desde copia limpia están disponibles. REC-T6 permanece abierto únicamente para incorporar el resultado/análisis de carga y cerrar la revisión del candidato final. No se da por terminada la recuperación conjunta.
+Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La integración, tabla/arquitectura, flujo público y comprobación desde copia limpia están disponibles. REC-T6 queda completo respecto de la integración técnica. Incorporar el resultado/análisis de carga y cerrar la verificación del candidato corresponde a las tareas de Ethian y al cierre de entrega, que siguen pendientes. No se da por terminada la recuperación conjunta.
 
 ## Jasub — pruebas y flujo público
 
@@ -46,17 +46,18 @@ Evidencia de integración: [reporte](docs/recuperacion-c2/integracion.md) e [inv
 - [ ] REC-E8: CSV, consola y manifiesto revisados/versionados en perf/results/, tras medir el mismo candidato integrado.
 - [ ] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness.
 
-Solo quedan REC-E7–E9 de carga y el cierre del candidato. La revisión conjunta del ADR/diagramas y la actualización de cada clon siguen pendientes: no se registran acciones humanas como realizadas por ejecutar Maven.
+Solo quedan REC-E7–E9 de carga y el cierre del candidato. La revisión final del ADR/diagramas por Ethian y la actualización de cada clon siguen pendientes: no se registran acciones humanas como realizadas por ejecutar Maven.
 
 ## Cierre del equipo
 
-- [ ] Revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica.
+- [ ] Ethian: revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica contra el candidato con carga; [criterios de cierre](docs/pruebas.md#verificación-del-candidato-de-entrega).
 - [x] `mvn clean verify` aprobado; resultados actuales separados por nivel y cobertura de dominio.
 - [x] Flujo público reproducible y revisión gráfica real de controles afectados.
 - [x] ADR y diagramas corresponden al candidato final integrado.
 - [x] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
 - [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetir al incorporar la carga.
-- [ ] Publicación aprobada y verificada; solicitud de revisión enviada con enlaces de versión.
+- [x] Integración técnica publicada en main; candidato base `b5a8e7c`.
+- [ ] Ethian: incorporar evidencia de carga, verificar/publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
 
 ---
 

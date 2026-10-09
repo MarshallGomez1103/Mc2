@@ -1,12 +1,12 @@
 {
   "sourceState": "verified integrated source snapshot identified by source hashes",
-  "integrationBase": "f0e8242de186e9174c1e375f391e88a269c58a1d",
+  "integrationBase": "b5a8e7c2b836f3b6b5e005535faf8d1cf1f4ce98",
   "contributions": {
     "Thomas": "e730e9c84baf36b09b23eb66d2d5f62f87bfdfeb",
     "Jasub": "b7c95a30f57c75adeaddb8744c6f58f082024419",
     "Ethian": "d186d46ab44d3a332f1e2e60e418d9c731950084"
   },
-  "sourceTreeSha256": "2d6c2529215053d73dfdc8b425d25e6bb7adbe68602eaca92b79b58eaa932ba4",
+  "sourceTreeSha256": "7a43701332a6c73490342032f06cf05250f8925c7da2e3bd1817fd2ac8637206",
   "environment": {
     "java": "Microsoft OpenJDK 17.0.20",
     "maven": "3.9.16",
@@ -66,18 +66,21 @@
     "noCoverage": 1,
     "timedOut": 0,
     "examinedTests": 113,
-    "executions": 1532
+    "executions": 1532,
+    "evidenceCommit": "b5a8e7c2b836f3b6b5e005535faf8d1cf1f4ce98",
+    "scopeUnchanged": true
   },
   "graphics": {
     "harness": "presentation.game.PlayerControlsVisualSmoke",
     "renderer": "Mesa Intel(R) Graphics (RPL-S)",
     "exit": 0,
     "automatedInput": true,
-    "humanPlaytest": false
+    "humanPlaytest": false,
+    "closeAfterDeathVerified": true
   },
   "loadRecoveryExecuted": false,
   "publicConsoleCases": 3,
-  "packagedJarSha256": "d81c06ebf86841167192916526ad3558727b3158aaa46df746819ce775aacbf3",
+  "packagedJarSha256": "450c8464bca5ebd08bdfddcde37fc877282a60cec6d307c40f344952f267b050",
   "sourceHashes": {
     "Minecraft2/docs/recuperacion-c2/carga.md": "2ea278df80bd48b08ac78e6e97ab52c9e056550e96a511049e5dae519dac89e4",
     "Minecraft2/perf/run-load.ps1": "ce7f5b84e57029aeacb45dad55176f1c42f325dbba8dcf570d3ba5e88e08e8be",
@@ -168,7 +171,7 @@
     "Minecraft2/src/presentation/game/PistolRenderer.java": "7d2fd57f4744922ae9b01777156073df2b53ff7956f5bcc3a2fa25bc44c7a22e",
     "Minecraft2/src/presentation/game/RenderDistance.java": "d2930f9c13778c85bb49b52bd6927edccd00df8722aeb97f3f38da65c63be1f5",
     "Minecraft2/src/presentation/game/SprintCameraEffect.java": "3f5f8ec05432c3c6f08d4c37d1d6c0b131708d817d3c54cdc9a7c1626c61a9d9",
-    "Minecraft2/src/presentation/game/VoxelGame.java": "2667652bcd1a6ac71025ac0aa217e2c15d6e5783af4cec5da3b2772b221a5bde",
+    "Minecraft2/src/presentation/game/VoxelGame.java": "dbd7e67c2221f6145c7706eee9c1bbaa445a74c95314e9c4b96555592d854ad3",
     "Minecraft2/src/presentation/game/ZombieAtlas.java": "f94e5c26abf77610a4ea97fe0958d2073fe61842e56588a7e3dafcc4b22726f4",
     "Minecraft2/src/presentation/game/ZombiePose.java": "3d17eb15a8d17caa0ae534f2b5f41ae07a23499ff2d37dc79fb6da498c03bcf7",
     "Minecraft2/src/presentation/game/ZombieRenderer.java": "ccd9bfc924d7fe5c9968d682644e6df7f5a2d45e8f0c445ebcdacc0e55c289c9",
@@ -238,7 +241,7 @@
     "Minecraft2/test/presentation/game/GameInputMappingTest.java": "7a29ae192def365a0eabee43cab0f2a88e0b8f222aa5393649832a7976a24fe7",
     "Minecraft2/test/presentation/game/GameWindowTextureModeTest.java": "fe45b05279ac51cce12c5c3812bcd152e1368409c6b4aeb15b439c9e8aacaf50",
     "Minecraft2/test/presentation/game/GraphicsDiagnosticsTest.java": "dd162d055f48afb468ca3860d1cbd5c5e8b4a11fda0d60a04857f8466037e32b",
-    "Minecraft2/test/presentation/game/PlayerControlsVisualSmoke.java": "b99b02c5393a3cdca0efcb38afe4679a266d23145af8ee8be64882ea952d6fce",
+    "Minecraft2/test/presentation/game/PlayerControlsVisualSmoke.java": "17b3efa7270e50c3eff467403923bdf127dc26c4937a4e648a89210d19b4a658",
     "Minecraft2/test/presentation/game/RenderDistanceTest.java": "c2d68e6b11f507127b8027a4f1b70c2e5b062a67514e8adeca8597292fc18839",
     "Minecraft2/test/presentation/game/SprintCameraEffectTest.java": "6862d2898ccadd18c304daf7ef368551a0ad0891636debff560a0b0c7847b0ca",
     "Minecraft2/test/presentation/game/VoxelGameObserverTest.java": "c6b86f79eee973144267afcca38765931b1d60423c692aa033c53e9819e07f9d",
@@ -246,5 +249,6 @@
     "Minecraft2/test/presentation/game/ZombiePoseTest.java": "fcc81c39f8108e49fc46f99c6fce04678ddd1e53334cf479a63f25e983aabc4b",
     "Minecraft2/test/presentation/game/ZombieSkinTest.java": "9c3b34b3086ed827060373006cb256680dcd7d3cb863fa1674f54a01ee6e6335",
     "Minecraft2/test/presentation/game/ZombieVisualSmoke.java": "7eb3892dad8b2c30642c2acd152338ae6eb85bc679eb1f6ef6c585e9e7288c16"
-  }
+  },
+  "validationDate": "2026-10-09"
 }

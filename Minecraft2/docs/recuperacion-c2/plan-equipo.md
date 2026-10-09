@@ -12,7 +12,7 @@ Meta interna: terminar y solicitar revisión el jueves 8 de octubre de 2026, ant
 
 Incluye arquitectura, código necesario para respetarla, pruebas y documentación del proyecto. No incluye recuperación de talleres ni de coevaluaciones, funciones nuevas, multijugador, contenedores, un pipeline de tercer corte o bonificaciones opcionales. La decisión arquitectónica se confirma en el primer punto de control; el plan no registra tareas como ejecutadas.
 
-Este documento conserva el reparto y contrato iniciales. El estado de implementación y las comprobaciones actuales están en el [TODO](../../TODO.md), el [reporte integrado](../pruebas.md) y el [índice de correcciones](correcciones.md). Las casillas de este plan son la planificación original.
+Este documento conserva el reparto y contrato iniciales. El estado de implementación y las comprobaciones actuales están en el [TODO](../../TODO.md), el [reporte integrado](../pruebas.md) y el [índice de correcciones](correcciones.md). Las casillas de este plan son la planificación original. La integración de los tres frentes ya está publicada. El cierre vigente de carga, verificación y entrega corresponde a Ethian; los criterios están en el [reporte actual](../pruebas.md#verificación-del-candidato-de-entrega). Este cierre sustituye el calendario y las dependencias de revisión del reparto inicial.
 
 ## 1. Correcciones que deben quedar comprobables
 

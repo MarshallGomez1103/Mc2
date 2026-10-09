@@ -19,7 +19,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.ScreenUtils;
 import domain.Position;
 import domain.player.Player;
-import domain.player.PlayerLife;
 import domain.world.BlockChange;
 import domain.world.Chunk;
 import domain.world.World;
@@ -68,7 +67,6 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private ChunkMeshBuilder meshBuilder;
     private GameInput input;
     private RenderDistance renderDistance;
-    private PlayerLife playerLife;
     private GameSession session;
     private SprintCameraEffect sprintEffect;
     private GameHud hud;
@@ -132,7 +130,6 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         input = new GameInput();
         sprintEffect = new SprintCameraEffect();
         renderDistance = RenderDistance.forWorld(world);
-        playerLife = session.life();
         hud = new GameHud();
 
         world.addObserver(this);
@@ -362,8 +359,8 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     @Override
     public void dispose() {
         // Volver al menú después de morir no debe dejar una posición bajo el vacío guardable.
-        if (playerLife != null && playerLife.isDead()) {
-            playerLife.respawn();
+        if (session != null && session.life().isDead()) {
+            session.respawn();
         }
         world.removeObserver(this);
         meshes.values().forEach(mesh -> mesh.model().dispose());
