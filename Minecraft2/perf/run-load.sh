@@ -54,7 +54,7 @@ stamp="$(date +%Y%m%d-%H%M%S)"
 out="target/load-results/$(echo "$scenario" | tr '[:upper:]' '[:lower:]')-${stamp}"
 mkdir -p "$out"
 
-dirty="$(git status --porcelain -- src test perf | wc -l | tr -d ' ')"
+dirty="$(git status --porcelain -- src test perf pom.xml docs/recuperacion-c2/carga.md | wc -l | tr -d ' ')"
 {
   echo "scenario=$scenario"
   echo "started_local=$(date '+%Y-%m-%d %H:%M:%S %z')"

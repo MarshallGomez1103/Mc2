@@ -27,7 +27,7 @@ $javaLines = @(cmd /c 'java -version 2>&1')
 $cpu = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name.Trim()
 $ram = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 1).ToString([Globalization.CultureInfo]::InvariantCulture)
 $os = (Get-CimInstance Win32_OperatingSystem)
-$dirty = @(git status --porcelain -- src test perf).Count
+$dirty = @(git status --porcelain -- src test perf pom.xml docs/recuperacion-c2/carga.md).Count
 $minutesText = $Minutos.ToString([Globalization.CultureInfo]::InvariantCulture)
 
 @(

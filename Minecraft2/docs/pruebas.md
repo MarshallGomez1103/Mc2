@@ -1,86 +1,71 @@
-# Pruebas de la recuperación del Corte 2
+# Pruebas — candidato integrado de recuperación del Corte 2
 
 ## Versión y alcance
 
-Resultado de las fuentes de `feature/c2-Thomas`, sobre la base `4220c4051cf306cabfaaaa79ea8e4c90c868b631`. La [huella y hashes de fuentes](recuperacion-c2/evidencias/thomas/manifest.json) identifican exactamente las fuentes comprobadas y permiten contrastarlas con la versión del repositorio.
+Se integraron Thomas (`e730e9c`), Jasub (`b7c95a3`, rama jasub/final-a) y Ethian (`d186d46`). El [manifiesto integrado](recuperacion-c2/evidencias/integracion/manifest.json) identifica la base, las fuentes exactas mediante hashes y el JAR usado por el flujo público.
 
-Se ejecutaron Java Microsoft OpenJDK 17.0.20, Maven 3.9.16 y Linux. La verificación se repitió desde una copia de fuentes sin `target/` previo y con las dependencias ya disponibles en la caché de Maven; no se afirma una instalación inicial del sistema ni una descarga desde cero. En esa copia pasaron `mvn -o clean test`, `mvn -o clean verify -DskipUnitTests=true` y `mvn -o clean verify`.
+Java Microsoft OpenJDK 17.0.20, Maven 3.9.16 y Linux. En una copia sin target previo pasaron `mvn -o -B clean test`, `mvn -o -B clean verify -DskipUnitTests=true` y `mvn -o -B clean verify`. Se usó la caché de dependencias existente; no se afirma una descarga o instalación desde cero.
 
 ## Resultados por nivel
 
 | Ejecución | Runner | Clases | Casos | Fallos | Errores | Omitidas |
 | --- | --- | --- | --- | --- | --- | --- |
-| Unitarias y adaptadores aislados | Surefire | 35 | 191 | 0 | 0 | 0 |
-| Integración de componentes o archivos reales | Failsafe | 28 | 144 | 0 | 0 | 0 |
-| Verificación conjunta | Ambos, selecciones disjuntas | 63 | 335 | 0 | 0 | 0 |
+| Unitarias y adaptadores/métricas aislados | Surefire | 38 | 198 | 0 | 0 | 0 |
+| Componentes, archivos o proceso reales | Failsafe | 30 | 148 | 0 | 0 | 0 |
+| Verificación conjunta | Selecciones disjuntas | 68 | 346 | 0 | 0 | 0 |
 
-[CSV por clase](recuperacion-c2/evidencias/thomas/pruebas.csv), [casos ejecutados](recuperacion-c2/evidencias/thomas/casos.csv) e [inventario clasificado](recuperacion-c2/evidencias/thomas/clasificacion.csv).
+[Resultados por clase](recuperacion-c2/evidencias/integracion/pruebas.csv), [casos](recuperacion-c2/evidencias/integracion/casos.csv) e [inventario clasificado](recuperacion-c2/evidencias/integracion/clasificacion.csv). Las 60 clases de la base original siguen presentes, considerando la migración GameInputStaminaTest → PlayerControlStaminaTest y los cuatro renombrados de Jasub. No hay clases omitidas o compartidas por ambos runners.
 
-Las 60 clases de la base se conservaron: GameInputStaminaTest se trasladó a PlayerControlStaminaTest, conservando sus tres escenarios y añadiendo dos límites de tiempo. No hay una clase ejecutada por ambos runners ni una clase heredada fuera de la unión. Los totales 238/313 de septiembre describen versiones históricas distintas, no la recuperación.
+Los conteos 238/313 son históricos de septiembre. Las [evidencias de Thomas](recuperacion-c2/evidencias/thomas/manifest.json) conservan la etapa e730e9c (335 casos); sus hashes y nombres corresponden a esa etapa, anterior a los renombrados. El resultado actual es 346, no una suma entre etapas.
 
-## Clasificación y estrategia
+## Clasificación y aportes
 
-La propiedad `integration.test.patterns` del POM es la selección común: Surefire la excluye y Failsafe la incluye. Selecciona expresamente los coordinadores actuales, los tests de disco, el Observer/menu y las clases mixtas; además admite `IT*`, `*IT` e `*ITCase` para los nuevos flujos. Al añadir un coordinador con sufijo Test debe revisarse su clasificación; ese sufijo no prueba aislamiento.
+Surefire excluye `integration.test.patterns`; Failsafe incluye esa misma selección y los sufijos IT. Se conservan clases heredadas con nombre Test en integración cuando conectan componentes reales: el sufijo no decide por sí solo. El JAR se empaqueta en package, antes de integration-test; no hace falta ejecutar package por separado antes de verify.
 
-Se movieron a Failsafe LocalWorldPersistenceTest, SaveEdgeCasesTest, WorldLifecycleTest, JsonWorldStorageTest, MainMenuSettingsTest, WorldDirectoryTest y GpuPreferenceTest porque usan archivos reales. Los coordinadores de sesión/controles/combate/IA verifican fronteras reales en memoria. ZombieSeparationTest y TerrainGenerationTest incluyen colaboración con aplicación/códec y también se clasifican conservadoramente como integración, aunque contengan algunos casos aislados.
+Jasub añadió GameFlowSmokeIT y renombró EnemyUpdateServiceIT, LocalWorldPersistenceIT, SaveEdgeCasesIT y WorldLifecycleIT sin quitar aserciones. La integración conservó la configuración completa de cobertura/clasificación de Thomas; no se reemplazó por una selección basada únicamente en nombres.
 
-Las unitarias de negocio permanecen en dominio. Surefire también ejecuta parser/códec en memoria y adaptadores/valores visuales aislados; esos casos no se anuncian todos como lógica de negocio. WorldSizeTest utiliza un stub RecordingStorage sin disco. GameInputMappingTest utiliza un doble Input y comprueba traducción sin Gdx global ni ventana. JaCoCo limita el reporte solicitado a `domain/**`.
-
-Las nuevas regresiones separan Arrange, Act y Assert donde hay preparación de estado e interacción. Incluyen intención neutra, límites del delta antes/en/después de 0,05 s, no finitos/negativos/cero, sprint bloqueado/agotar/recuperar, pausa/muerte y acciones simultáneas. Los casos de servicios reales se presentan como integración, no como unitarias aisladas.
-
-## Aportes de esta recuperación
-
-| Clase | Aporte |
+| Aporte | Comprobación |
 | --- | --- |
-| PlayerControlStaminaTest | Tres escenarios heredados migrados desde presentación; dos casos nuevos caracterizados antes del traslado: delta grande e inválido; invariancia 30/60/144 FPS |
-| GameSessionTest | Cuatro escenarios heredados adaptados al contrato; siete casos adicionales ejecutados, incluidos cinco valores del delta; pausa/muerte congelan controles/arma, reaparición conserva material/pausa |
-| CombatSessionRegressionTest | Adaptación mecánica de cinco regresiones al contrato tipado; se conservaron sus aserciones |
-| PlayerControlServiceTest | Ocho casos nuevos de mirada/salto, melee/bloques, selección/arma, cooldown e instantánea inmutable |
-| PlayerFrameInputTest | Dos casos nuevos de neutral y validación del contrato |
-| GameInputMappingTest | Tres casos nuevos del traductor con doble de dispositivo, incluyendo las siete selecciones y cursor liberado |
-| PlayerControlsVisualSmoke | Arnés gráfico automatizado nuevo, fuera del conteo JUnit, con OpenGL real y comprobaciones de estado |
+| Thomas: controles, frontera de sesión, entrada inmutable y dispositivo aislado | PlayerControlServiceTest, PlayerControlStaminaTest, GameSessionTest, PlayerFrameInputTest y GameInputMappingTest; mantiene las regresiones de combate |
+| Jasub: flujo público y cuatro renombrados | Proceso JAR real y suite de aplicación/persistencia conservada |
+| Ajuste de integración: flujo público completo | Tres casos: crear/listar/guardar/reabrir en otro proceso/eliminar; cancelación de borrado; JSON inválido sin sustituir el mundo actual |
+| Ajuste de integración: fronteras arquitectónicas | ArchitectureBoundaryTest: dominio sin capas superiores/gráficos; aplicación usa solo WorldStorage de persistencia; GameInput sin coordinadores y GameSession sin callback Runnable |
+| Ajuste de integración: fallo aislado | RecoveryWorldStorageFailureTest: stub de WorldStorage, error de leer/guardar propagado y mundo activo conservado; sin disco ni red |
+| Ethian: métricas y protocolo; ajuste de población | EnemyLoadHarnessMetricsTest verifica latencias/errores/capacidad; EnemyLoadHarnessIT verifica que los cadáveres no reemplazan la población viva. Son comprobaciones breves, no corridas del protocolo de carga |
 
-Se pasó de 313 a 335 casos, **22 adicionales**, conservando los escenarios anteriores. No se reconstruye ni se afirma un historial de TDD retrospectivo. No se añadieron casos triviales solo para aumentar el conteo.
+Se pasó de 313 a 346 casos, 33 adicionales; no se presenta trabajo heredado como nuevo ni se reconstruye TDD. Las nuevas pruebas usan AAA y nombres descriptivos. Los límites/prioridades de delta, pausa/muerte, sprint bloqueado, selección/arma y acciones simultáneas están en las pruebas de controles; el error de almacenamiento usa un doble explícito.
+
+## Integración y caja negra
+
+[Reporte de integración](recuperacion-c2/integracion.md). El almacenamiento real sigue siendo JSON local en directorios temporales; no se añaden HTTP, Docker o BD para imitar ejemplos de herramientas.
+
+[GameFlowSmokeIT](../test/presentation/GameFlowSmokeIT.java) ejecuta exclusivamente el JAR por stdin/stdout, usa la JVM de las pruebas y AUTO para GPU, y arranca con cwd y mundos temporales. Cada proceso tiene un timeout de 30 s y salida redirigida a archivo para evitar un bloqueo al leer antes del timeout. Comprueba salida/código y efectos en disco. No llama a WorldApplicationService ni a clases de juego para producir los resultados públicos.
+
+La persistencia de cambios, un servicio nuevo, el Singleton aislado y el archivo inválido se prueban en LocalWorldPersistenceIT y WorldLifecycleIT; los casos de altura/eliminación se conservan en SaveEdgeCasesIT. GameSessionTest y CombatSessionRegressionTest comprueban la sesión con componentes reales; no se crean pruebas duplicadas solo para que exista otro nombre de clase del plan.
 
 ## Cobertura del dominio
 
-| Fuente de ejecución | Líneas cubiertas/total | Líneas | Ramas cubiertas/total | Ramas |
+| Fuente | Líneas cubiertas/total | Líneas | Ramas cubiertas/total | Ramas |
 | --- | --- | --- | --- | --- |
 | Unitarias/adaptadores aislados | 885/982 | 90,12 % | 555/693 | 80,09 % |
-| Integración | 900/982 | 91,65 % | 540/693 | 77,92 % |
+| Integración | 915/982 | 93,18 % | 553/693 | 79,80 % |
 
-[CSV unitarias](recuperacion-c2/evidencias/thomas/cobertura-dominio-unit.csv) y [CSV integración](recuperacion-c2/evidencias/thomas/cobertura-dominio-integration.csv). Los denominadores incluyen las clases de dominio compiladas; no se excluyen reglas difíciles para elevar el porcentaje. Los dos reportes son independientes y no se suman. No se fijó un mínimo impuesto por la rúbrica, que pide informar cobertura.
+[CSV unitarias](recuperacion-c2/evidencias/integracion/cobertura-dominio-unit.csv) y [CSV integración](recuperacion-c2/evidencias/integracion/cobertura-dominio-integration.csv). JaCoCo incluye todas las clases compiladas de domain y produce HTML/XML/CSV separados en target/site/jacoco-domain-unit y target/site/jacoco-domain-integration. No se suman porcentajes ni se atribuye un umbral a la rúbrica.
 
-JaCoCo se conecta a las JVM de Surefire y Failsafe mediante propiedades de agente separadas y produce HTML/XML/CSV en sus fases correspondientes. `mvn clean test` produce el reporte unitario; `mvn clean verify -DskipUnitTests=true` produce solo cobertura de integración; `mvn clean verify` produce ambos. La omisión explícita de unitarias en el comando de integración no equivale a casos skipped en el resultado Failsafe.
-
-El JAR se empaqueta en package antes de integration-test. Un proceso JAR separado necesita instrumentación propia para añadir cobertura: su ejecución no se incluye automáticamente. Tampoco se incluye la comprobación OpenGL en estos porcentajes.
-
-Referencias de configuración: [agente JaCoCo](https://www.jacoco.org/jacoco/trunk/doc/prepare-agent-mojo.html), [reporte JaCoCo](https://www.jacoco.org/jacoco/trunk/doc/report-mojo.html) y [selecciones de Failsafe](https://maven.apache.org/surefire/maven-failsafe-plugin/examples/inclusion-exclusion.html).
+El proceso JAR de caja negra y el smoke OpenGL no añaden automáticamente cobertura a esos reportes: no están instrumentados con ese agente. Los casos skipped no se cuentan como aprobados; aquí todos los casos de las selecciones ejecutadas pasaron.
 
 ## Mutación
 
-Se conservó y ejecutó la selección existente de PIT: FSM, A*, WaveRules, Difficulty, BiomeResolver, HordeManager y GameSettings; targetTests domain/application. No se presenta como mutación de todo el repositorio.
+PIT conserva su selección de FSM, A*, WaveRules, Difficulty, BiomeResolver, HordeManager y GameSettings. Nueva ejecución: 215 mutantes, 185 KILLED, 29 SURVIVED, 1 NO_COVERAGE y 0 TIMED_OUT. Cobertura solo de clases mutadas: 235/238 líneas; 113 tests examinados y 1532 ejecuciones durante la mutación. Killed/generados: 86,05 %. No son 1532 pruebas distintas ni cobertura de todo el dominio. [CSV](recuperacion-c2/evidencias/integracion/mutaciones.csv).
 
-Resultado: **215 mutantes: 185 KILLED, 29 SURVIVED y 1 NO_COVERAGE; 0 TIMED_OUT**. PIT informó 235/238 líneas cubiertas en las clases mutadas, 111 tests examinados y 1536 ejecuciones durante la mutación. Estas ejecuciones no son 1536 pruebas distintas. El porcentaje killed/generados es 86,05 % y no equivale a la cobertura de líneas del dominio. [CSV original revisado](recuperacion-c2/evidencias/thomas/mutaciones.csv).
+## Comprobación gráfica
 
-## Comprobación gráfica automatizada
+PlayerControlsVisualSmoke ejecutó el VoxelGame real con LWJGL/OpenGL, entrada automatizada y mundo determinista en memoria. Verificó sprint, salto, mirada, pausa, muerte, R, melee, minería, colocación, pistola y selección mientras se renderizaban HUD/cámara. Salida 0 en Mesa Intel(R) Graphics (RPL-S), Linux. [Captura](recuperacion-c2/evidencias/integracion/control-integrated.png).
 
-[PlayerControlsVisualSmoke](../test/presentation/game/PlayerControlsVisualSmoke.java) abre LWJGL/OpenGL y utiliza el VoxelGame real con un mundo determinista en memoria y entrada automatizada. No lee/guarda mundos personales. Comprueba:
+El [README](../../README.md#controles-con-opengl-real) documenta el comando. La captura no demuestra por sí sola todas las acciones: las comprueba el arnés. No es una sesión humana, SUS, flujo de consola ni medición de FPS bajo carga. Windows/PowerShell y macOS no se han comprobado aquí.
 
-- Sprint con consumo y movimiento; salto y mirada traducida hacia cámara.
-- Pausa y muerte sin avance físico; R restaura controles/vida.
-- Melee antes de picar, picar sin enemigo, selección y colocación en el mismo tick.
-- Pistola antes de melee/bloques, cooldown congelado al pausar, selección que desequipa antes de actuar.
-- Render de HUD/cámara durante el recorrido.
+## Pendiente de carga y cierre
 
-Resultado: salida 0 y todas las aserciones aprobadas en **Mesa Intel(R) Graphics (RPL-S)**. [Captura final revisada](recuperacion-c2/evidencias/thomas/control-smoke.png). La captura por sí sola no demuestra todas las acciones; las verifica el arnés ejecutable. El backend restablece Gdx.input por fotograma, por lo que el doble se coloca en cada render antes de llamar a VoxelGame.
+Ethian debe ejecutar baseline y estrés sobre el mismo candidato integrado, conservar resultados seleccionados en perf/results y completar [carga.md](recuperacion-c2/carga.md) con p95, throughput, errores, población viva real y análisis arquitectónico. Las comprobaciones breves del harness no satisfacen este requisito. No se ha ejecutado el protocolo de carga de recuperación ni se afirma que cumpla el SLO.
 
-Comandos reproducibles en el [README raíz](../../README.md#controles-con-opengl-real). Requiere sesión gráfica y puede fallar en un equipo sin OpenGL disponible. No es una prueba de la consola pública, una sesión humana, una prueba SUS ni rendimiento bajo carga. Linux/Intel es el entorno comprobado; no se afirma validación gráfica en AMD, Windows o macOS.
-
-## Evidencias históricas y pendientes
-
-Los reportes de `docs/corte2/testing/` se conservan con sus fechas/alcances históricos. La nueva carga y su análisis corresponden a Ethian y aún no están en esta rama. La prueba pública GameFlowSmokeIT y la comprobación automática ArchitectureBoundaryTest corresponden a Jasub y no se anuncian como ejecutadas aquí.
-
-La revisión textual actual no encontró imports de presentation/LibGDX en application ni de capas superiores/LibGDX en domain, y GameInput dejó de contener los coordinadores. Esta inspección no sustituye la prueba contra regresiones arquitectónicas pendiente.
-
-Antes de entregar se deben integrar los otros frentes, repetir `mvn clean verify`, revisar el flujo público/carga/diagramas contra el candidato conjunto y actualizar resultados y hashes si cambian las fuentes. Los comandos y evidencia publicados permiten revisar lo ya comprobado sin asumir cumplimiento de los requisitos aún pendientes.
+Después de recibir esa evidencia se contrastan sus hashes/commit con el candidato final, se actualiza la fila del README y se repite la revisión de entrega. Los tres integrantes revisan ADR/diagramas y deben poder explicar la solución. Los reportes de septiembre siguen como históricos y no acreditan las nuevas corridas.

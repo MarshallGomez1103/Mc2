@@ -63,7 +63,6 @@ flowchart LR
     class session,enemies,horde,pistol,melee,inter,wsvc a
     class gui,voxel,input,hud,zr p
     class main,gpu,storage,json g
-    linkStyle 6,13 stroke:#c62828,stroke-width:2px,stroke-dasharray:6 4
 ```
 
 ## Secuencia de un tick (antes)

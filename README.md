@@ -4,15 +4,15 @@ Videojuego voxel de escritorio desarrollado en Java 17, Maven y LibGDX por Eliot
 
 ## Recuperación del Corte 2
 
-La rama `feature/c2-Thomas` incorpora la frontera de aplicación para los controles, cobertura del dominio y ejecución separada de pruebas. La entrega conjunta sigue pendiente de integrar el flujo público de Jasub y el ADR, diagramas y carga de Ethian. [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
+El candidato común integra Thomas (`e730e9c`), Jasub (`b7c95a3`, `jasub/final-a`) y Ethian (`d186d46`). Controles, cobertura, flujo público, ADR y diagramas están incorporados y comprobados. **Faltan las corridas y el análisis de carga de Ethian y la revisión final del equipo.** [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
 
 | Integrante | Rama | Responsabilidad |
 | --- | --- | --- |
 | Thomas | `feature/c2-Thomas` | Controles en aplicación, regresiones, cobertura, build, documentación e integración final |
-| Jasub | `feature/c2-jasub` | Integración, flujo público de caja negra y comprobación de fronteras |
+| Jasub | `jasub/final-a` | Integración, flujo público de caja negra y comprobación de fronteras |
 | Ethian | `feature/c2-Ethian` | Comparación de estilos, ADR, contexto/componentes y carga |
 
-El [plan compartido](Minecraft2/docs/recuperacion-c2/plan-equipo.md) y el [TODO](Minecraft2/TODO.md) delimitan los archivos de cada frente. `main` conserva la base publicada hasta integrar y validar las tres ramas.
+El [plan compartido](Minecraft2/docs/recuperacion-c2/plan-equipo.md) y el [TODO](Minecraft2/TODO.md) delimitan los archivos de cada frente. La integración conserva el historial de las tres ramas y un respaldo de la base. La entrega completa se cierra tras incorporar la evidencia de carga.
 
 ## Tabla de trazabilidad
 
@@ -20,7 +20,7 @@ El reto comunicado oralmente fue **incorporar un enemigo**. Conducta, coordinaci
 
 | Reto | Atributo de calidad | Decisión arquitectónica | Dónde está | Prueba | Resultado |
 | --- | --- | --- | --- | --- | --- |
-| Incorporar un enemigo con conducta/navegación que coexista con movimiento, interacción y estado de partida | Mantenibilidad, testabilidad y rendimiento de actualización | Capas con coordinación explícita en aplicación: FSM y navegación en dominio; GameSession coordina controles, vida, hordas y enemigos; presentación convierte dispositivos en datos y renderiza | [GameSession](Minecraft2/src/application/GameSession.java), [PlayerControlService](Minecraft2/src/application/PlayerControlService.java), [entrada inmutable](Minecraft2/src/application/PlayerFrameInput.java), [GameInput](Minecraft2/src/presentation/game/GameInput.java), [FSM](Minecraft2/src/domain/enemy/ZombieStateMachine.java), [A*](Minecraft2/src/domain/enemy/AStarPathfinder.java) | [FSM](Minecraft2/test/domain/enemy/ZombieStateMachineTest.java), [A*](Minecraft2/test/domain/enemy/AStarPathfinderTest.java), [sesión](Minecraft2/test/application/GameSessionTest.java), [controles/combate](Minecraft2/test/application/PlayerControlServiceTest.java), [estamina](Minecraft2/test/application/PlayerControlStaminaTest.java), [smoke OpenGL](Minecraft2/test/presentation/game/PlayerControlsVisualSmoke.java). El [harness histórico de IA](Minecraft2/test/loadtest/EnemyLoadHarness.java) se conserva; flujo público y nueva carga pendientes | Verificación de la rama Thomas: **191 unitarias/adaptadores aislados + 144 integración; 0 fallos, errores u omitidas**. Dominio con unitarias: líneas **885/982 (90,12 %)**, ramas **555/693 (80,09 %)**. Smoke gráfico automatizado aprobado. [Reporte y evidencia](Minecraft2/docs/pruebas.md). La fila aún no acredita flujo público de caja negra ni nueva carga; esos resultados dependen de la integración del equipo |
+| Incorporar un enemigo con conducta/navegación que coexista con movimiento, interacción y estado de partida | Mantenibilidad, testabilidad y rendimiento de actualización | Capas con coordinación explícita en aplicación: FSM y navegación en dominio; GameSession coordina controles, vida, hordas y enemigos; presentación convierte dispositivos en datos y renderiza | [GameSession](Minecraft2/src/application/GameSession.java), [PlayerControlService](Minecraft2/src/application/PlayerControlService.java), [entrada inmutable](Minecraft2/src/application/PlayerFrameInput.java), [GameInput](Minecraft2/src/presentation/game/GameInput.java), [FSM](Minecraft2/src/domain/enemy/ZombieStateMachine.java), [A*](Minecraft2/src/domain/enemy/AStarPathfinder.java) | [FSM](Minecraft2/test/domain/enemy/ZombieStateMachineTest.java), [A*](Minecraft2/test/domain/enemy/AStarPathfinderTest.java), [sesión](Minecraft2/test/application/GameSessionTest.java), [controles/combate](Minecraft2/test/application/PlayerControlServiceTest.java), [estamina](Minecraft2/test/application/PlayerControlStaminaTest.java), [smoke OpenGL](Minecraft2/test/presentation/game/PlayerControlsVisualSmoke.java). [Flujo público](Minecraft2/test/presentation/GameFlowSmokeIT.java), [fronteras](Minecraft2/test/architecture/ArchitectureBoundaryTest.java) y [scripts de carga](Minecraft2/perf/README.md); nueva carga pendiente | Verificación integrada: **198 unitarias/adaptadores aislados + 148 integración; 0 fallos, errores u omitidas**. Dominio con unitarias: líneas **885/982 (90,12 %)**, ramas **555/693 (80,09 %)**. Smoke gráfico automatizado aprobado. [Reporte y evidencia](Minecraft2/docs/pruebas.md). Tres escenarios públicos aprobados; nueva carga y análisis pendientes de Ethian |
 
 La separación añade contratos, cableado y una conversión por tick. No demuestra aceleración de A*, FPS gráficos bajo carga ni eliminación de los ciclos internos del dominio.
 
@@ -78,7 +78,7 @@ La comprobación abre una ventana temporal, usa un mundo determinista en memoria
 
 ### Carga y flujo público
 
-Los scripts nuevos de `perf/`, el flujo `GameFlowSmokeIT` y sus reportes aún no están integrados. Sus comandos se documentarán después de recibir y ejecutar esos artefactos. La [evidencia de carga del 26 de septiembre](Minecraft2/docs/corte2/testing/load-testing.md) es histórica y no acredita la recuperación actual.
+GameFlowSmokeIT está integrado y se ejecuta con Failsafe mediante verify. Los scripts de baseline/estrés y el SLO están versionados; **las corridas y los resultados siguen pendientes**. Desde Minecraft2/: `perf/run-load.sh baseline` y `perf/run-load.sh stress` (Windows: `perf/run-load.ps1`). El [protocolo](Minecraft2/docs/recuperacion-c2/carga.md) fija escenario, repeticiones, límite real y parada. La [evidencia de carga del 26 de septiembre](Minecraft2/docs/corte2/testing/load-testing.md) es histórica y no acredita la recuperación actual.
 
 ## Documentación y límites
 
@@ -86,6 +86,7 @@ Los scripts nuevos de `perf/`, el flujo `GameFlowSmokeIT` y sus reportes aún no
 - [Pruebas, cobertura y aportes de la recuperación](Minecraft2/docs/pruebas.md).
 - [Índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md).
 - [Wiki e índice de etapas](Wiki.md).
-- [UML histórico](Minecraft2/docs/uml.md); las vistas completas de contexto/componentes de recuperación están pendientes del frente de Ethian.
+- [ADR y comparación de estilos](Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md).
+- [Contexto, contenedores y evolución de componentes](Minecraft2/docs/diagramas/recuperacion-c2/README.md). El [UML previo](Minecraft2/docs/uml.md) conserva sus versiones históricas.
 
-Mundos finitos en memoria; enemigos, restos, estamina y arma son estado de sesión sin persistencia JSON. Se conserva JSON v1. La prueba gráfica automatizada no acredita equilibrio de jugabilidad, usabilidad ni rendimiento gráfico bajo carga. La entrega completa requiere los artefactos y comprobaciones pendientes del equipo.
+Mundos finitos en memoria; enemigos, restos, estamina y arma son estado de sesión sin persistencia JSON. Se conserva JSON v1. La prueba gráfica automatizada no acredita equilibrio de jugabilidad, usabilidad ni rendimiento gráfico bajo carga. La entrega completa requiere resultados/análisis de carga y revisión del candidato final.

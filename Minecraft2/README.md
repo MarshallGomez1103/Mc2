@@ -72,13 +72,13 @@ se declara reproducible a partir del repositorio ni equivale a un playtest human
 Resultados nuevos de PIT/carga y fronteras de evidencia:
 [reporte de integración](docs/corte2/testing/integration-20260926.md).
 
-### Recuperación — frente Thomas
+### Recuperación — candidato integrado
 
 La entrada sigue `GameInput.read()` → `GameSession.advance(delta, PlayerFrameInput)` → `PlayerControlService`. HUD/cámara consultan `session.controls()`, una instantánea inmutable. Pausa y muerte congelan el tick; R restablece estamina y flags; se conserva prioridad de combate y JSON v1.
 
-Verificación actual: 191 unitarias/adaptadores aislados y 144 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
+Verificación actual: 198 unitarias/adaptadores aislados y 148 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
 
-ADR, vistas completas, carga y flujo público siguen pendientes de integrar desde los otros frentes. Las evidencias de septiembre no se presentan como resultados de recuperación.
+ADR, vistas completas y tres escenarios de caja negra están integrados. Scripts/SLO de carga disponibles; corridas y análisis pendientes de Ethian. Las evidencias de septiembre no se presentan como resultados de recuperación.
 
 ### Corte 3
 
@@ -168,7 +168,7 @@ Minecraft2/
 └── TODO.md               tareas y registro histórico
 ```
 
-Las carpetas ADR/diagramas de recuperación y perf/ se incorporarán con el frente de Ethian. Esta vista resumida no enumera todos los archivos ni los presenta como ya integrados.
+Las carpetas ADR/diagramas de recuperación y perf/ están incorporadas. Esta vista resumida no enumera todos los archivos.
 
 ## Instrucciones de ejecución
 
@@ -309,4 +309,4 @@ git pull origin main
 El lanzador compila el código actualizado antes de abrir el juego. En IntelliJ:
 actualizar main, recargar Maven y ejecutar `bootstrap.Minecraft2Application`.
 `worlds/` y `graphics.properties` son locales y no se publican; cada computador
-conserva sus mundos y elige su propia tarjeta gráfica. La recuperación se desarrolla en las ramas del equipo antes de integrarse a main.
+conserva sus mundos y elige su propia tarjeta gráfica. La recuperación reúne las tres ramas en el candidato común; queda pendiente la evidencia de carga.

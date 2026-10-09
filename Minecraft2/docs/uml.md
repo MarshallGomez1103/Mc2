@@ -1,6 +1,6 @@
 # Diagramas UML de Minecraft 2
 
-> Documento histórico: las vistas 1–6 describen el MVP de agosto; la vista 7 describe la integración del 26 de septiembre. No representan la recuperación actual. El flujo vigente de controles está en [arquitectura.md](arquitectura.md#4-arquitectura-inicial-y-evolucionada); el modelado completo de recuperación aún corresponde al frente de Ethian.
+> Documento histórico: las vistas 1–6 describen el MVP de agosto; la vista 7 describe la integración del 26 de septiembre. No representan la recuperación actual. El flujo vigente de controles está en [arquitectura.md](arquitectura.md#4-arquitectura-inicial-y-evolucionada); el [modelado completo de recuperación](diagramas/recuperacion-c2/README.md) está incorporado.
 
 ## Guía rápida
 

@@ -2,12 +2,12 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | **Propuesto**. Pendiente de confirmación del equipo en el punto de control (REC-E1). |
+| Estado | **Implementado** en la integración. La revisión conjunta de los tres integrantes queda pendiente antes de entregar. |
 | Fecha | 2026-10-08 |
 | Autor | Ethian Daniel White Ortiz |
 | Revisan | Elioth Thomas Gomez Morales, Jasub Sastre |
 | Corrección | REC-02 del [plan de recuperación](../recuperacion-c2/plan-equipo.md) |
-| Código evaluado | `main` @ `4220c40` (el código fuente es igual al de `4d33d6a`, cierre del Corte 2) |
+| Código evaluado | Base histórica `4220c40`; frontera implementada en `e730e9c`, incorporada con `jasub/final-a` y `feature/c2-Ethian`. Las fuentes comprobadas se identifican en el [manifiesto integrado](../recuperacion-c2/evidencias/integracion/manifest.json). |
 
 ## 1. Contexto
 
@@ -21,7 +21,7 @@ El reto comunicado oralmente al equipo fue **incorporar un enemigo**. Para compa
 2. **Coordinación por tick.** Vida del jugador, oleadas (`HordeManager`), enemigos (`EnemyUpdateService`), pistola y movimiento del jugador deben avanzar con **un único reloj** y respetar los mismos estados RUNNING/PAUSED/DEAD.
 3. **Coste de actualización.** Con hasta decenas de zombis activos, la IA por tick debe caber en el presupuesto del fotograma. El SLO y la medición están en [carga.md](../recuperacion-c2/carga.md).
 
-### Estado actual medido en el código
+### Estado previo observado en la base `4220c40`
 
 Inventario de los `import` de `src/`:
 
@@ -57,7 +57,7 @@ Es la referencia de comparación, no una candidata. Se cumple K1. K2 y K3 fallan
 
 ### Opción A — Capas con frontera de aplicación explícita
 
-Se mantienen `domain` → `application` → `presentation` / `persistence` / `bootstrap`, y se completa la frontera de entrada según el contrato de la sección 3 del plan:
+Se mantienen los paquetes: presentación usa aplicación y dominio; aplicación usa dominio y la abstracción de almacenamiento; persistencia implementa esa abstracción; bootstrap compone el arranque, y se completa la frontera de entrada según el contrato de la sección 3 del plan:
 
 - `GameInput` solo traduce dispositivos a un dato inmutable, `application.PlayerFrameInput`.
 - `application.PlayerControlService` coordina movimiento, física, colisión, estamina e interacción. Reutiliza los servicios de dominio sin cambiar sus reglas.
@@ -76,17 +76,17 @@ El núcleo, dominio y aplicación, define todos sus puertos. Los adaptadores viv
 
 | Criterio | Opción A: capas con frontera explícita | Opción B: puertos y adaptadores |
 | --- | --- | --- |
-| K1 Enemigo | **Cumple igual que hoy.** FSM, A\*, física y oleadas ya están en `domain.enemy` y se prueban con mundos en memoria. | **Cumple igual.** No añade nada a la conducta: el enemigo no tiene dependencias externas que invertir. |
+| K1 Enemigo | **Cumple igual que hoy.** FSM, A\*, física y reglas de oleada están en `domain.enemy`; HordeManager las coordina en aplicación. Se prueban sin ventana. | **Cumple igual.** No añade nada a la conducta: el enemigo no tiene dependencias externas que invertir. |
 | K2 Tick | **Cumple.** `GameSession.advance(delta, PlayerFrameInput)` es la única entrada. Pausa, muerte, delta inválido y límite de 0,05 s se aplican igual al jugador y a la IA. | **Cumple igual**, mediante `GameLoopUseCase`. El puerto de entrada tendría una sola implementación (`GameSession`). |
 | K3 Controles | **Cumple.** `PlayerControlService` recibe datos y se prueba sin `Gdx`. | **Cumple igual.** La diferencia es nominal: interfaz más implementación. |
 | K4 Cambio | Una regla de oleada cambia `WaveRules` o `Difficulty`: 1 capa. Un enemigo nuevo afecta a dominio + `EnemyUpdateService` + render: 3 capas, igual que hoy. Un dispositivo nuevo, como un mando, solo exige otro traductor que produzca `PlayerFrameInput`. | Iguales en dominio. Un dispositivo nuevo implementa un adaptador del mismo puerto. Una persistencia distinta de JSON se aísla mejor, pero **no hay requisito** de segunda persistencia. |
 | K5 Proporción | **Alta.** Unas 3 clases nuevas y cambios en `GameSession`, `GameInput`, `VoxelGame` y `GameHud`, todos asignados a Thomas. | **Baja.** Mover `WorldStorage` toca `persistence`, `application`, `bootstrap` y pruebas de Jasub y Thomas. Hay que crear 4 a 6 interfaces con una sola implementación y cambiar el Observer de `World`, un paquete estable del dominio. |
-| K6 Tiempo | Construye un `PlayerFrameInput` por tick: un objeto pequeño, del orden de nanosegundos frente al presupuesto de 16,67 ms. Lo domina A\* (ver carga). | Igual, más una llamada por interfaz. Despreciable. |
+| K6 Tiempo | Construye un `PlayerFrameInput` por tick. Ese coste no se ha medido por separado; el harness de IA no ejecuta controles. K6 requiere la medición de carga pendiente. | Añade abstracciones y llamadas por interfaz. No hay una medición comparable que cuantifique su coste en este sistema. |
 | K7 Riesgo | Concentrado en los archivos de Thomas. JSON v1, dominio, IA y generación no cambian. | Cambios repartidos entre los tres dueños, con más conflictos de merge y más pruebas que migrar en 2 días. |
 
-**Resumen.** K1, K3 y K6 no distinguen entre A y B: el dominio del enemigo ya es puro y el coste por tick es despreciable en ambas. Las opciones se separan en **K5 y K7**, donde A es claramente mejor, y en la parte de K4 sobre una persistencia alternativa, donde B sería mejor ante un cambio que hoy no existe.
+**Resumen.** K1 y K3 ofrecen el aislamiento requerido en ambas opciones. K6 no tiene una comparación medida entre estilos; no se usa para afirmar que una opción sea más rápida. Las opciones se separan en **K5 y K7**, donde A es claramente mejor, y en la parte de K4 sobre una persistencia alternativa, donde B sería mejor ante un cambio que hoy no existe.
 
-## 5. Decisión (propuesta)
+## 5. Decisión implementada
 
 Se elige la **Opción A: capas con una frontera de aplicación explícita**. Reglas de dependencia que deben poder comprobarse (REC-J6):
 
@@ -111,7 +111,7 @@ El estilo no se presenta como hexagonal, porque hay puertos de salida que no son
 ### Sacrificios y riesgos aceptados
 
 - Hay nuevas clases (`PlayerFrameInput`, `PlayerControlService` y `PlayerControlState`) y una conversión de datos por tick.
-- HUD, cámara y pruebas de estamina se adaptan a `GameSession.controls()`. Las pruebas actuales de `GameInputStaminaTest` deben migrarse sin perder casos.
+- HUD y cámara se adaptaron a `GameSession.controls()`. GameInputStaminaTest se migró a PlayerControlStaminaTest conservando sus tres escenarios originales.
 - **`application` sigue dependiendo de `persistence.WorldStorage`**: la inversión de dependencias está incompleta, porque la interfaz no pertenece al núcleo.
 - Permanecen el ciclo `domain.world` ↔ `domain.player`, el Singleton `WorldManager` y los mundos finitos en memoria. Este ADR no los resuelve.
 - `presentation.game.GraphicalGame` importa `bootstrap.GpuPreference`, una dependencia hacia la raíz de composición que se declara como límite conocido.
@@ -125,4 +125,6 @@ Se reevaluará la Opción B si aparece una **segunda implementación real** de u
 
 - Diagramas: [contexto, contenedores y componentes](../diagramas/recuperacion-c2/README.md), con las vistas Corte 1, cierre Corte 2 y recuperación.
 - Carga: [carga.md](../recuperacion-c2/carga.md), con SLO, protocolo y resultados.
-- Implementación y pruebas de la frontera: las ramas `feature/c2-Thomas` (REC-T1 a T3) y `feature/c2-jasub` (REC-J2, REC-J6). Thomas añade los enlaces definitivos al integrar.
+- Implementación: [GameSession](../../src/application/GameSession.java), [PlayerControlService](../../src/application/PlayerControlService.java) y [GameInput](../../src/presentation/game/GameInput.java).
+- Fronteras: [ArchitectureBoundaryTest](../../test/architecture/ArchitectureBoundaryTest.java). Sesión: [GameSessionTest](../../test/application/GameSessionTest.java). Flujo público: [GameFlowSmokeIT](../../test/presentation/GameFlowSmokeIT.java).
+- [Resultados integrados y cobertura](../pruebas.md).

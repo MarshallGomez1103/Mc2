@@ -73,6 +73,11 @@ public final class EnemyLoadHarness {
             System.exit(2);
         }
         String scenario = args[0].toUpperCase(Locale.ROOT);
+        double minutesArg = args.length > 1 ? Double.parseDouble(args[1]) : Double.NaN;
+        if (scenario.startsWith("REC_") && args.length > 1
+                && (!Double.isFinite(minutesArg) || minutesArg <= 0)) {
+            throw new IllegalArgumentException("El límite real debe ser finito y positivo");
+        }
         String outDir = System.getProperty("mc2.load.out");
         Path csv;
         if (outDir != null && !outDir.isBlank()) {
@@ -84,8 +89,6 @@ public final class EnemyLoadHarness {
             String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
             csv = results.resolve(scenario.toLowerCase(Locale.ROOT) + "-" + stamp + ".csv");
         }
-        double minutesArg = args.length > 1 ? Double.parseDouble(args[1]) : Double.NaN;
-
         printEnvironment(scenario);
         try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(csv, StandardCharsets.UTF_8))) {
             switch (scenario) {
@@ -170,12 +173,13 @@ public final class EnemyLoadHarness {
         out.println("chunks,difficulty,zombies,repetition,sim_seconds,frames,wall_seconds,update_mean_ms,"
                 + "update_p95_ms,update_max_ms,ticks_per_wall_s,update_capacity_ticks_per_s,"
                 + "zombie_updates_per_wall_s,astar_calls,astar_calls_per_sim_s,astar_expansions,avg_active,"
-                + "heap_mb,player_deaths,failed_ticks,error_rate");
+                + "heap_mb,player_deaths,failed_ticks,error_rate,min_active,population_shortfall_ticks");
         long deadline = System.nanoTime() + (long) (wallMinutes * 60e9);
         for (int population : populations) {
             new Session(RECOVERY_CHUNKS, difficulty, false).runConstant(population, 10);
             double[] p95s = new double[RECOVERY_REPETITIONS];
             int failedInLevel = 0;
+            int shortfallsInLevel = 0;
             for (int repetition = 1; repetition <= RECOVERY_REPETITIONS; repetition++) {
                 if (System.nanoTime() > deadline) {
                     System.out.printf(Locale.ROOT, "Límite real de %.2f min alcanzado antes de %d zombis · rep %d.%n",
@@ -189,12 +193,13 @@ public final class EnemyLoadHarness {
                 double p95 = stats.percentileMs(95);
                 p95s[repetition - 1] = p95;
                 failedInLevel += stats.errors;
-                out.printf(Locale.ROOT, "%d,%s,%d,%d,%.0f,%d,%.3f,%.4f,%.4f,%.4f,%.1f,%.1f,%.0f,%d,%.2f,%d,%.1f,%d,%d,%d,%.6f%n",
+                shortfallsInLevel += stats.populationShortfallTicks;
+                out.printf(Locale.ROOT, "%d,%s,%d,%d,%.0f,%d,%.3f,%.4f,%.4f,%.4f,%.1f,%.1f,%.0f,%d,%.2f,%d,%.1f,%d,%d,%d,%.6f,%d,%d%n",
                         RECOVERY_CHUNKS * RECOVERY_CHUNKS, difficulty, population, repetition, RECOVERY_SECONDS,
                         stats.attempted, wall, stats.meanMs(), p95, stats.maxMs(),
                         stats.attempted / wall, stats.capacityTicksPerSecond(), stats.activeSum / wall,
                         stats.searches, stats.searches / RECOVERY_SECONDS, stats.expansions, stats.averageActive(),
-                        heap, stats.playerDeaths, stats.errors, stats.errorRate());
+                        heap, stats.playerDeaths, stats.errors, stats.errorRate(), stats.minActive, stats.populationShortfallTicks);
                 out.flush();
                 System.out.printf(Locale.ROOT,
                         "%3d zombis · rep %d · %.2f s reales · media %.3f ms · p95 %.3f ms · máx %.3f ms · "
@@ -204,10 +209,10 @@ public final class EnemyLoadHarness {
             }
             Arrays.sort(p95s);
             double medianP95 = p95s[p95s.length / 2];
-            System.out.printf(Locale.ROOT, "Nivel %d zombis: mediana p95 %.3f ms · fallidos %d%n",
-                    population, medianP95, failedInLevel);
-            if (stopOnBudget && (medianP95 > FRAME_BUDGET_MS || failedInLevel > 0)) {
-                System.out.printf(Locale.ROOT, "Parada: nivel %d supera el presupuesto o tuvo fallos.%n", population);
+            System.out.printf(Locale.ROOT, "Nivel %d zombis: mediana p95 %.3f ms · fallidos %d · déficit de población %d%n",
+                    population, medianP95, failedInLevel, shortfallsInLevel);
+            if (stopOnBudget && (medianP95 > FRAME_BUDGET_MS || failedInLevel > 0 || shortfallsInLevel > 0)) {
+                System.out.printf(Locale.ROOT, "Parada: nivel %d supera el presupuesto, tuvo fallos o no sostuvo la población.%n", population);
                 return;
             }
         }
@@ -252,7 +257,7 @@ public final class EnemyLoadHarness {
     // ------------------------------------------------------------------ sesión simulada
 
     /** Mundo generado con la seed fija, servicio de IA, horda opcional y un jugador en órbita. */
-    private static final class Session {
+    static final class Session {
         final World world = new World("carga", SEED, Instant.parse("2026-09-25T00:00:00Z"));
         final SimpleTerrainGenerator terrain = new SimpleTerrainGenerator(SEED);
         final AStarPathfinder pathfinder = new AStarPathfinder();
@@ -283,6 +288,7 @@ public final class EnemyLoadHarness {
             long start = System.nanoTime();
             for (int frame = 0; frame < frames; frame++) {
                 refill(population);
+                if (activeCount() < population) stats.populationShortfallTicks++;
                 frame(stats);
             }
             stats.wallNanos = System.nanoTime() - start;
@@ -292,17 +298,26 @@ public final class EnemyLoadHarness {
         /** Repone zombis desaparecidos para mantener constante la población objetivo. */
         void refill(int population) {
             int attempts = 0;
-            while (enemies.zombies().size() < population && attempts++ < population * 4) {
+            int active = activeCount();
+            while (active < population && attempts++ < population * 4) {
                 double angle = random.nextDouble() * 2 * Math.PI;
                 double distance = RING_MIN + random.nextDouble() * (RING_MAX - RING_MIN);
                 Player player = world.getPlayer();
-                enemies.spawnAt(player.getX() + Math.cos(angle) * distance, player.getZ() + Math.sin(angle) * distance)
-                        .ifPresent(zombie -> spawnedTotal++);
+                if (enemies.spawnAt(player.getX() + Math.cos(angle) * distance,
+                        player.getZ() + Math.sin(angle) * distance).isPresent()) {
+                    spawnedTotal++;
+                    active++;
+                }
             }
+        }
+
+        int activeCount() {
+            return (int) enemies.zombies().stream().filter(Zombie::isAlive).count();
         }
 
         void frame(Stats stats) {
             movePlayer();
+            int activeBeforeUpdate = activeCount();
             int searchesBefore = pathfinder.getSearchCount();
             long expansionsBefore = pathfinder.getTotalExpansions();
             long start = System.nanoTime();
@@ -321,7 +336,7 @@ public final class EnemyLoadHarness {
             }
             long elapsed = System.nanoTime() - start;
             // Un tick fallido no terminó su trabajo: no entra en la latencia, solo en el conteo de errores.
-            stats.record(failed ? -1 : elapsed, enemies.zombies().size());
+            stats.record(failed ? -1 : elapsed, activeBeforeUpdate);
             stats.searches += pathfinder.getSearchCount() - searchesBefore;
             stats.expansions += pathfinder.getTotalExpansions() - expansionsBefore;
             if (horde != null) {
@@ -370,7 +385,7 @@ public final class EnemyLoadHarness {
      * Tiempos por fotograma y contadores de un tramo de simulación. {@code frames} son las muestras de
      * latencia (ticks correctos) y {@code attempted} todos los ticks, incluidos los fallidos.
      */
-    private static final class Stats {
+    static final class Stats {
         long[] nanos = new long[4096];
         int frames;
         int attempted;
@@ -381,11 +396,14 @@ public final class EnemyLoadHarness {
         long expansions;
         int playerDeaths;
         int errors;
+        int minActive = Integer.MAX_VALUE;
+        int populationShortfallTicks;
 
         /** {@code elapsed < 0} marca un tick fallido: cuenta como intentado pero no como muestra. */
         void record(long elapsed, int active) {
             attempted++;
             activeSum += active;
+            minActive = Math.min(minActive, active);
             if (elapsed < 0) {
                 return;
             }

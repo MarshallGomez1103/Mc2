@@ -1,0 +1,69 @@
+runner,class,source,classification
+surefire,application.GameSettingsTest,test/application/GameSettingsTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,application.PlayerFrameInputTest,test/application/PlayerFrameInputTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,application.RecoveryWorldStorageFailureTest,test/application/RecoveryWorldStorageFailureTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,application.WorldSizeTest,test/application/WorldSizeTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,architecture.ArchitectureBoundaryTest,test/architecture/ArchitectureBoundaryTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.AStarPathfinderTest,test/domain/enemy/AStarPathfinderTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.NavigationDiagonalTest,test/domain/enemy/NavigationDiagonalTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.NavigationGridTest,test/domain/enemy/NavigationGridTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.NavigationMovementAgreementTest,test/domain/enemy/NavigationMovementAgreementTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.WaveRulesTest,test/domain/enemy/WaveRulesTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombieDebrisTest,test/domain/enemy/ZombieDebrisTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombieHeadRegressionTest,test/domain/enemy/ZombieHeadRegressionTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombieMovementTest,test/domain/enemy/ZombieMovementTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombiePhysicsTest,test/domain/enemy/ZombiePhysicsTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombieStateMachineTest,test/domain/enemy/ZombieStateMachineTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.enemy.ZombieTest,test/domain/enemy/ZombieTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.player.CollisionRecoveryTest,test/domain/player/CollisionRecoveryTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.player.PlayerLifeTest,test/domain/player/PlayerLifeTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.player.PlayerMovementSprintTest,test/domain/player/PlayerMovementSprintTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.player.StaminaTest,test/domain/player/StaminaTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.world.BiomeResolverTest,test/domain/world/BiomeResolverTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.world.ChunkBoundsTest,test/domain/world/ChunkBoundsTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,domain.world.WorldChunkIndexTest,test/domain/world/WorldChunkIndexTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,loadtest.EnemyLoadHarnessMetricsTest,test/loadtest/EnemyLoadHarnessMetricsTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,patterns.factory.BlockFactoryTest,test/patterns/factory/BlockFactoryTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,persistence.InvalidWorldFileTest,test/persistence/InvalidWorldFileTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,persistence.JsonParserTest,test/persistence/JsonParserTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,persistence.UnloadableSaveTest,test/persistence/UnloadableSaveTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,persistence.WorldJsonCodecTest,test/persistence/WorldJsonCodecTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.DeathMessagesTest,test/presentation/game/DeathMessagesTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.FullscreenControllerTest,test/presentation/game/FullscreenControllerTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.GameInputMappingTest,test/presentation/game/GameInputMappingTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.GraphicsDiagnosticsTest,test/presentation/game/GraphicsDiagnosticsTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.RenderDistanceTest,test/presentation/game/RenderDistanceTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.SprintCameraEffectTest,test/presentation/game/SprintCameraEffectTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.ZombieAtlasTest,test/presentation/game/ZombieAtlasTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.ZombiePoseTest,test/presentation/game/ZombiePoseTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+surefire,presentation.game.ZombieSkinTest,test/presentation/game/ZombieSkinTest.java,"reglas, adaptador o métrica aislados; sin disco/red/ventana"
+failsafe,application.CombatSessionRegressionTest,test/application/CombatSessionRegressionTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.DifficultyTest,test/application/DifficultyTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.EnemyKamikazeTest,test/application/EnemyKamikazeTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.EnemyUpdateServiceIT,test/application/EnemyUpdateServiceIT.java,integración de componentes/archivos/proceso reales
+failsafe,application.EnemyWallAttackTest,test/application/EnemyWallAttackTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.GameSessionTest,test/application/GameSessionTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.HordeManagerTest,test/application/HordeManagerTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.HordeSpawnSafetyTest,test/application/HordeSpawnSafetyTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.LocalWorldPersistenceIT,test/application/LocalWorldPersistenceIT.java,integración de componentes/archivos/proceso reales
+failsafe,application.PersistentPursuitTest,test/application/PersistentPursuitTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.PistolServiceTest,test/application/PistolServiceTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.PlayerControlServiceTest,test/application/PlayerControlServiceTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.PlayerControlStaminaTest,test/application/PlayerControlStaminaTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.PlayerInteractionPlacementTest,test/application/PlayerInteractionPlacementTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.SameSeedTest,test/application/SameSeedTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.SaveEdgeCasesIT,test/application/SaveEdgeCasesIT.java,integración de componentes/archivos/proceso reales
+failsafe,application.WorldLifecycleIT,test/application/WorldLifecycleIT.java,integración de componentes/archivos/proceso reales
+failsafe,application.ZombieContactRegressionTest,test/application/ZombieContactRegressionTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.ZombieMeleeServiceTest,test/application/ZombieMeleeServiceTest.java,integración de componentes/archivos/proceso reales
+failsafe,application.ZombieTargetingTest,test/application/ZombieTargetingTest.java,integración de componentes/archivos/proceso reales
+failsafe,bootstrap.GpuPreferenceTest,test/bootstrap/GpuPreferenceTest.java,integración de componentes/archivos/proceso reales
+failsafe,bootstrap.WorldDirectoryTest,test/bootstrap/WorldDirectoryTest.java,integración de componentes/archivos/proceso reales
+failsafe,domain.enemy.ZombieSeparationTest,test/domain/enemy/ZombieSeparationTest.java,integración de componentes/archivos/proceso reales
+failsafe,domain.world.TerrainGenerationTest,test/domain/world/TerrainGenerationTest.java,integración de componentes/archivos/proceso reales
+failsafe,loadtest.EnemyLoadHarnessIT,test/loadtest/EnemyLoadHarnessIT.java,integración de componentes/archivos/proceso reales
+failsafe,persistence.JsonWorldStorageTest,test/persistence/JsonWorldStorageTest.java,integración de componentes/archivos/proceso reales
+failsafe,presentation.GameFlowSmokeIT,test/presentation/GameFlowSmokeIT.java,integración de componentes/archivos/proceso reales
+failsafe,presentation.MainMenuSettingsTest,test/presentation/MainMenuSettingsTest.java,integración de componentes/archivos/proceso reales
+failsafe,presentation.game.GameWindowTextureModeTest,test/presentation/game/GameWindowTextureModeTest.java,integración de componentes/archivos/proceso reales
+failsafe,presentation.game.VoxelGameObserverTest,test/presentation/game/VoxelGameObserverTest.java,integración de componentes/archivos/proceso reales

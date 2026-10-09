@@ -6,17 +6,17 @@ Minecraft2 es un juego voxel de un jugador, ejecutado en un proceso JVM. El Cort
 
 En el Corte 2 se incorporaron enemigos con FSM/A*, oleadas y estado de partida. La preparación de recuperación está en `4220c4051cf306cabfaaaa79ea8e4c90c868b631`. En esa base GameInput construía/coordinaba PlayerMovementService, PlayerPhysics, CollisionResolver y Stamina, y VoxelGame entregaba un callback a GameSession. Por tanto, la separación declarada en los diagramas no describía por completo la ruta de controles.
 
-La versión de Thomas traslada esa coordinación a aplicación; conserva las reglas de dominio, velocidades, JSON v1 y prioridad de interacción. No agrega funcionalidad de negocio.
+La versión integrada conserva el cambio de Thomas, que traslada esa coordinación a aplicación; conserva las reglas de dominio, velocidades, JSON v1 y prioridad de interacción. No agrega funcionalidad de negocio.
 
 ## 2. Reto y trazabilidad
 
 El reto oral fue incorporar un enemigo. Esto exige mantener conducta y navegación independientes del render, coordinar su avance con el jugador y congelar ambos al pausar/morir. El coste de actualizar múltiples enemigos afecta el rendimiento; la frontera de entrada afecta mantenibilidad y testabilidad.
 
-La [tabla obligatoria de seis columnas está en el README raíz](../../README.md#tabla-de-trazabilidad), que es su referencia única. Allí se enlazan decisiones, código, pruebas y resultados actuales con límites explícitos. El frente de controles ya tiene regresiones; caja negra de consola y nueva carga siguen pendientes. La presencia de biomas, menús o nuevas funciones no se presenta como una lista de retos asignados.
+La [tabla obligatoria de seis columnas está en el README raíz](../../README.md#tabla-de-trazabilidad), que es su referencia única. Allí se enlazan decisiones, código, pruebas y resultados actuales con límites explícitos. Controles y caja negra de consola tienen pruebas ejecutadas; las nuevas corridas de carga siguen pendientes. La presencia de biomas, menús o nuevas funciones no se presenta como una lista de retos asignados.
 
 ## 3. Estilo y alternativas
 
-Se implementa una aplicación por capas con frontera de aplicación explícita. Esta selección corresponde a los criterios del reto analizados en la comparación siguiente; el ADR formal y la comparación ampliada corresponden al frente de Ethian y aún no están integrados.
+Se implementa una aplicación por capas con frontera de aplicación explícita. La selección y comparación ampliada están en el [ADR-001 de Ethian](adr/ADR-001-estilo-recuperacion.md), contrastado con los controles implementados y las reglas de import. La revisión conjunta de los tres integrantes queda pendiente antes de entregar.
 
 | Criterio derivado del reto | Capas con coordinación explícita | Puertos y adaptadores completos |
 | --- | --- | --- |
@@ -28,13 +28,13 @@ Se implementa una aplicación por capas con frontera de aplicación explícita. 
 
 La frontera de aplicación permite probar controles sin Gdx y limita el punto que coordina una partida. Se sacrifica simplicidad de cableado: nuevos contratos, un objeto de entrada por tick y adaptación de HUD/tests. No se declara arquitectura hexagonal completa: WorldStorage sigue en persistence, hay colaboración domain.world ↔ domain.player y permanecen apoyos en Factory/Observer/Singleton.
 
-**Pendiente de integración:** ADR con contexto, opciones, decisión, consecuencias positivas y negativas, y confirmación de su concordancia con el código final. El texto anterior no se presenta como un ADR ya publicado.
+El ADR reúne contexto, opciones, decisión implementada y consecuencias positivas/negativas. No atribuye nanosegundos ni una mejora de rendimiento al traslado de capas sin medición.
 
 ## 4. Arquitectura inicial y evolucionada
 
-Las [vistas UML previas](uml.md) se conservan como históricas, sin rotularlas como recuperación. La comparación visual del Corte 1 con la versión combinada y las vistas completas C4 de contexto/contenedor/componentes aún corresponden al frente de Ethian.
+Las [vistas UML previas](uml.md) se conservan como históricas, sin rotularlas como recuperación. Las [vistas C4 de Ethian](diagramas/recuperacion-c2/README.md) incluyen contexto, contenedores y componentes del Corte 1 (`5501b02`), cierre del Corte 2 (`4d33d6a`) y recuperación. La vista recuperada se ajustó a las llamadas reales de GameSession/PlayerControlService y a los hashes del candidato integrado.
 
-Flujo actual de los controles, comprobado en la rama Thomas:
+Flujo actual de los controles, comprobado en el candidato integrado:
 
 ```mermaid
 flowchart LR
@@ -77,23 +77,23 @@ Orden de control: mirar → mover/saltar/colisionar → alternar pistola → sel
 
 Unitarias: reglas de dominio y adaptadores aislados sin disco/red/ventana. Incluyen equivalencias, límites y casos inválidos; los tests nuevos usan datos y un doble Input para aislar dispositivos. No se convierte toda la suite en “unitaria” por usar JUnit.
 
-Integración: coordinadores de sesión/control/IA con componentes reales y mundo determinista en memoria; almacenamiento JSON en directorios temporales; menú/Observer con modelos reales. La infraestructura apropiada para este juego es el archivo JSON local, sin añadir HTTP/BD a un sistema que no los usa. El flujo público en proceso separado sigue pendiente de Jasub.
+Integración: coordinadores de sesión/control/IA con componentes reales y mundo determinista en memoria; almacenamiento JSON en directorios temporales; menú/Observer con modelos reales. La infraestructura apropiada para este juego es el archivo JSON local, sin añadir HTTP/BD a un sistema que no los usa. GameFlowSmokeIT inicia el JAR en procesos separados y cubre tres escenarios públicos. LocalWorldPersistenceIT y WorldLifecycleIT comprueban reinicio/archivos inválidos con almacenamiento real; cada prueba descarga el Singleton. [Detalle](recuperacion-c2/integracion.md).
 
 Gráfica: PlayerControlsVisualSmoke abre OpenGL real, automatiza la entrada y verifica controles y estado mientras VoxelGame renderiza cámara/HUD. No es un flujo público de consola ni una evaluación humana.
 
-Carga: el harness histórico mide IA headless. Ethian aporta scripts, SLO previo, baseline/estrés, throughput, p95, errores y análisis. No se atribuye una mejora de velocidad al traslado de capas sin medición comparable.
+Carga: los scripts/protocolo de Ethian están versionados. Los escenarios de población fija miden EnemyUpdateService headless, sin HordeManager ni el tick completo de sesión; el escenario histórico ENDURANCE sí usa oleadas. Las corridas de baseline/estrés y su análisis siguen pendientes. Se reportarán throughput, p95, errores y población realmente sostenida. No se atribuye una mejora de velocidad al traslado de capas sin medición comparable.
 
 Comandos por nivel y reportes: [README](../../README.md#ejecutar-pruebas-por-nivel) y [pruebas](pruebas.md).
 
 ## 6. Resultados y evidencia
 
-La [verificación de Thomas](pruebas.md) ejecutó 191 pruebas Surefire y 144 Failsafe, sin fallos, errores ni omitidas. Las 60 clases de la base siguen ejecutándose tras mapear la migración de GameInputStaminaTest a PlayerControlStaminaTest; ningún runner comparte una clase con el otro.
+La [verificación integrada](pruebas.md) ejecutó 198 pruebas Surefire y 148 Failsafe, sin fallos, errores ni omitidas. Las 60 clases de la base siguen ejecutándose tras mapear la migración de GameInputStaminaTest a PlayerControlStaminaTest y los cuatro renombrados de Jasub a IT; ningún runner comparte una clase con el otro.
 
-JaCoCo reporta solo domain: unitarias 885/982 líneas (90,12 %) y 555/693 ramas (80,09 %); integración 900/982 líneas (91,65 %) y 540/693 ramas (77,92 %). Son reportes independientes; no se suman ni incluyen automáticamente procesos de JAR separados.
+JaCoCo reporta solo domain: unitarias 885/982 líneas (90,12 %) y 555/693 ramas (80,09 %); integración 915/982 líneas (93,18 %) y 553/693 ramas (79,80 %). Son reportes independientes; no se suman ni incluyen automáticamente procesos de JAR separados.
 
-El smoke OpenGL automatizado pasó en Intel/Mesa Linux. Los CSV, casos, captura y huellas de fuentes están en [evidencias/thomas](recuperacion-c2/evidencias/thomas/manifest.json). Pruebas y build se repitieron en una copia sin target previo. Los resultados históricos de septiembre no se sustituyen por estos ni se presentan como mediciones nuevas de carga.
+El smoke OpenGL automatizado pasó en Intel/Mesa Linux. Los CSV, casos, captura y huellas de fuentes están en [evidencias/integracion](recuperacion-c2/evidencias/integracion/manifest.json). Pruebas y build se repitieron en una copia sin target previo. Los resultados históricos de septiembre no se sustituyen por estos ni se presentan como mediciones nuevas de carga.
 
-PIT conserva su selección original y se comprobó nuevamente; [resultado de mutación](pruebas.md#mutación). La nueva carga y el flujo de caja negra aún no tienen resultado en esta rama.
+PIT conserva su selección original y se comprobó nuevamente; [resultado de mutación](pruebas.md#mutación). Los tres escenarios públicos de caja negra pasaron. La carga de recuperación aún no tiene resultados.
 
 ## 7. Límites y tercer corte
 
@@ -101,5 +101,5 @@ PIT conserva su selección original y se comprobó nuevamente; [resultado de mut
 - Coordinación concentrada en GameSession/PlayerControlService; la separación hace comprobables las responsabilidades pero no elimina todos los acoplamientos de dominio.
 - JSON v1 conserva el mundo/jugador; vida, arma, enemigos, oleadas, restos y estamina son estado de sesión.
 - La carga headless de IA no garantiza FPS gráficos; la prueba visual automatizada tampoco acredita jugabilidad prolongada, equilibrio o SUS.
-- Antes de entregar la recuperación se deben integrar ADR/vistas completas/carga de Ethian y pruebas de flujo público/fronteras de Jasub, y repetir la verificación del candidato conjunto.
+- Antes de entregar se deben incorporar los resultados/análisis de carga de Ethian, actualizar la tabla y revisar el candidato final con el equipo. ADR, vistas, flujo público y fronteras están incorporados y comprobados.
 - El tercer corte requiere su consigna vigente antes de definir pipeline/DevSecOps o gates. No se agregan requisitos hipotéticos ni se presupone un umbral de cobertura del 80 %.

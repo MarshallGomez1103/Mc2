@@ -1,10 +1,10 @@
 # Minecraft2 — índice de documentación
 
-La recuperación del Corte 2 se documenta en el [README principal](README.md), [arquitectura canónica](Minecraft2/docs/arquitectura.md), [pruebas y cobertura](Minecraft2/docs/pruebas.md) e [índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md). La tabla obligatoria de seis columnas está en el README principal.
+El candidato de recuperación reúne los tres frentes. [README y tabla de trazabilidad](README.md), [arquitectura](Minecraft2/docs/arquitectura.md), [pruebas/cobertura](Minecraft2/docs/pruebas.md), [ADR](Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md), [diagramas](Minecraft2/docs/diagramas/recuperacion-c2/README.md) e [índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md).
 
-En el frente Thomas la coordinación de controles está en aplicación y la verificación actual es 191 unitarias/adaptadores y 144 integración, sin fallos/errores/omitidas. Los resultados, fuentes y límites se reúnen en el reporte canónico. ADR/vistas completas/carga y flujo público siguen pendientes del candidato conjunto.
+La verificación actual es 198 unitarias/adaptadores y 148 integración, sin fallos/errores/omitidas. Tres escenarios de consola y el smoke OpenGL pasaron. Las corridas/análisis de carga y la revisión final del equipo siguen pendientes.
 
-El contenido siguiente describe la entrega del Corte 1 y conserva sus decisiones y roles históricos. Sus ejemplos, límites y estructura no se rotulan como arquitectura de la recuperación.
+El contenido siguiente describe la entrega del Corte 1 y conserva sus decisiones y roles históricos. No representa la arquitectura de recuperación.
 
 ---
 

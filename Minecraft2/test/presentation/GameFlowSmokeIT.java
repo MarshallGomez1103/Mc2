@@ -2,82 +2,90 @@ package presentation;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-
-/**
- * Prueba de caja negra sobre el programa empaquetado (target/*.jar), ejecutado como un
- * proceso real del sistema operativo y dirigido unicamente por su consola publica
- * (stdin/stdout), sin invocar ninguna clase Java del proyecto directamente.
- *
- * Alcance declarado: solo el flujo de menu de consola (crear, listar, guardar,
- * cargar, eliminar, salir). No ejercita la opcion "6. Jugar": esa abre la ventana
- * grafica de LibGDX y requiere display, fuera del alcance de este smoke. La capa
- * grafica ya cuenta con su propio smoke de 224 frames documentado aparte.
- *
- * Requiere que exista un jar empaquetado en target/ (`mvn package`). Guarda los
- * mundos de prueba en un directorio temporal real, nunca en la carpeta de mundos
- * del usuario.
- */
+/** Caja negra de consola: proceso JAR, stdin/stdout y archivos temporales reales. */
 class GameFlowSmokeIT {
-
     @Test
-    void consoleFlowCreatesListsSavesAndDeletesWorldThroughPackagedJar(@TempDir Path worldsDir)
-            throws IOException, InterruptedException {
-        Path jar = locatePackagedJar();
-
-        String script = String.join("\n",
-                "1", "smokeWorld", "1",   // crear mundo pequeno "smokeWorld"
-                "2",                      // listar mundos
-                "4",                      // guardar mundo actual
-                "5", "smokeWorld", "s",   // eliminar mundo (confirmar)
-                "0", "");                 // salir
-
-        ProcessBuilder builder = new ProcessBuilder(
-                "java",
-                "-Dmc2.console=true",
-                "-Dmc2.worlds.dir=" + worldsDir.toAbsolutePath(),
-                "-jar", jar.toAbsolutePath().toString());
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
-
-        process.getOutputStream().write(script.getBytes());
-        process.getOutputStream().close();
-
-        String output;
-        try (var in = process.getInputStream()) {
-            output = new String(in.readAllBytes());
-        }
-        boolean finished = process.waitFor(30, TimeUnit.SECONDS);
-        if (!finished) {
-            process.destroyForcibly();
-            fail("El proceso del JAR empaquetado no termino a tiempo:\n" + output);
-        }
-
-        assertEquals(0, process.exitValue(), "Salida de consola:\n" + output);
-        assertTrue(output.contains("Mundo creado y cargado: smokeWorld"), output);
-        assertTrue(output.contains("smokeWorld"), "El listado debe mostrar el mundo creado:\n" + output);
-        assertTrue(output.contains("Mundo actual guardado: smokeWorld"), output);
-        assertTrue(output.contains("Mundo eliminado: smokeWorld"), output);
-        assertTrue(output.contains("Hasta luego."), output);
+    void createsListsSavesThenReloadsAndDeletesInANewProcess(@TempDir Path dir) throws Exception {
+        // Arrange / Act: crear y cerrar usando solo la interfaz pública.
+        String first = console(dir, "1", "smokeWorld", "1", "2", "4", "0");
+        // Assert: el listado y el archivo confirman el guardado.
+        assertTrue(first.contains("Mundo creado y cargado: smokeWorld"), first);
+        assertTrue(first.contains("  - smokeWorld"), first);
+        assertTrue(first.contains("Mundo actual guardado: smokeWorld"), first);
+        assertTrue(Files.isRegularFile(dir.resolve("smokeWorld.json")));
+        // Act: otro proceso debe leer el archivo, sin compartir el Singleton.
+        String second = console(dir, "3", "smokeWorld", "2", "5", "smokeWorld", "s", "2", "0");
+        // Assert
+        assertTrue(second.contains("Mundo cargado: smokeWorld"), second);
+        assertTrue(second.contains("  - smokeWorld"), second);
+        assertTrue(second.contains("Mundo eliminado: smokeWorld"), second);
+        assertTrue(second.contains("No hay mundos guardados."), second);
+        assertFalse(Files.exists(dir.resolve("smokeWorld.json")));
     }
 
-    private static Path locatePackagedJar() throws IOException {
-        Path target = Path.of("target");
-        try (var files = Files.list(target)) {
-            return files
-                    .filter(p -> p.getFileName().toString().endsWith(".jar"))
-                    .filter(p -> !p.getFileName().toString().contains("original"))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalStateException(
-                            "No se encontro el JAR empaquetado en target/. Ejecute 'mvn package' antes de esta prueba."));
+    @Test
+    void cancellingDeletionKeepsTheWorldAvailableAfterRestart(@TempDir Path dir) throws Exception {
+        // Arrange
+        console(dir, "1", "conservado", "1", "0");
+        byte[] saved = Files.readAllBytes(dir.resolve("conservado.json"));
+        // Act
+        String output = console(dir, "5", "conservado", "n", "3", "conservado", "2", "0");
+        // Assert
+        assertTrue(output.contains("Operación cancelada. No se eliminó ningún mundo."), output);
+        assertTrue(output.contains("Mundo cargado: conservado"), output);
+        assertTrue(output.contains("  - conservado"), output);
+        assertArrayEquals(saved, Files.readAllBytes(dir.resolve("conservado.json")));
+    }
+
+    @Test
+    void invalidJsonIsReportedWithoutReplacingTheCurrentWorld(@TempDir Path dir) throws Exception {
+        // Arrange: el archivo inválido es una entrada externa, no un servicio simulado.
+        console(dir, "1", "valido", "1", "0");
+        Path invalid = dir.resolve("roto.json");
+        Files.writeString(invalid, "{\"name\":\"incompleto\"}", StandardCharsets.UTF_8);
+        // Act
+        String output = console(dir, "3", "valido", "2", "3", "roto", "4", "0");
+        // Assert: el mundo válido sigue activo y el archivo inválido no se destruye.
+        assertTrue(output.contains("  - roto"), output);
+        assertFalse(output.contains("Mundo cargado: roto"), output);
+        assertTrue(output.contains("Problema con el archivo del mundo:"), output);
+        assertTrue(output.contains("Mundo actual guardado: valido"), output);
+        assertEquals("{\"name\":\"incompleto\"}", Files.readString(invalid));
+    }
+
+    private static String console(Path dir, String... options) throws IOException, InterruptedException {
+        Path jar = Path.of("target", "minecraft2-0.1.0-SNAPSHOT.jar").toAbsolutePath();
+        assertTrue(Files.isRegularFile(jar), "mvn verify debe empaquetar el JAR antes de Failsafe");
+        Path outputFile = Files.createTempFile(dir, "console-", ".txt");
+        String executable = java.io.File.separatorChar == '\\' ? "java.exe" : "java";
+        Path java = Path.of(System.getProperty("java.home"), "bin", executable);
+        Process process = new ProcessBuilder(java.toString(), "-Dfile.encoding=UTF-8",
+                "-Dmc2.console=true", "-Dmc2.gpu=AUTO", "-Dmc2.worlds.dir=" + dir.toAbsolutePath(),
+                "-jar", jar.toString()).directory(dir.toFile()).redirectErrorStream(true)
+                .redirectOutput(outputFile.toFile()).start();
+        try {
+            try (var stdin = process.getOutputStream()) {
+                stdin.write((String.join("\n", options) + "\n").getBytes(StandardCharsets.UTF_8));
+            }
+            // La salida va a archivo: leer stdout no puede bloquear el timeout.
+            if (!process.waitFor(30, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                process.waitFor(5, TimeUnit.SECONDS);
+                fail("El proceso de consola excedió 30 s:\n" + Files.readString(outputFile));
+            }
+            String output = Files.readString(outputFile, StandardCharsets.UTF_8);
+            assertEquals(0, process.exitValue(), output);
+            assertTrue(output.contains("Hasta luego."), output);
+            return output;
+        } finally {
+            if (process.isAlive()) process.destroyForcibly();
         }
     }
 }
