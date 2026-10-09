@@ -33,7 +33,19 @@ mvn verify
 
 ## Evidencia
 
-Pendiente de ejecucion real en el entorno de desarrollo (JDK, Maven y dependencias
-de LibGDX disponibles localmente). Completar aqui con la salida real de
-`mvn package && mvn verify`: resultado (BUILD SUCCESS/FAILURE), conteo de pruebas de
-integracion ejecutadas/fallidas, y fecha/hardware de la corrida.
+Corrida real con `mvn verify` (incluye `package` -> `test` -> `integration-test` -> `verify`):
+
+```
+[INFO] --- failsafe:3.2.5:integration-test (default) @ minecraft2 ---
+[INFO] Running presentation.GameFlowSmokeIT
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.781 s -- in presentation.GameFlowSmokeIT
+[INFO] Results:
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
+[INFO] --- failsafe:3.2.5:verify (default) @ minecraft2 ---
+[INFO] BUILD SUCCESS
+```
+
+- Resultado: BUILD SUCCESS
+- GameFlowSmokeIT: 1/1 ejecutada, 0 fallos, 0 errores, 0 omitidas
+- El jar sombreado (`minecraft2-0.1.0-SNAPSHOT-shaded.jar`) se genero correctamente antes de la fase de integracion y fue el artefacto real contra el que corrio la prueba
+- Fecha de la corrida: 2026-10-08
