@@ -1,56 +1,63 @@
 # Recuperación del Corte 2 — checklist activo
 
 Plan y reparto por archivos: [plan del equipo](docs/recuperacion-c2/plan-equipo.md).
-Meta interna: completar correcciones y solicitar revisión el 8 de octubre de 2026.
+Estado de cierre al 9 de octubre de 2026: los tres frentes están integrados. Ethian completa la carga, verifica el candidato y entrega. La meta del 8 de octubre pertenece al calendario inicial.
 
 Esta sección registra la recuperación. Las secciones que siguen conservan el historial anterior. Marcar `[x]` solo después de revisar implementación, pruebas y evidencia real.
 
 ## Base común
 
-- [ ] Confirmar estilo, reglas de dependencia y contrato de entrada/sesión.
+- [x] Estilo implementado y reglas/contrato comprobados; revisión final de Ethian pendiente.
 - [ ] Actualizar cada clon a su rama de recuperación publicada y conservar cambios locales.
-- [ ] Confirmar los archivos exclusivos de cada integrante antes de trabajar.
+- [x] Aportes identificados e integrados en orden: Thomas, jasub/final-a y Ethian.
 
 ## Thomas — arquitectura e integración
 
-- [ ] REC-T1: trasladar coordinación de movimiento/física/estamina a aplicación sin cambiar reglas.
-- [ ] REC-T2: conectar GameInput/GameSession y adaptar VoxelGame, HUD, cámara y respawn.
-- [ ] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
-- [ ] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
-- [ ] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
-- [ ] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
+- [x] REC-T1: trasladar coordinación de movimiento/física/estamina a aplicación sin cambiar reglas.
+- [x] REC-T2: conectar GameInput/GameSession y adaptar VoxelGame, HUD, cámara y respawn.
+- [x] REC-T3: conservar regresiones y probar pausa, muerte, energía, tiempos inválidos y límites.
+- [x] REC-T4: configurar JaCoCo y clasificar tests heredados/nuevos; separar unitarias e integración sin omitir ni duplicar pruebas.
+- [x] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
+- [x] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
+
+Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La integración, tabla/arquitectura, flujo público y comprobación desde copia limpia están disponibles. REC-T6 queda completo respecto de la integración técnica. Incorporar el resultado/análisis de carga y cerrar la verificación del candidato corresponde a las tareas de Ethian y al cierre de entrega, que siguen pendientes. No se da por terminada la recuperación conjunta.
 
 ## Jasub — pruebas y flujo público
 
-- [ ] REC-J1: clasificar pruebas existentes y añadir casos propios con AAA, equivalencia, límites y dobles cuando apliquen.
-- [ ] REC-J2: GameSessionFlowIT con componentes reales y contrato de control.
-- [ ] REC-J3: WorldPersistenceIT con archivos temporales y aislamiento del Singleton.
-- [ ] REC-J4: GameFlowSmokeIT versionado y ejecutado mediante consola pública del JAR.
-- [ ] REC-J5: segundo escenario público de cancelación/eliminación o archivo inválido.
-- [ ] REC-J6: comprobación reproducible de fronteras arquitectónicas.
-- [ ] REC-J7: reporte con comandos, evidencia, resultados y límites de automatización.
+- [x] REC-J1: clasificar pruebas existentes y añadir casos propios con AAA, equivalencia, límites y dobles cuando apliquen.
+- [x] REC-J2: sesión con componentes reales comprobada por GameSessionTest y CombatSessionRegressionTest; no se duplican casos para crear otro nombre de clase.
+- [x] REC-J3: persistencia temporal/aislamiento comprobados por LocalWorldPersistenceIT, WorldLifecycleIT y SaveEdgeCasesIT.
+- [x] REC-J4: GameFlowSmokeIT versionado y ejecutado mediante consola pública del JAR.
+- [x] REC-J5: segundo escenario público de cancelación/eliminación o archivo inválido.
+- [x] REC-J6: comprobación reproducible de fronteras arquitectónicas.
+- [x] REC-J7: reporte con comandos, evidencia, resultados y límites de automatización.
+
+Evidencia de integración: [reporte](docs/recuperacion-c2/integracion.md) e [inventario/casos](docs/pruebas.md). La ampliación de caja negra, fronteras, stub de error y regresiones de métricas se completó durante la integración; no se atribuye a Jasub todo el trabajo del candidato.
 
 ## Ethian — estilo, modelado y carga
 
-- [ ] REC-E1: comparación de al menos dos estilos y ADR con ganancias/costes.
-- [ ] REC-E2: diagramas de contexto, contenedor y componentes coherentes con código.
-- [ ] REC-E3: arquitectura inicial y recuperada con referencias de versión reales.
-- [ ] REC-E4: scripts reproducibles de baseline y estrés en perf/.
-- [ ] REC-E5: throughput real, tasa de errores y métricas headless bien definidas.
-- [ ] REC-E6: SLO definido antes de medir y población objetivo declarada.
+- [x] REC-E1: comparación de al menos dos estilos y ADR con ganancias/costes.
+- [x] REC-E2: diagramas de contexto, contenedor y componentes coherentes con código.
+- [x] REC-E3: arquitectura inicial y recuperada con referencias de versión reales.
+- [x] REC-E4: scripts reproducibles de baseline y estrés en perf/.
+- [x] REC-E5: throughput real, tasa de errores y métricas headless bien definidas.
+- [x] REC-E6: SLO definido antes de medir y población objetivo declarada.
 - [ ] REC-E7: corridas acotadas autorizadas, comparables y con parada definida.
-- [ ] REC-E8: CSV y manifiesto revisados/versionados fuera de target/.
+- [ ] REC-E8: CSV, consola y manifiesto revisados/versionados en perf/results/, tras medir el mismo candidato integrado.
 - [ ] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness.
+
+Solo quedan REC-E7–E9 de carga y el cierre del candidato. La revisión final del ADR/diagramas por Ethian y la actualización de cada clon siguen pendientes: no se registran acciones humanas como realizadas por ejecutar Maven.
 
 ## Cierre del equipo
 
-- [ ] Revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica.
-- [ ] `mvn clean verify` aprobado; resultados actuales separados por nivel y cobertura de dominio.
-- [ ] Flujo público reproducible y revisión gráfica real de controles afectados.
-- [ ] ADR y diagramas corresponden al candidato final integrado.
-- [ ] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
-- [ ] Leer completos los archivos afectados, revisar evidencias y el índice antes del commit.
-- [ ] Publicación aprobada y verificada; solicitud de revisión enviada con enlaces de versión.
+- [ ] Ethian: revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica contra el candidato con carga; [criterios de cierre](docs/pruebas.md#verificación-del-candidato-de-entrega).
+- [x] `mvn clean verify` aprobado; resultados actuales separados por nivel y cobertura de dominio.
+- [x] Flujo público reproducible y revisión gráfica real de controles afectados.
+- [x] ADR y diagramas corresponden al candidato final integrado.
+- [x] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
+- [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetir al incorporar la carga.
+- [x] Integración técnica publicada en main; candidato base `b5a8e7c`.
+- [ ] Ethian: incorporar evidencia de carga, verificar/publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
 
 ---
 

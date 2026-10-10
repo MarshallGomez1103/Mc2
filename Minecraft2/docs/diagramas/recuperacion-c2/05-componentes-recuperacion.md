@@ -1,6 +1,6 @@
-# C4 nivel 3 — Componentes de la recuperación (BORRADOR)
+# C4 nivel 3 — Componentes de la recuperación
 
-> **Borrador según el contrato**, todavía sin verificar contra el código. Se basa en la API propuesta en `plan-equipo.md` §3 y en [ADR-001](../../adr/ADR-001-estilo-recuperacion.md) §5. Cuando se integre `feature/c2-Thomas` (REC-T1/T2), Ethian actualizará este diagrama con los `import` reales y anotará aquí el commit. Hasta entonces **no describe código existente**.
+> **Vista implementada.** Contrasta el contrato con las clases de `e730e9c` y la integración de `jasub/final-a` y `feature/c2-Ethian`. Los hashes exactos del candidato comprobado están en el [manifiesto integrado](../../recuperacion-c2/evidencias/integracion/manifest.json).
 
 Respecto al [cierre del Corte 2](04-componentes-corte2-cierre.md) cambia lo siguiente: `GameInput` solo traduce dispositivos, la coordinación del jugador pasa a aplicación y `GameSession` recibe datos en lugar de un callback.
 
@@ -46,17 +46,21 @@ flowchart LR
     main --> gpu & json & wsvc & gui
     gui --> voxel & wsvc
     gui -.-> gpu
-    voxel --> session & input & hud & zr
+    voxel --> session & input & hud & zr & world
     input -- "produce" --> frame
     voxel -- "advance(delta, frame)" --> session
-    hud -- "lee controls()" --> cstate
+    hud -- "consulta controls()" --> session
+    hud -- "usa instantánea" --> cstate
     session --> control & enemies & horde & pistol
     session -- "controls()" --> cstate
-    control --> player & inter & melee & pistol
+    control --> player & inter & melee & pistol & enemies & world
+    frame --> player
+    session --> player & world
     horde --> enemies
     enemies --> enemy & world & player
-    wsvc --> storage
+    wsvc --> storage & world
     json -. implementa .-> storage
+    json --> world
 
     classDef d fill:#dbe9ff,stroke:#1168bd,color:#000
     classDef a fill:#d9f2d9,stroke:#2e7d32,color:#000
@@ -66,12 +70,12 @@ flowchart LR
     class frame,session,control,cstate,enemies,horde,pistol,melee,inter,wsvc a
     class gui,voxel,input,hud,zr p
     class main,gpu,storage,json g
-    linkStyle 6 stroke:#c62828,stroke-width:2px,stroke-dasharray:6 4
+
 ```
 
-**Pendiente de confirmar al integrar.** No sabemos todavía si el combate (pistola y puños) lo coordina `PlayerControlService` o se queda en otra ruta de aplicación. El plan habla de «acción primaria/secundaria» y «alternancia de pistola» en `PlayerFrameInput`. Las flechas `control → melee/pistol` reflejan esa intención y se corregirán según el código real.
+El combate lo coordina PlayerControlService: mirada → movimiento/física/colisión/estamina → arma → material → acción primaria/secundaria. GameSession conserva después la secuencia vida → hordas → enemigos → pistola mientras el jugador sigue vivo. HUD y cámara reciben PlayerControlState mediante controls().
 
-## Secuencia de un tick (después, según el contrato)
+## Secuencia de un tick (implementada)
 
 ```mermaid
 sequenceDiagram
@@ -88,11 +92,17 @@ sequenceDiagram
     V->>S: advance(delta, frame)
     alt RUNNING, delta finito > 0
         S->>S: delta = min(delta, 0.05)
-        S->>C: apply(frame, delta)
-        C->>D: mover, gravedad, colisión, gastar estamina según desplazamiento real
+        S->>C: update(delta, frame)
+        C->>D: mirar, mover, gravedad, colisión, gastar estamina
+        C->>C: alternar arma, seleccionar material, combate/interacción
         S->>S: life.update/advance
-        S->>H: update(delta, x, z)
-        S->>E: update(life, delta)
+        opt El jugador sigue vivo tras actualizar vida
+            S->>H: update(delta, x, z)
+            S->>E: update(life, delta)
+            opt El jugador sigue vivo tras actualizar enemigos
+                S->>S: pistol.update(wave, delta)
+            end
+        end
     else PAUSED, DEAD o delta inválido
         S-->>V: no avanza nada (ni entrada, ni física, ni IA)
     end
@@ -100,6 +110,6 @@ sequenceDiagram
     S-->>V: PlayerControlState (energía, sprint, agotamiento)
 ```
 
-## Reglas de dependencia objetivo
+## Reglas de dependencia comprobadas
 
-Son las reglas 1 a 5 de ADR-001 §5. Las verifica automáticamente `test/architecture/ArchitectureBoundaryTest.java` (REC-J6, de Jasub). Siguen como límites declarados, en rojo, `GraphicalGame` → `bootstrap.GpuPreference`, `application` → `persistence.WorldStorage` y el ciclo `domain.world` ↔ `domain.player`.
+Las reglas 1 a 3 y la firma de avance del ADR-001 §5 se comprueban en `test/architecture/ArchitectureBoundaryTest.java`. GameSessionTest y el smoke OpenGL comprueban el avance y la conexión visual. La revisión de las llamadas completa la comprobación de la ruta normal. Siguen como límites declarados `GraphicalGame` → `bootstrap.GpuPreference`, `application` → `persistence.WorldStorage` y el ciclo `domain.world` ↔ `domain.player`.

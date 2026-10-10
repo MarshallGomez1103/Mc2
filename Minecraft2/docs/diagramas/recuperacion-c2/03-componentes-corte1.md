@@ -60,7 +60,6 @@ flowchart LR
     class wsvc,inter,gen a
     class menu,win,voxel,input,mesh p
     class main,storage,json,factory,singleton g
-    linkStyle 12 stroke:#c62828,stroke-width:2px,stroke-dasharray:6 4
 ```
 
 ## Reglas de dependencia observadas en `5501b02`
@@ -69,6 +68,6 @@ flowchart LR
 | --- | --- |
 | `domain` sin LibGDX ni capas superiores | Se cumple. El único acoplamiento es `domain.world` → `patterns.observer`. |
 | `application` sin LibGDX | Se cumple. Depende de `persistence.WorldStorage`, que es una interfaz. |
-| Presentación sin coordinación de reglas | **No se cumple.** `GameInput` crea `PlayerMovementService`, `PlayerPhysics` y `CollisionResolver` y avanza la física cada fotograma (flecha roja). |
+| Presentación sin coordinación de reglas | **No se cumple.** `GameInput` crea `PlayerMovementService`, `PlayerPhysics` y `CollisionResolver` y avanza la física cada fotograma (flecha de coordinación). |
 
 Todavía no existían enemigos, sesión de juego, estamina ni menú gráfico. Esta es la base sobre la que el Corte 2 añadió el reto del enemigo.

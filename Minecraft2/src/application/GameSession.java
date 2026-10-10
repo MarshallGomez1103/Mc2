@@ -14,9 +14,14 @@ public final class GameSession {
     private final EnemyUpdateService enemies;
     private final HordeManager hordes;
     private final PistolService pistol;
+    private final PlayerControlService controlService;
     private boolean paused;
 
     public GameSession(World world, GameSettings settings) {
+        this(world, settings, new PlayerInteractionService());
+    }
+
+    public GameSession(World world, GameSettings settings, PlayerInteractionService interactionService) {
         this.world = Objects.requireNonNull(world);
         difficulty = Objects.requireNonNull(settings).difficulty();
         life = new PlayerLife(world.getPlayer());
@@ -24,6 +29,7 @@ public final class GameSession {
         enemies.setEnabled(settings.enemiesEnabled());
         hordes = new HordeManager(difficulty.waveRules(), world, enemies);
         pistol = new PistolService(world);
+        controlService = new PlayerControlService(world, interactionService, enemies, pistol);
     }
     public State state() { return paused ? State.PAUSED : life.isDead() ? State.DEAD : State.RUNNING; }
     public void setPaused(boolean value) { paused = value; }
@@ -36,10 +42,10 @@ public final class GameSession {
     public void applySettings(GameSettings settings) { enemies.setEnabled(settings.enemiesEnabled()); }
 
     /** Entrada, física, stamina e IA avanzan únicamente en RUNNING, con el mismo delta limitado. */
-    public void advance(double rawDelta, Runnable playerUpdate) {
+    public void advance(double rawDelta, PlayerFrameInput input) {
         if (state() != State.RUNNING || !Double.isFinite(rawDelta) || rawDelta <= 0) return;
-        double delta = Math.min(rawDelta, 0.05);
-        Objects.requireNonNull(playerUpdate).run();
+        double delta = Math.min(rawDelta, PlayerControlService.MAX_DELTA_SECONDS);
+        controlService.update(delta, Objects.requireNonNull(input, "input no puede ser null"));
         life.update();
         life.advance(delta);
         if (!life.isDead()) {
@@ -48,7 +54,11 @@ public final class GameSession {
             if (!life.isDead()) pistol.update(hordes.wave(), delta);
         }
     }
-    public void respawn() { life.respawn(); }
+    public PlayerControlState controls() { return controlService.state(); }
+    public void respawn() {
+        life.respawn();
+        controlService.resetAfterRespawn();
+    }
     public String waveSummary() {
         if (!enemies.isEnabled()) return "desactivadas";
         long seconds = (long) Math.ceil(hordes.secondsToNextWave());

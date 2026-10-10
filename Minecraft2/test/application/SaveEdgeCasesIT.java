@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Guardados que antes dejaban un archivo imposible de cargar o un mundo borrado aún en memoria. */
-class SaveEdgeCasesTest {
+class SaveEdgeCasesIT {
     @TempDir
     Path worldsDirectory;
 

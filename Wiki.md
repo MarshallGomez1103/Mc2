@@ -1,3 +1,13 @@
+# Minecraft2 — índice de documentación
+
+El candidato de recuperación reúne los tres frentes. [README y tabla de trazabilidad](README.md), [arquitectura](Minecraft2/docs/arquitectura.md), [pruebas/cobertura](Minecraft2/docs/pruebas.md), [ADR](Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md), [diagramas](Minecraft2/docs/diagramas/recuperacion-c2/README.md) e [índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md).
+
+La verificación actual es 198 unitarias/adaptadores y 148 integración, sin fallos/errores/omitidas. Tres escenarios de consola y el smoke OpenGL pasaron. Las corridas/análisis de carga y la revisión final del equipo siguen pendientes.
+
+El contenido siguiente describe la entrega del Corte 1 y conserva sus decisiones y roles históricos. No representa la arquitectura de recuperación.
+
+---
+
 # Proyecto de Diseño de Software – Corte Uno
 ## Minecraft 2 — Voxel World Java
 

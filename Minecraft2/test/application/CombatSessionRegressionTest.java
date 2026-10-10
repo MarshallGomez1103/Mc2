@@ -14,11 +14,11 @@ class CombatSessionRegressionTest {
         session.life().takeDamage(25, PlayerLife.DeathCause.ENEMY);
         double flash = session.life().hitFlashSeconds();
         session.setPaused(true);
-        for (int frame = 0; frame < 1000; frame++) session.advance(1.0 / 60, () -> {});
+        for (int frame = 0; frame < 1000; frame++) session.advance(1.0 / 60, PlayerFrameInput.NEUTRAL);
         assertEquals(75, session.life().health());
         assertEquals(flash, session.life().hitFlashSeconds());
         session.setPaused(false);
-        for (int frame = 0; frame < 360; frame++) session.advance(1.0 / 60, () -> {});
+        for (int frame = 0; frame < 360; frame++) session.advance(1.0 / 60, PlayerFrameInput.NEUTRAL);
         assertTrue(session.life().health() >= 79 && session.life().health() <= 81);
         assertEquals(0, session.life().hitFlashSeconds());
     }
@@ -30,7 +30,7 @@ class CombatSessionRegressionTest {
         assertFalse(session.pistol().appeared());
         for (int frame = 0; frame < 6000 && session.hordes().wave() < 3; frame++) {
             if (session.hordes().wave() < 3) assertFalse(session.pistol().appeared());
-            session.advance(1.0 / 60, () -> {});
+            session.advance(1.0 / 60, PlayerFrameInput.NEUTRAL);
             session.enemies().zombies().stream().filter(z -> z.isAlive()).forEach(z -> z.takeDamage(100));
         }
         assertEquals(3, session.hordes().wave());
@@ -53,12 +53,12 @@ class CombatSessionRegressionTest {
         var session=new GameSession(world,new GameSettings());
         var zombie=new domain.enemy.Zombie(5.5,21,5.5,3); zombie.shatter();
         session.enemies().register(zombie);
-        session.advance(1.0/60,()->{});
+        session.advance(1.0/60,PlayerFrameInput.NEUTRAL);
         assertEquals(1,session.enemies().debris().size());
         var fragment=session.enemies().debris().get(0).fragments().get(0);
         double x=fragment.x(), y=fragment.y();
         session.setPaused(true);
-        for(int frame=0;frame<600;frame++) session.advance(1.0/60,()->{});
+        for(int frame=0;frame<600;frame++) session.advance(1.0/60,PlayerFrameInput.NEUTRAL);
         assertEquals(x,fragment.x()); assertEquals(y,fragment.y());
         assertEquals(1,session.enemies().debris().size());
     }

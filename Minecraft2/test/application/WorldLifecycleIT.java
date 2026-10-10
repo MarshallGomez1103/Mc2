@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * integración gráfica—, así que esa parte del criterio solo puede ejercitarse por código.
  */
 @DisplayName("CT-11 · ciclo de vida completo de un mundo")
-class WorldLifecycleTest {
+class WorldLifecycleIT {
     private final BlockFactory blockFactory = new BlockFactory();
 
     /** WorldManager es un Singleton con estado global: hay que dejarlo limpio entre pruebas. */
