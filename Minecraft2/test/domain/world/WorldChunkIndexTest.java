@@ -4,6 +4,8 @@ import domain.Position;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -23,5 +25,24 @@ class WorldChunkIndexTest {
         assertTrue(world.findChunk(0, 0).isEmpty());
         assertThrows(IllegalArgumentException.class, () -> world.addChunk(new Chunk(-1, -1)));
         assertEquals(2, world.getChunks().size());
+    }
+
+    @Test
+    void chunkKeysOfTheLargestWorldHaveDistinctHashCodes() {
+        // Arrange: Grande es 16 × 16 chunks; se incluyen coordenadas negativas por simetría.
+        Set<Integer> hashes = new HashSet<>();
+        int keys = 0;
+
+        // Act
+        for (int x = -16; x < 16; x++) {
+            for (int z = -16; z < 16; z++) {
+                Object key = World.chunkKey(x, z);
+                hashes.add(key.hashCode());
+                keys++;
+            }
+        }
+
+        // Assert: sin colisiones, el índice no degrada a cubetas en árbol en cada consulta de A*.
+        assertEquals(keys, hashes.size());
     }
 }

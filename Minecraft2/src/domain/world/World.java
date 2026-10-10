@@ -37,7 +37,7 @@ public final class World implements Subject<BlockChange> {
     private final Player player;
     private final List<Chunk> chunks = new ArrayList<>();
     /** Índice para consultas frecuentes de colisión, mallas y navegación. */
-    private final Map<Long, Chunk> chunksByCoordinate = new HashMap<>();
+    private final Map<ChunkKey, Chunk> chunksByCoordinate = new HashMap<>();
     private final List<Observer<BlockChange>> observers = new ArrayList<>();
 
     /** Constructor completo; lo usa la persistencia al reconstruir un mundo guardado. */
@@ -88,7 +88,7 @@ public final class World implements Subject<BlockChange> {
 
     public void addChunk(Chunk chunk) {
         Chunk validated = Objects.requireNonNull(chunk, "chunk no puede ser null");
-        long key = chunkKey(validated.getChunkX(), validated.getChunkZ());
+        ChunkKey key = chunkKey(validated.getChunkX(), validated.getChunkZ());
         if (chunksByCoordinate.putIfAbsent(key, validated) != null) {
             throw new IllegalArgumentException("Ya existe un chunk en esas coordenadas");
         }
@@ -99,8 +99,17 @@ public final class World implements Subject<BlockChange> {
         return Optional.ofNullable(chunksByCoordinate.get(chunkKey(chunkX, chunkZ)));
     }
 
-    private static long chunkKey(int chunkX, int chunkZ) {
-        return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
+    /** Clave del índice: el hash de un long empaquetado (x ^ z) colisionaba en mundos cuadrados. */
+    static ChunkKey chunkKey(int chunkX, int chunkZ) {
+        return new ChunkKey(chunkX, chunkZ);
+    }
+
+    record ChunkKey(int chunkX, int chunkZ) {
+        @Override
+        public int hashCode() {
+            // Multiplicador primo mayor que cualquier rango de chunks: sin colisiones y bien repartido.
+            return chunkX * 1_000_003 + chunkZ;
+        }
     }
 
     /** Busca el chunk que contiene una posición absoluta del mundo. */
