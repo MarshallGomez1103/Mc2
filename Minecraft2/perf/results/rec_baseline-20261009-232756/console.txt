@@ -1,0 +1,8 @@
+Escenario REC_BASELINE · seed 20260925
+JVM Eclipse Adoptium 17.0.20.1 · Windows 11 amd64 · 6 CPUs · heap máx. 1024 MB
+Protocolo REC: 10x10 chunks · VERY_HARD · 3 rep × 30 s simulados · calentamiento 10 s · límite real 20.00 min · presupuesto p95 16.67 ms
+  3 zombis · rep 1 · 0.49 s reales · media 0.268 ms · p95 0.185 ms · máx 36.474 ms · 3678 ticks/s · A* 361 · heap 71 MB · fallidos 0 (0.0000%)
+  3 zombis · rep 2 · 0.47 s reales · media 0.256 ms · p95 0.189 ms · máx 56.832 ms · 3843 ticks/s · A* 361 · heap 71 MB · fallidos 0 (0.0000%)
+  3 zombis · rep 3 · 0.19 s reales · media 0.103 ms · p95 0.072 ms · máx 13.006 ms · 9561 ticks/s · A* 361 · heap 71 MB · fallidos 0 (0.0000%)
+Nivel 3 zombis: mediana p95 0.185 ms · fallidos 0 · déficit de población 0
+CSV: target\load-results\rec_baseline-20261009-232756\results.csv

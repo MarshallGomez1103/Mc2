@@ -12,11 +12,11 @@ La versión integrada conserva el cambio de Thomas, que traslada esa coordinaci�
 
 El reto oral fue incorporar un enemigo. Esto exige mantener conducta y navegación independientes del render, coordinar su avance con el jugador y congelar ambos al pausar/morir. El coste de actualizar múltiples enemigos afecta el rendimiento; la frontera de entrada afecta mantenibilidad y testabilidad.
 
-La [tabla obligatoria de seis columnas está en el README raíz](../../README.md#tabla-de-trazabilidad), que es su referencia única. Allí se enlazan decisiones, código, pruebas y resultados actuales con límites explícitos. Controles y caja negra de consola tienen pruebas ejecutadas; las nuevas corridas de carga siguen pendientes. La presencia de biomas, menús o nuevas funciones no se presenta como una lista de retos asignados.
+La [tabla obligatoria de seis columnas está en el README raíz](../../README.md#tabla-de-trazabilidad), que es su referencia única. Allí se enlazan decisiones, código, pruebas y resultados actuales con límites explícitos. Controles, caja negra de consola y carga headless de la IA tienen ejecuciones con resultados. La presencia de biomas, menús o nuevas funciones no se presenta como una lista de retos asignados.
 
 ## 3. Estilo y alternativas
 
-Se implementa una aplicación por capas con frontera de aplicación explícita. La selección y comparación ampliada están en el [ADR-001 de Ethian](adr/ADR-001-estilo-recuperacion.md), contrastado con los controles implementados y las reglas de import. La revisión final del candidato queda a cargo de Ethian antes de entregar.
+Se implementa una aplicación por capas con frontera de aplicación explícita. La selección y comparación ampliada están en el [ADR-001 de Ethian](adr/ADR-001-estilo-recuperacion.md), contrastado con los controles implementados y las reglas de import. Ethian revisó el ADR contra el candidato final medido.
 
 | Criterio derivado del reto | Capas con coordinación explícita | Puertos y adaptadores completos |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ Integración: coordinadores de sesión/control/IA con componentes reales y mundo
 
 Gráfica: PlayerControlsVisualSmoke abre OpenGL real, automatiza la entrada y verifica controles y estado mientras VoxelGame renderiza cámara/HUD. No es un flujo público de consola ni una evaluación humana.
 
-Carga: los scripts/protocolo de Ethian están versionados. Los escenarios de población fija miden EnemyUpdateService headless, sin HordeManager ni el tick completo de sesión; el escenario histórico ENDURANCE sí usa oleadas. Las corridas de baseline/estrés y su análisis siguen pendientes. Se reportarán throughput, p95, errores y población realmente sostenida. No se atribuye una mejora de velocidad al traslado de capas sin medición comparable.
+Carga: los scripts/protocolo de Ethian están versionados. Los escenarios de población fija miden EnemyUpdateService headless, sin HordeManager ni el tick completo de sesión; el escenario histórico ENDURANCE sí usa oleadas. Las corridas de baseline/estrés están en perf/results y su análisis en [carga.md](recuperacion-c2/carga.md#7-análisis-rec-e9), con throughput, p95, errores, población sostenida y búsquedas/expansiones A*. No se atribuye una mejora de velocidad al traslado de capas sin medición comparable.
 
 Comandos por nivel y reportes: [README](../../README.md#ejecutar-pruebas-por-nivel) y [pruebas](pruebas.md).
 
@@ -91,9 +91,9 @@ La [verificación integrada](pruebas.md) ejecutó 198 pruebas Surefire y 148 Fai
 
 JaCoCo reporta solo domain: unitarias 885/982 líneas (90,12 %) y 555/693 ramas (80,09 %); integración 915/982 líneas (93,18 %) y 553/693 ramas (79,80 %). Son reportes independientes; no se suman ni incluyen automáticamente procesos de JAR separados.
 
-El smoke OpenGL automatizado pasó en Intel/Mesa Linux. Los CSV, casos, captura y huellas de fuentes están en [evidencias/integracion](recuperacion-c2/evidencias/integracion/manifest.json). Pruebas y build se repitieron en una copia sin target previo. Los resultados históricos de septiembre no se sustituyen por estos ni se presentan como mediciones nuevas de carga.
+El smoke OpenGL automatizado pasó en Intel/Mesa Linux y en Windows 11 con AMD Radeon. Los CSV, casos, captura y huellas de fuentes están en [evidencias/integracion](recuperacion-c2/evidencias/integracion/manifest.json). Pruebas y build se repitieron en una copia sin target previo. Los resultados históricos de septiembre no se sustituyen por estos ni se presentan como mediciones nuevas de carga.
 
-PIT conserva su selección original y se comprobó nuevamente; [resultado de mutación](pruebas.md#mutación). Los tres escenarios públicos de caja negra pasaron. La carga de recuperación aún no tiene resultados.
+PIT conserva su selección original y se comprobó nuevamente; [resultado de mutación](pruebas.md#mutación). Los tres escenarios públicos de caja negra pasaron. Carga de recuperación (commit medido `d180eb9`, mismo árbol que `620f901`): con 80 zombis el p95 del tick de IA fue 9,857, 9,829 y 7,048 ms, con 0 ticks fallidos y población sostenida, por lo que SLO-CARGA-01 se cumple en el equipo medido. El estrés se detuvo en 160 (mediana p95 59,893 ms); la degradación es sobre todo de cola y el cuello de botella no está aislado: A* y la separación cuadrática entre zombis son candidatos correlacionados, no demostrados. [Resultados](recuperacion-c2/carga.md#6-resultados).
 
 ## 7. Límites y tercer corte
 
@@ -101,5 +101,5 @@ PIT conserva su selección original y se comprobó nuevamente; [resultado de mut
 - Coordinación concentrada en GameSession/PlayerControlService; la separación hace comprobables las responsabilidades pero no elimina todos los acoplamientos de dominio.
 - JSON v1 conserva el mundo/jugador; vida, arma, enemigos, oleadas, restos y estamina son estado de sesión.
 - La carga headless de IA no garantiza FPS gráficos; la prueba visual automatizada tampoco acredita jugabilidad prolongada, equilibrio o SUS.
-- Antes de entregar se deben incorporar los resultados/análisis de carga de Ethian, actualizar la tabla y completar la revisión final a cargo de Ethian. ADR, vistas, flujo público y fronteras están incorporados y comprobados.
+- Carga medida en un solo equipo Windows, con población fija sin HordeManager ni controles; el coste por tick de PlayerFrameInput sigue sin medirse. ADR, vistas, flujo público, fronteras y carga están incorporados y contrastados con el código.
 - El tercer corte requiere su consigna vigente antes de definir pipeline/DevSecOps o gates. No se agregan requisitos hipotéticos ni se presupone un umbral de cobertura del 80 %.

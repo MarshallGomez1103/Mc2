@@ -194,19 +194,7 @@ Los documentos del 26 de septiembre quedan identificados como históricos. Las a
 
 ## 9. Exclusiones y materiales de trabajo
 
-Thomas agrega al `.gitignore` raíz las exclusiones privadas que deben viajar a los clones:
-
-```gitignore
-.codex-private/
-LECCIONES_DYAS_Y_REVISION_ANTES_DE_ENTREGAR.md
-PLAN_CONTINUACION_*.md
-AGENTS.md
-AGENTS.override.md
-CLAUDE.md
-HANDOFF.md
-```
-
-La guía personal, grabación/transcripción de clase, notas de trabajo y material privado permanecen fuera de la entrega. Este plan de tareas compartidas puede versionarse como acuerdo del equipo, una vez revisado.
+El `.gitignore` raíz excluye las notas de trabajo y la configuración personal de cada integrante, para que esas exclusiones viajen a los clones. El material de trabajo personal permanece fuera de la entrega. Este plan de tareas compartidas se versiona como acuerdo del equipo, una vez revisado.
 
 No se ignoran README, ADR, pruebas, diagramas ni resultados obligatorios. `target/`, mundos locales, configuración personal y archivos del IDE siguen excluidos. Los CSV/manifiestos seleccionados dentro de `perf/results/` se versionan tras revisar su contenido; no se publica todo `target/`.
 

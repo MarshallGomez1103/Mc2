@@ -48,6 +48,7 @@ flowchart LR
     gui -.-> gpu
     voxel --> session & input & hud & zr & world
     input -- "produce" --> frame
+    input -- "MovementInput" --> player
     voxel -- "advance(delta, frame)" --> session
     hud -- "consulta controls()" --> session
     hud -- "usa instantánea" --> cstate
@@ -73,7 +74,7 @@ flowchart LR
 
 ```
 
-El combate lo coordina PlayerControlService: mirada → movimiento/física/colisión/estamina → arma → material → acción primaria/secundaria. GameSession conserva después la secuencia vida → hordas → enemigos → pistola mientras el jugador sigue vivo. HUD y cámara reciben PlayerControlState mediante controls().
+El combate lo coordina PlayerControlService: mirada → movimiento/física/colisión/estamina → arma → material → acción primaria/secundaria. GameSession conserva después la secuencia vida → hordas → enemigos → pistola mientras el jugador sigue vivo. HUD y cámara reciben PlayerControlState mediante controls(). GameInput solo usa del dominio los tipos de datos `MovementInput` y `BlockType` (este último, de `domain.block`, no se dibuja) para construir `PlayerFrameInput`. R y el cierre de la vista tras morir llaman a `GameSession.respawn()`, que restablece vida y controles.
 
 ## Secuencia de un tick (implementada)
 

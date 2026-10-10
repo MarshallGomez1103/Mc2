@@ -1,13 +1,13 @@
 # Recuperación del Corte 2 — checklist activo
 
 Plan y reparto por archivos: [plan del equipo](docs/recuperacion-c2/plan-equipo.md).
-Estado de cierre al 9 de octubre de 2026: los tres frentes están integrados. Ethian completa la carga, verifica el candidato y entrega. La meta del 8 de octubre pertenece al calendario inicial.
+Estado de cierre al 9 de octubre de 2026: los tres frentes están integrados y la carga de recuperación está medida y analizada. Falta publicar el candidato y enviar la solicitud de revisión. La meta del 8 de octubre pertenece al calendario inicial.
 
 Esta sección registra la recuperación. Las secciones que siguen conservan el historial anterior. Marcar `[x]` solo después de revisar implementación, pruebas y evidencia real.
 
 ## Base común
 
-- [x] Estilo implementado y reglas/contrato comprobados; revisión final de Ethian pendiente.
+- [x] Estilo implementado y reglas/contrato comprobados; Ethian revisó ADR y diagramas contra el código final.
 - [ ] Actualizar cada clon a su rama de recuperación publicada y conservar cambios locales.
 - [x] Aportes identificados e integrados en orden: Thomas, jasub/final-a y Ethian.
 
@@ -20,7 +20,7 @@ Esta sección registra la recuperación. Las secciones que siguen conservan el h
 - [x] REC-T5: ejecutar empaquetado e integración con `mvn verify`, conservando PIT.
 - [x] REC-T6: integrar Jasub y Ethian; tabla del README raíz, arquitectura con siete apartados, reportes publicados y ejecución limpia.
 
-Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La integración, tabla/arquitectura, flujo público y comprobación desde copia limpia están disponibles. REC-T6 queda completo respecto de la integración técnica. Incorporar el resultado/análisis de carga y cerrar la verificación del candidato corresponde a las tareas de Ethian y al cierre de entrega, que siguen pendientes. No se da por terminada la recuperación conjunta.
+Evidencia de REC-T1–T5: [reporte actual](docs/pruebas.md), [índice](docs/recuperacion-c2/correcciones.md) y arnés gráfico de controles. La integración, tabla/arquitectura, flujo público y comprobación desde copia limpia están disponibles. REC-T6 queda completo respecto de la integración técnica. El resultado/análisis de carga de Ethian está incorporado; queda la publicación y el envío de la entrega.
 
 ## Jasub — pruebas y flujo público
 
@@ -42,11 +42,11 @@ Evidencia de integración: [reporte](docs/recuperacion-c2/integracion.md) e [inv
 - [x] REC-E4: scripts reproducibles de baseline y estrés en perf/.
 - [x] REC-E5: throughput real, tasa de errores y métricas headless bien definidas.
 - [x] REC-E6: SLO definido antes de medir y población objetivo declarada.
-- [ ] REC-E7: corridas acotadas autorizadas, comparables y con parada definida.
-- [ ] REC-E8: CSV, consola y manifiesto revisados/versionados en perf/results/, tras medir el mismo candidato integrado.
-- [ ] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness.
+- [x] REC-E7: corridas acotadas autorizadas, comparables y con parada definida (baseline y estrés en `d180eb9`, parada en 160).
+- [x] REC-E8: CSV, consola y manifiesto revisados/versionados en perf/results/, tras medir el mismo candidato integrado.
+- [x] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness ([carga.md §7](docs/recuperacion-c2/carga.md#7-análisis-rec-e9)).
 
-Solo quedan REC-E7–E9 de carga y el cierre del candidato. La revisión final del ADR/diagramas por Ethian y la actualización de cada clon siguen pendientes: no se registran acciones humanas como realizadas por ejecutar Maven.
+REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equipo medido (p95 ≤ 9,857 ms en las tres repeticiones, 0 fallidos, población sostenida); el estrés se detuvo en 160. La actualización de cada clon sigue siendo responsabilidad de cada integrante.
 
 ## Cierre del equipo
 
@@ -55,9 +55,10 @@ Solo quedan REC-E7–E9 de carga y el cierre del candidato. La revisión final d
 - [x] Flujo público reproducible y revisión gráfica real de controles afectados.
 - [x] ADR y diagramas corresponden al candidato final integrado.
 - [x] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
-- [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetir al incorporar la carga.
+- [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetido al incorporar la carga.
 - [x] Integración técnica publicada en main; candidato base `b5a8e7c`.
-- [ ] Ethian: incorporar evidencia de carga, verificar/publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
+- [x] Ethian: evidencia de carga incorporada y candidato verificado (198 + 148, sin fallos, errores ni omitidas).
+- [ ] Ethian: publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
 
 ---
 

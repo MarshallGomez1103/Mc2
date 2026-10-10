@@ -1,0 +1,21 @@
+Escenario REC_STRESS · seed 20260925
+JVM Eclipse Adoptium 17.0.20.1 · Windows 11 amd64 · 6 CPUs · heap máx. 1024 MB
+Protocolo REC: 10x10 chunks · VERY_HARD · 3 rep × 30 s simulados · calentamiento 10 s · límite real 20.00 min · presupuesto p95 16.67 ms
+ 20 zombis · rep 1 · 2.08 s reales · media 1.154 ms · p95 2.847 ms · máx 205.620 ms · 864 ticks/s · A* 1384 · heap 71 MB · fallidos 0 (0.0000%)
+ 20 zombis · rep 2 · 1.60 s reales · media 0.886 ms · p95 2.576 ms · máx 95.949 ms · 1124 ticks/s · A* 1384 · heap 71 MB · fallidos 0 (0.0000%)
+ 20 zombis · rep 3 · 1.59 s reales · media 0.880 ms · p95 2.590 ms · máx 88.771 ms · 1132 ticks/s · A* 1384 · heap 71 MB · fallidos 0 (0.0000%)
+Nivel 20 zombis: mediana p95 2.590 ms · fallidos 0 · déficit de población 0
+ 40 zombis · rep 1 · 3.71 s reales · media 2.060 ms · p95 5.397 ms · máx 172.522 ms · 485 ticks/s · A* 2716 · heap 71 MB · fallidos 0 (0.0000%)
+ 40 zombis · rep 2 · 3.81 s reales · media 2.114 ms · p95 5.013 ms · máx 182.725 ms · 472 ticks/s · A* 2716 · heap 72 MB · fallidos 0 (0.0000%)
+ 40 zombis · rep 3 · 4.00 s reales · media 2.222 ms · p95 5.212 ms · máx 168.153 ms · 449 ticks/s · A* 2716 · heap 72 MB · fallidos 0 (0.0000%)
+Nivel 40 zombis: mediana p95 5.212 ms · fallidos 0 · déficit de población 0
+ 80 zombis · rep 1 · 9.52 s reales · media 5.284 ms · p95 9.857 ms · máx 544.535 ms · 189 ticks/s · A* 5602 · heap 71 MB · fallidos 0 (0.0000%)
+ 80 zombis · rep 2 · 9.99 s reales · media 5.543 ms · p95 9.829 ms · máx 379.986 ms · 180 ticks/s · A* 5602 · heap 72 MB · fallidos 0 (0.0000%)
+ 80 zombis · rep 3 · 7.39 s reales · media 4.103 ms · p95 7.048 ms · máx 311.402 ms · 244 ticks/s · A* 5602 · heap 72 MB · fallidos 0 (0.0000%)
+Nivel 80 zombis: mediana p95 9.829 ms · fallidos 0 · déficit de población 0
+160 zombis · rep 1 · 19.01 s reales · media 10.554 ms · p95 60.383 ms · máx 516.275 ms · 95 ticks/s · A* 11990 · heap 72 MB · fallidos 0 (0.0000%)
+160 zombis · rep 2 · 17.99 s reales · media 9.991 ms · p95 54.835 ms · máx 444.590 ms · 100 ticks/s · A* 11990 · heap 72 MB · fallidos 0 (0.0000%)
+160 zombis · rep 3 · 17.69 s reales · media 9.819 ms · p95 59.893 ms · máx 373.808 ms · 102 ticks/s · A* 11990 · heap 72 MB · fallidos 0 (0.0000%)
+Nivel 160 zombis: mediana p95 59.893 ms · fallidos 0 · déficit de población 0
+Parada: nivel 160 supera el presupuesto, tuvo fallos o no sostuvo la población.
+CSV: target\load-results\rec_stress-20261009-232820\results.csv

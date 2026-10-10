@@ -78,7 +78,7 @@ La entrada sigue `GameInput.read()` → `GameSession.advance(delta, PlayerFrameI
 
 Verificación actual: 198 unitarias/adaptadores aislados y 148 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
 
-ADR, vistas completas y tres escenarios de caja negra están integrados. Scripts/SLO de carga disponibles; corridas y análisis pendientes de Ethian. Las evidencias de septiembre no se presentan como resultados de recuperación.
+ADR, vistas completas y tres escenarios de caja negra están integrados. Carga de recuperación medida: SLO de 80 zombis cumplido en las tres repeticiones y parada en 160 ([resultados y análisis](docs/recuperacion-c2/carga.md#6-resultados)). Las evidencias de septiembre no se presentan como resultados de recuperación.
 
 ### Corte 3
 
@@ -277,7 +277,7 @@ Los archivos creados desde el menú se guardan en la carpeta local `worlds/`. Es
 - Separación local; no es pathfinding multiagente. Corredores pueden formar filas.
 - Biomas/aldea/interacción están cubiertos por tests existentes; la revisión humana
   prolongada de equilibrio, cámara, melee, salto, R/J/K y estructuras queda pendiente.
-- La carga histórica de septiembre es headless y no acredita medición térmica/GPU ni nuevos resultados de recuperación.
+- La carga histórica de septiembre y la de recuperación son headless: no acreditan medición térmica/GPU ni FPS. La de recuperación se midió en un solo equipo Windows.
 
 ## Integrantes
 
@@ -309,4 +309,4 @@ git pull origin main
 El lanzador compila el código actualizado antes de abrir el juego. En IntelliJ:
 actualizar main, recargar Maven y ejecutar `bootstrap.Minecraft2Application`.
 `worlds/` y `graphics.properties` son locales y no se publican; cada computador
-conserva sus mundos y elige su propia tarjeta gráfica. La recuperación reúne las tres ramas en el candidato común; queda pendiente la evidencia de carga.
+conserva sus mundos y elige su propia tarjeta gráfica. La recuperación reúne las tres ramas en el candidato común, con su evidencia de carga en `perf/results/`.

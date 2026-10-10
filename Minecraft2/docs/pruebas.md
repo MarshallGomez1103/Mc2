@@ -6,6 +6,8 @@ Se integraron Thomas (`e730e9c`), Jasub (`b7c95a3`, rama jasub/final-a) y Ethian
 
 Java Microsoft OpenJDK 17.0.20, Maven 3.9.16 y Linux. En una copia sin target previo pasaron `mvn -o -B clean test`, `mvn -o -B clean verify -DskipUnitTests=true` y `mvn -o -B clean verify`. Se usó la caché de dependencias existente; no se afirma una descarga o instalación desde cero.
 
+Verificación del candidato de entrega: en un clon limpio de `d180eb9` (mismo árbol que `620f901`), con Temurin 17.0.20.1, Maven 3.9.11 y Windows 11, pasaron de nuevo `mvn -B clean test` (38 clases, 198 casos), `mvn -B clean verify -DskipUnitTests=true` (30 clases, 148 casos) y `mvn -B clean verify` (198 + 148), sin fallos, errores ni omitidas y sin clases compartidas entre runners. Los reportes JaCoCo recién generados coinciden con los de la tabla de cobertura. El manifiesto integrado identifica la instantánea anterior a la carga: desde entonces solo cambió `docs/recuperacion-c2/carga.md`, al añadir los resultados (§6–§7); la carga tiene sus propios [manifiestos](../perf/results/README.md).
+
 ## Resultados por nivel
 
 | Ejecución | Runner | Clases | Casos | Fallos | Errores | Omitidas |
@@ -62,13 +64,20 @@ PIT conserva su selección de FSM, A*, WaveRules, Difficulty, BiomeResolver, Hor
 
 PlayerControlsVisualSmoke ejecutó el VoxelGame real con LWJGL/OpenGL, entrada automatizada y mundo determinista en memoria. Verificó sprint, salto, mirada, pausa, muerte, R, melee, minería, colocación, pistola y selección mientras se renderizaban HUD/cámara. También comprobó el cierre de la vista después de morir: GameSession restaura vida/posición y controles, conservando pausa y material. Salida 0 en Mesa Intel(R) Graphics (RPL-S), Linux. [Captura](recuperacion-c2/evidencias/integracion/control-integrated.png).
 
-El [README](../../README.md#controles-con-opengl-real) documenta el comando. La captura no demuestra por sí sola todas las acciones: las comprueba el arnés. No es una sesión humana, SUS, flujo de consola ni medición de FPS bajo carga. Windows/PowerShell y macOS no se han comprobado aquí.
+El [README](../../README.md#controles-con-opengl-real) documenta el comando. La captura no demuestra por sí sola todas las acciones: las comprueba el arnés. No es una sesión humana, SUS, flujo de consola ni medición de FPS bajo carga. El 10 de octubre de 2026 el mismo arnés pasó también con el comando de PowerShell del README en Windows 11, renderer AMD Radeon (Ryzen 5 4500U), sobre el candidato `d180eb9`: salida 0 y las mismas comprobaciones, incluido el cierre tras muerte. macOS no se ha comprobado.
 
-## Pendiente de carga y cierre
+## Carga de recuperación
 
-Ethian debe ejecutar baseline y estrés sobre el mismo candidato integrado, conservar resultados seleccionados en perf/results y completar [carga.md](recuperacion-c2/carga.md) con p95, throughput, errores, población viva real y análisis arquitectónico. Las comprobaciones breves del harness no satisfacen este requisito. No se ha ejecutado el protocolo de carga de recuperación ni se afirma que cumpla el SLO.
+Ethian ejecutó baseline y estrés conforme a [carga.md](recuperacion-c2/carga.md) sobre el commit `d180eb9`, cuyo árbol es idéntico al del candidato integrado `620f901`. Mismo JDK 17 (Temurin 17.0.20.1), heap de 1 GB y equipo (Ryzen 5 4500U, Windows 11); manifiestos sin cambios locales de fuentes, pruebas, scripts, POM ni protocolo. En ese mismo commit `mvn clean verify` dio 198 + 148 casos, sin fallos, errores ni omitidas.
 
-Ethian completa la evidencia de carga y verifica el candidato final, incluyendo los aportes ya integrados de Thomas y Jasub. Los tres integrantes deben poder explicar la solución. Los reportes de septiembre siguen como históricos y no acreditan las nuevas corridas.
+| Escenario | Niveles | p95 por tick de IA | Errores | Población |
+| --- | --- | --- | --- | --- |
+| REC_BASELINE | 3 zombis | mediana 0,185 ms | 0 ticks fallidos | sostenida |
+| REC_STRESS | 20, 40, 80, 160 | 80: 9,857 / 9,829 / 7,048 ms; 160: mediana 59,893 ms (parada) | 0 ticks fallidos | sostenida en todos los niveles |
+
+SLO-CARGA-01 se cumple en el equipo medido: las tres repeticiones de 80 zombis quedan bajo 16,67 ms, sin fallos ni déficit. Throughput, búsquedas/expansiones A\*, máximos, heap, análisis y límites están en [carga.md §6–§7](recuperacion-c2/carga.md#6-resultados). [CSV, consola y manifiestos](../perf/results/README.md). La carga es headless: no mide FPS gráficos ni la ruta de controles del jugador. Las comprobaciones breves del harness (EnemyLoadHarnessMetricsTest, EnemyLoadHarnessIT) siguen siendo pruebas de las métricas, no corridas del protocolo.
+
+Los tres integrantes deben poder explicar la solución. Los reportes de septiembre siguen como históricos y no se comparan con estas corridas.
 
 ## Verificación del candidato de entrega
 

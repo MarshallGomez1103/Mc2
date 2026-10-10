@@ -2,7 +2,7 @@
 
 El candidato de recuperación reúne los tres frentes. [README y tabla de trazabilidad](README.md), [arquitectura](Minecraft2/docs/arquitectura.md), [pruebas/cobertura](Minecraft2/docs/pruebas.md), [ADR](Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md), [diagramas](Minecraft2/docs/diagramas/recuperacion-c2/README.md) e [índice de correcciones](Minecraft2/docs/recuperacion-c2/correcciones.md).
 
-La verificación actual es 198 unitarias/adaptadores y 148 integración, sin fallos/errores/omitidas. Tres escenarios de consola y el smoke OpenGL pasaron. Las corridas/análisis de carga y la revisión final del equipo siguen pendientes.
+La verificación actual es 198 unitarias/adaptadores y 148 integración, sin fallos/errores/omitidas. Tres escenarios de consola y el smoke OpenGL pasaron. La carga de recuperación (baseline y estrés) cumple el SLO con 80 zombis en el equipo medido y se detuvo en 160; [resultados y análisis](Minecraft2/docs/recuperacion-c2/carga.md#6-resultados).
 
 El contenido siguiente describe la entrega del Corte 1 y conserva sus decisiones y roles históricos. No representa la arquitectura de recuperación.
 
