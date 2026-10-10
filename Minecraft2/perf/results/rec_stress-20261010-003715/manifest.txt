@@ -1,0 +1,17 @@
+scenario=REC_STRESS
+started_local=2026-10-10 00:37:16 -0500
+commit=c2e03e7c6c4a5d9194c01fccb245c8bfb559666b
+branch=feature/c2-Ethian
+uncommitted_files_src_test_perf=0
+java=openjdk version "17.0.20.1" 2026-08-18
+java_runtime=OpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)
+jvm_flags=-Xms1g -Xmx1g
+wall_limit_minutes=20
+os=Microsoft Windows 11 Pro 10.0.26200
+cpu=AMD Ryzen 5 4500U with Radeon Graphics
+logical_cpus=6
+ram_gb=7.4
+sha256_EnemyLoadHarness.java=35761debe97a66b96583120a7371cd34cb30f2236a37a416d59316a135994a2e
+sha256_run-load.sh=fb65406b6517cc5948c4b8c7e83339578c8766b388dbdbda06b6741472e1a6e5
+sha256_run-load.ps1=54ddaf66040500775951c36f1cad347c8c0ea3affef7ed9c67bfdeaf54ffda00
+finished_local=2026-10-10 00:38:43 -0500

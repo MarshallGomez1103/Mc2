@@ -20,6 +20,8 @@ El harness es `test/loadtest/EnemyLoadHarness.java`, headless y sin LibGDX. Usa 
 
 Por eso **ningún resultado de aquí es una garantía de FPS gráficos**. Tampoco mide el efecto del traslado de capas: el harness no pasa por `GameInput` ni por `PlayerControlService` (ver §6).
 
+**Herramienta.** k6, JMeter y Gatling generan peticiones HTTP. Minecraft2 es un proceso de escritorio sin servidor ni red, y la operación que el reto pone bajo carga es el tick de IA dentro de la JVM. Por eso el equivalente es un harness Java versionado que llama a las clases reales, mide cada tick con `System.nanoTime` y se lanza con los scripts de `perf/`.
+
 ## 2. SLO (fijado antes de ejecutar)
 
 > **SLO-CARGA-01.** Con la **población objetivo de 80 zombis activos** en el escenario de §3, el tiempo de actualización de IA por tick cumple **p95 ≤ 16,67 ms** y **0 ticks fallidos**, sosteniendo al menos 80 zombis vivos al inicio de cada tick, en cada una de las tres repeticiones.
@@ -97,64 +99,96 @@ Cada ejecución compila con `mvn -q test-compile` y crea `target/load-results/<e
 
 ### 6.1 Condiciones (REC-E7)
 
-| Campo | Valor |
-| --- | --- |
-| Commit medido | `d180eb9` (rama `feature/c2-Ethian`). Su árbol es idéntico al de `origin/main` `620f901`, candidato integrado de los tres frentes; `git diff 620f901 d180eb9` está vacío |
-| Estado de fuentes | `uncommitted_files_src_test_perf=0` en ambos manifiestos: fuentes, pruebas, `perf/`, POM y este protocolo sin cambios locales |
-| JDK | Temurin 17.0.20.1+1, `-Xms1g -Xmx1g`, sin más flags |
-| Equipo | AMD Ryzen 5 4500U (6 CPU lógicas), 7,4 GB de RAM, Windows 11 Pro 10.0.26200 |
-| Ejecución | `perf/run-load.sh baseline` y `perf/run-load.sh stress` desde `Minecraft2/` (Git Bash), consecutivas, el 9 de octubre de 2026 entre 23:27 y 23:30 (−05:00). El script PowerShell no se usó en estas corridas |
-| Protocolo | §3 sin cambios. Límite real de 20 min por escenario, no alcanzado (baseline 13 s, estrés 2 min 6 s). Resistencia no ejecutada |
-| Suite del mismo commit | `mvn clean verify`: 198 Surefire + 148 Failsafe, 0 fallos, errores u omitidas |
+Hubo dos mediciones con el mismo protocolo, JDK, heap y equipo. La primera, sobre el candidato integrado, se perfiló después con JFR y reveló un defecto en el índice de chunks (§7.1). Se corrigió con una prueba de regresión y se repitieron baseline y estrés. **El resultado que se reporta y contra el que se evalúa el SLO es la medición final.** La primera se conserva como el «antes» de la corrección.
 
-Corridas publicadas (REC-E8), con `results.csv`, `console.txt` y `manifest.txt` revisados: [`rec_baseline-20261009-232756`](../../perf/results/rec_baseline-20261009-232756/) y [`rec_stress-20261009-232820`](../../perf/results/rec_stress-20261009-232820/). Los manifiestos registran también los SHA-256 del harness y de los dos scripts.
+| Campo | Medición final (candidato entregado) | Medición previa (antes de la corrección) |
+| --- | --- | --- |
+| Commit medido | `c2e03e7`: corrige la clave del índice de chunks en `World` y añade la regresión en `WorldChunkIndexTest` | `d180eb9`, mismo árbol de fuentes que `620f901` |
+| Corridas | [`rec_baseline-20261010-003702`](../../perf/results/rec_baseline-20261010-003702/), [`rec_stress-20261010-003715`](../../perf/results/rec_stress-20261010-003715/) | [`rec_baseline-20261009-232756`](../../perf/results/rec_baseline-20261009-232756/), [`rec_stress-20261009-232820`](../../perf/results/rec_stress-20261009-232820/) |
+| Fecha (−05:00) | 10 de octubre de 2026, 00:37–00:38 | 9 de octubre de 2026, 23:27–23:30 |
+| Duración real | Baseline 9 s; estrés 1 min 27 s | Baseline 13 s; estrés 2 min 6 s |
 
-### 6.2 Resultados por nivel
+Comunes a ambas: Temurin 17.0.20.1+1 con `-Xms1g -Xmx1g`; AMD Ryzen 5 4500U (6 CPU lógicas), 7,4 GB de RAM, Windows 11 Pro 10.0.26200; `perf/run-load.sh baseline` y `perf/run-load.sh stress` desde `Minecraft2/` con Git Bash (el script PowerShell no se usó en estas corridas). Los manifiestos registran `uncommitted_files_src_test_perf=0` y el mismo SHA-256 del harness y de los scripts. El protocolo de §3 y el SLO de §2 no cambiaron. No se alcanzó el límite de 20 min ni se ejecutó resistencia.
 
-Rangos sobre las tres repeticiones de cada nivel. Latencias en ms por tick de IA. Todos los niveles tuvieron **0 ticks fallidos (error_rate 0)**, **0 ticks con déficit de población** y `min_active` igual a la población objetivo.
+### 6.2 Resultados finales por nivel
 
-| Zombis | p95 rep 1 / 2 / 3 | Mediana p95 | Media | Máximo | Throughput real (ticks/s) | Zombis actualizados/s | A\* por corrida (por s simulado) | Expansiones A\* (por búsqueda) | Muertes del jugador | Heap |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 3 (baseline) | 0,185 / 0,189 / 0,072 | 0,185 | 0,103–0,268 | 13,0–56,8 | 3 678–9 561 | 11 035–28 682 | 361 (12,03) | 9 213 (25,5) | 7 | 71 MB |
-| 20 | 2,847 / 2,576 / 2,590 | 2,590 | 0,880–1,154 | 88,8–205,6 | 864–1 132 | 17 275–22 644 | 1 384 (46,13) | 96 432 (69,7) | 13 | 71 MB |
-| 40 | 5,397 / 5,013 / 5,212 | 5,212 | 2,060–2,222 | 168,2–182,7 | 449–485 | 17 978–19 385 | 2 716 (90,53) | 229 802 (84,6) | 27 | 71–72 MB |
-| **80** | **9,857 / 9,829 / 7,048** | **9,829** | 4,103–5,543 | 311,4–544,5 | 180–244 | 14 415–19 483 | 5 602 (186,73) | 520 175 (92,9) | 55 | 71–72 MB |
-| 160 | 60,383 / 54,835 / 59,893 | 59,893 | 9,819–10,554 | 373,8–516,3 | 95–102 | 15 149–16 284 | 11 990 (399,67) | 1 174 588 (98,0) | 69 | 72 MB |
+Rangos sobre las tres repeticiones; latencias en ms por tick de IA. Todos los niveles tuvieron **0 ticks fallidos (error_rate 0)**, **0 ticks con déficit de población** y `min_active` igual a la población objetivo. El heap usado tras GC fue de 71–72 MB en todos.
 
-La capacidad solo-IA (`update_capacity_ticks_per_s`) difiere del throughput real en menos de un 2 % en todos los niveles: la sobrecarga del harness es pequeña frente al tick de IA.
+| Zombis | p95 rep 1 / 2 / 3 | Mediana p95 | Media | Máximo | Throughput real (ticks/s) | Zombis actualizados/s | A\* por corrida (por s simulado) | Expansiones A\* (por búsqueda) | Muertes del jugador |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 3 (baseline) | 0,050 / 0,044 / 0,023 | 0,044 | 0,029–0,059 | 2,2–6,6 | 16 115–33 511 | 48 344–100 534 | 361 (12,03) | 9 213 (25,5) | 7 |
+| 20 | 1,137 / 1,388 / 0,650 | 1,137 | 0,244–0,479 | 51,0–72,9 | 2 061–4 079 | 41 221–81 585 | 1 384 (46,13) | 96 432 (69,7) | 13 |
+| 40 | 1,034 / 1,066 / 1,109 | 1,066 | 0,434–0,483 | 48,7–56,9 | 2 064–2 296 | 82 575–91 847 | 2 716 (90,53) | 229 802 (84,6) | 27 |
+| **80** | **1,759 / 1,926 / 1,679** | **1,759** | 0,982–1,033 | 72,6–86,8 | 965–1 016 | 77 232–81 275 | 5 602 (186,73) | 520 175 (92,9) | 55 |
+| 160 | 13,253 / 13,270 / 13,044 | 13,253 | 2,438–2,469 | 104,4–114,3 | 404–410 | 64 705–65 549 | 11 990 (399,67) | 1 174 588 (98,0) | 69 |
+| 320 | 50,085 / 50,395 / 50,341 | 50,341 | 7,475–7,704 | 190,6–212,2 | 130–134 | 41 489–42 764 | 29 289 (976,30) | 3 348 358 (114,3) | 144 |
 
-**Parada.** El estrés subió 20 → 40 → 80 → 160. En 160 la mediana del p95 (59,893 ms) superó 16,67 ms; se completaron sus tres repeticiones y no se ejecutó 320, según §3. No hubo fallos ni déficit que adelantaran la parada.
+La capacidad solo-IA (`update_capacity_ticks_per_s`) difiere del throughput real en menos de un 2 %: la sobrecarga del harness es pequeña frente al tick de IA.
 
-**SLO-CARGA-01: cumplido en este equipo.** Las **tres** repeticiones de 80 zombis tuvieron p95 ≤ 16,67 ms (el peor, 9,857 ms, usa el 59 % del presupuesto), 0 ticks fallidos y 80 zombis vivos al inicio de cada tick. El cumplimiento no se deduce de la mediana: cada repetición lo cumple por separado.
+**Parada.** El estrés recorrió todo el escalonado: 20 → 40 → 80 → 160 → 320. En 320 la mediana del p95 (50,341 ms) superó 16,67 ms; se completaron sus tres repeticiones. Era el último nivel del protocolo.
+
+**SLO-CARGA-01: cumplido en este equipo.** Las **tres** repeticiones de 80 zombis tuvieron p95 ≤ 16,67 ms (el peor, 1,926 ms, usa el 12 % del presupuesto), 0 ticks fallidos y 80 zombis vivos al inicio de cada tick. Cada repetición lo cumple por separado. Con 160 zombis las tres repeticiones también quedan dentro del presupuesto (≤ 13,270 ms). La degradación aparece entre 160 y 320.
+
+### 6.3 Antes y después de la corrección
+
+Mismo escenario y misma carga simulada: las búsquedas A\*, las expansiones y las muertes del jugador son idénticas en ambas mediciones para cada nivel. La corrección no cambió la conducta de la IA, solo el coste de cada consulta al mundo.
+
+| Zombis | p95 antes (`d180eb9`), rep 1 / 2 / 3 | p95 después (`c2e03e7`), rep 1 / 2 / 3 | Media antes → después | Throughput antes → después (ticks/s) |
+| --- | --- | --- | --- | --- |
+| 3 | 0,185 / 0,189 / 0,072 | 0,050 / 0,044 / 0,023 | 0,103–0,268 → 0,029–0,059 | 3 678–9 561 → 16 115–33 511 |
+| 20 | 2,847 / 2,576 / 2,590 | 1,137 / 1,388 / 0,650 | 0,880–1,154 → 0,244–0,479 | 864–1 132 → 2 061–4 079 |
+| 40 | 5,397 / 5,013 / 5,212 | 1,034 / 1,066 / 1,109 | 2,060–2,222 → 0,434–0,483 | 449–485 → 2 064–2 296 |
+| 80 | 9,857 / 9,829 / 7,048 | 1,759 / 1,926 / 1,679 | 4,103–5,543 → 0,982–1,033 | 180–244 → 965–1 016 |
+| 160 | 60,383 / 54,835 / 59,893 (parada) | 13,253 / 13,270 / 13,044 | 9,819–10,554 → 2,438–2,469 | 95–102 → 404–410 |
+| 320 | no ejecutado (parada en 160) | 50,085 / 50,395 / 50,341 (parada) | — → 7,475–7,704 | — → 130–134 |
+
+La medición previa ya cumplía el SLO con 80 zombis (p95 ≤ 9,857 ms). La corrección amplía el margen y mueve el punto de degradación de 160 a 320 zombis.
 
 ## 7. Análisis (REC-E9)
 
-**Determinismo de la carga.** Las búsquedas A\*, las expansiones y las muertes del jugador son idénticas en las tres repeticiones de cada nivel. El trabajo simulado se repite exactamente; la variación entre repeticiones (por ejemplo, 80 rep 3 con p95 7,0 ms frente a 9,8 ms, o baseline rep 3 con 0,07 ms) procede de la ejecución en el equipo (compilación JIT, frecuencia de un procesador portátil, planificación del SO), no de una carga distinta. Por eso el protocolo exige tres repeticiones y el SLO se evalúa en cada una.
+### 7.1 Cuello de botella identificado
 
-**Escalado observado.**
+Tras la primera medición se repitió el estrés con el perfilador incluido en el JDK (JFR, configuración `profile`), con el mismo commit, heap y escenario. Estas corridas perfiladas son diagnóstico: el perfilador añade coste y sus tiempos no se usan como resultado. El [método y el resumen](../../perf/results/diagnostico-jfr/README.md) están versionados.
 
-- Las búsquedas A\* crecen en proporción a la población: unas 2,3–2,5 por zombi y segundo simulado entre 20 y 160 (4,0 con 3 zombis). La política de repath acota la frecuencia por zombi; no hay búsqueda por tick.
-- Las expansiones por búsqueda suben de 69,7 (20) a 98,0 (160): con más zombis rodeando al jugador, las rutas son más largas o rodean más.
-- La media por tick crece algo más que linealmente: de unos 0,044–0,058 ms por zombi con 20 a 0,061–0,066 ms con 160.
-- Entre 80 y 160 la población se duplica y la media también (×1,8–2,6), pero el p95 se multiplica por 5,6–8,6. La relación p95/media pasa de 1,7–1,9 con 80 a 5,5–6,1 con 160. La degradación que detiene el estrés es sobre todo de **cola**: más ticks caros, no un encarecimiento uniforme de todos.
-- El throughput en zombis actualizados por segundo se mantiene en el mismo orden (14 000–23 000) de 20 a 160, mientras los ticks por segundo bajan casi en proporción inversa a la población.
-- El heap usado tras GC se mantiene en 71–72 MB en todos los niveles; no se observa crecimiento de memoria en estas corridas de 30 s.
+Atribución de las muestras de CPU tomadas dentro de `EnemyUpdateService.update`, en el tramo de 160 zombis:
 
-**Cuello de botella: correlación, no demostración.** El harness mide el tick completo de `EnemyUpdateService.update`, no cada componente, y no se ejecutó un perfilador. El código contiene dos candidatos cuyo coste crece con la población:
+| Componente (inclusivo) | Antes (`d180eb9`) | Después (`c2e03e7`) |
+| --- | --- | --- |
+| A\* (`AStarPathfinder.findPath`) | 91,7 % | 83,4 % |
+| … de ello, `World.findChunk` | 51,0 % | 5,8 % |
+| … búsquedas en cubetas en árbol de `HashMap` | 43,1 % | 1,2 % |
+| Lectura de bloques (`Chunk.getBlock`) | 22,3 % | 42,8 % |
+| Separación (`ZombieSeparation.resolve` + `isOccupied`) | 4,5 % | 11,8 % |
+| Movimiento sin A\* | 2,1 % | 3,3 % |
 
-1. A\* (`AStarPathfinder`, hasta 2 000 expansiones por búsqueda): búsquedas lineales en la población y más expansiones por búsqueda. Correlaciona con el aumento de la media.
-2. Separación entre zombis (`ZombieSeparation.resolve`, hasta 32 pasadas sobre todos los pares, y `isOccupied` para cada zombi que persigue): coste cuadrático en la población (los pares por pasada se cuadruplican al pasar de 80 a 160; las pasadas terminan antes si no hay solapes), compatible con el salto de la cola.
+**Causa demostrada.** El índice de chunks de `World` usaba como clave un `long` `(x << 32) ^ z`, cuyo `hashCode` es `x ^ z`. En el mundo de 10 × 10 chunks del protocolo solo había 16 hashes distintos para 100 chunks; en 32 × 32 coordenadas, 32 hashes para 1 024 claves. El `HashMap` convertía esas cubetas en árboles y cada consulta pasaba por comparaciones y reflexión (`comparableClassFor`). A\* consulta el mundo en cada nodo que expande, así que ese coste se multiplicaba por las expansiones.
 
-Ninguno de los dos queda demostrado como causa del p95 de 160. Para separarlos habría que medir por componente (tiempo de A\* frente a separación por tick) o perfilar ese nivel; queda como siguiente paso, no como resultado.
+**Corrección.** `World.ChunkKey` es un record con `hashCode` explícito (`x · 1 000 003 + z`), sin colisiones en el rango de los mundos. La regresión `WorldChunkIndexTest.chunkKeysOfTheLargestWorldHaveDistinctHashCodes` falló con la clave anterior (1 024 claves, 32 hashes) y pasa con la nueva. La regla de dominio no cambió: `findChunk` sigue devolviendo el mismo chunk para cada coordenada, como comprueba la prueba existente del índice.
 
-**Máximos.** Todos los niveles tienen ticks aislados muy por encima del presupuesto: 13–57 ms incluso con 3 zombis y 311–545 ms con 80. Con 3 zombis la carga de IA es mínima, por lo que al menos parte de esos picos se debe al entorno (JIT, SO); en niveles altos no se puede separar del trabajo propio sin la medición por componente. El SLO usa el p95, no el máximo: cumplirlo no garantiza que ningún tick supere 16,67 ms.
+### 7.2 Qué limita ahora
 
-**Relación con la arquitectura.** La carga valida la exigencia 3 del reto y el criterio K6 del [ADR-001](../adr/ADR-001-estilo-recuperacion.md) solo para la IA: con 80 zombis la actualización cabe en el presupuesto con margen en este equipo. La separación en capas permite actuar sobre los dos candidatos sin tocar presentación: A\* y la separación están en `domain.enemy`, detrás de `EnemyUpdateService`. Escalonar repaths, reducir el presupuesto de expansiones (ya configurable en `AStarPathfinder`) o indexar vecinos para la separación son cambios de dominio/aplicación que el harness puede volver a medir con este mismo protocolo. Ninguno se ha aplicado: cualquier cambio exigiría repetir baseline y estrés.
+En la corrida perfilada posterior a la corrección, con 320 zombis: A\* 75,0 %, separación 20,9 % y `World.findChunk` 3,9 % del tiempo de IA. El coste restante de A\* está en leer bloques del mundo en cada nodo que expande (`Chunk.getBlock`, 39,4 %).
+
+- **A\*.** Las búsquedas crecen en proporción a la población: unas 2,3–3,1 por zombi y segundo simulado, porque la política de repath acota la frecuencia; no hay búsqueda por tick. Las expansiones por búsqueda suben de 69,7 (20) a 114,3 (320): con más zombis rodeando al jugador, las rutas son más largas o rodean más.
+- **Separación.** Es cuadrática en la población: hasta 32 pasadas sobre todos los pares y una comprobación `isOccupied` por cada zombi que persigue. Pasa del 11,8 % (160) al 20,9 % (320) del tiempo de IA. Es el componente que más crece al subir la población.
+- **Cola.** Con 320 la relación p95/media es de 6,5–6,7: la degradación es sobre todo de ticks caros (coinciden muchos repaths), no un encarecimiento uniforme.
+- **Máximos.** Hay ticks aislados muy por encima del presupuesto en todos los niveles: 2,2–6,6 ms con 3 zombis y 72,6–86,8 ms con 80. Con 3 zombis el trabajo de IA es mínimo, así que parte de esos picos se debe al entorno (JIT, SO). El SLO usa el p95: cumplirlo no garantiza que ningún tick supere 16,67 ms.
+- **Variación entre repeticiones.** La carga simulada es idéntica en cada repetición, así que las diferencias de tiempo (por ejemplo, 20 zombis, rep 3) proceden de la ejecución en el equipo (JIT, frecuencia de un procesador portátil). Por eso el SLO se evalúa en cada repetición.
+
+### 7.3 Relación con la arquitectura
+
+La carga valida la exigencia 3 del reto y el criterio K6 del [ADR-001](../adr/ADR-001-estilo-recuperacion.md) para la IA. La separación en capas permitió localizar y corregir el cuello de botella en un solo archivo de dominio (`World`), sin tocar aplicación, presentación ni persistencia, y volver a medir con el mismo harness. Los siguientes pasos posibles también quedan en el dominio, detrás de `EnemyUpdateService`:
+
+- cachear la caminabilidad de las celdas consultadas durante una búsqueda A\*;
+- escalonar los repaths entre ticks o compartir rutas entre zombis cercanos;
+- indexar los zombis por celda para que la separación no recorra todos los pares.
+
+No se han aplicado: cada uno exigiría repetir baseline y estrés.
 
 **Límites.**
 
-- Headless: no mide render, GPU ni FPS. El SLO es una condición necesaria para 60 FPS, no suficiente. Ningún resultado de aquí se atribuye a los FPS gráficos.
-- No ejecuta `GameInput`, `PlayerControlService`, `HordeManager`, `PistolService` ni el tick completo de `GameSession`. No se atribuye ninguna mejora ni coste de rendimiento al traslado entre capas; el coste por tick de `PlayerFrameInput` sigue sin medirse.
+- Headless: no mide render, GPU ni FPS. El SLO es una condición necesaria para 60 FPS, no suficiente; ningún resultado de aquí se atribuye a los FPS gráficos.
+- No ejecuta `GameInput`, `PlayerControlService`, `HordeManager`, `PistolService` ni el tick completo de `GameSession`. La mejora medida se debe a la corrección del índice, no al traslado entre capas; el coste por tick de `PlayerFrameInput` sigue sin medirse.
 - Población fija con reposición, no oleadas reales: 80 es un objetivo experimental, no una situación de juego típica.
-- Un solo equipo (portátil Ryzen 5 4500U, Windows 11). Otro hardware o sistema puede dar cifras distintas; las cifras no son comparables con las históricas del 25 de septiembre (otro protocolo, una repetición y otro commit).
-- Rango ensayado 3–160 zombis. No se ensayó 320 por la regla de parada, ni resistencia prolongada.
+- Un solo equipo (portátil Ryzen 5 4500U, Windows 11). Otro hardware puede dar cifras distintas. No son comparables con las cifras históricas del 25 de septiembre (otro protocolo, una repetición y otro commit).
+- Rango ensayado 3–320 zombis; no se ejecutó resistencia prolongada.

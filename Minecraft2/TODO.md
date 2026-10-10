@@ -42,11 +42,11 @@ Evidencia de integración: [reporte](docs/recuperacion-c2/integracion.md) e [inv
 - [x] REC-E4: scripts reproducibles de baseline y estrés en perf/.
 - [x] REC-E5: throughput real, tasa de errores y métricas headless bien definidas.
 - [x] REC-E6: SLO definido antes de medir y población objetivo declarada.
-- [x] REC-E7: corridas acotadas autorizadas, comparables y con parada definida (baseline y estrés en `d180eb9`, parada en 160).
+- [x] REC-E7: corridas acotadas autorizadas, comparables y con parada definida (medición previa en `d180eb9`; final en `c2e03e7`, parada en 320).
 - [x] REC-E8: CSV, consola y manifiesto revisados/versionados en perf/results/, tras medir el mismo candidato integrado.
 - [x] REC-E9: análisis de cuello de botella, relación con arquitectura y límites del harness ([carga.md §7](docs/recuperacion-c2/carga.md#7-análisis-rec-e9)).
 
-REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equipo medido (p95 ≤ 9,857 ms en las tres repeticiones, 0 fallidos, población sostenida); el estrés se detuvo en 160. La actualización de cada clon sigue siendo responsabilidad de cada integrante.
+REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equipo medido (p95 ≤ 1,926 ms en las tres repeticiones, 0 fallidos, población sostenida); el estrés se detuvo en 320. JFR identificó el índice de chunks como cuello de botella; se corrigió con regresión y se repitió la carga. La actualización de cada clon sigue siendo responsabilidad de cada integrante.
 
 ## Cierre del equipo
 
@@ -57,7 +57,7 @@ REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equi
 - [x] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
 - [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetido al incorporar la carga.
 - [x] Integración técnica publicada en main; candidato base `b5a8e7c`.
-- [x] Ethian: evidencia de carga incorporada y candidato verificado (198 + 148, sin fallos, errores ni omitidas).
+- [x] Ethian: evidencia de carga incorporada y candidato verificado (199 + 148, sin fallos, errores ni omitidas).
 - [ ] Ethian: publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
 
 ---

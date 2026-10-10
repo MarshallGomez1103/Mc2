@@ -1,6 +1,6 @@
 # REC-07 — clasificación y evidencia integrada
 
-Las cifras vigentes pertenecen al [candidato integrado](../../pruebas.md): 198 casos Surefire y 148 Failsafe, sin fallos, errores ni omitidas. El [inventario](../../recuperacion-c2/evidencias/integracion/clasificacion.csv) clasifica 68 clases sin duplicación.
+Las cifras vigentes pertenecen al [candidato integrado](../../pruebas.md): 199 casos Surefire y 148 Failsafe, sin fallos, errores ni omitidas. El [inventario](../../recuperacion-c2/evidencias/integracion/clasificacion.csv) clasifica 68 clases sin duplicación.
 
 Jasub renombró EnemyUpdateServiceTest, LocalWorldPersistenceTest, SaveEdgeCasesTest y WorldLifecycleTest a IT. Se conservaron sus 18 casos y aserciones. Thomas ya los seleccionaba por contenido en Failsafe; el merge adaptó los patrones a los nombres nuevos. No se suman 18 pruebas nuevas por cambiar su nombre.
 

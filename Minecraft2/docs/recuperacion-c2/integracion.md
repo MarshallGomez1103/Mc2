@@ -19,6 +19,6 @@ mvn clean verify -DskipUnitTests=true
 mvn clean verify
 ```
 
-El primer comando ejecuta 148 casos de integración y empaqueta primero el JAR. El segundo ejecuta además 198 casos unitarios/adaptadores. Ambos pasaron desde una copia sin target previo. Resultados por clase/caso, cobertura y fuentes comprobadas están en el [reporte canónico](../pruebas.md) y su [manifiesto](evidencias/integracion/manifest.json).
+El primer comando ejecuta 148 casos de integración y empaqueta primero el JAR. El segundo ejecuta además los casos unitarios/adaptadores (199 en el candidato final). Ambos pasaron desde una copia sin target previo. Resultados por clase/caso, cobertura y fuentes comprobadas están en el [reporte canónico](../pruebas.md) y su [manifiesto](evidencias/integracion/manifest.json).
 
 La infraestructura real es el almacenamiento JSON local; no requiere una BD ni contenedores. Los tres casos de consola no ejercitan la opción Jugar ni controles 3D. Esa frontera se comprobó por separado con el smoke OpenGL automatizado; no se presenta como evaluación de usabilidad.

@@ -76,9 +76,9 @@ Resultados nuevos de PIT/carga y fronteras de evidencia:
 
 La entrada sigue `GameInput.read()` → `GameSession.advance(delta, PlayerFrameInput)` → `PlayerControlService`. HUD/cámara consultan `session.controls()`, una instantánea inmutable. Pausa y muerte congelan el tick; R restablece estamina y flags; se conserva prioridad de combate y JSON v1.
 
-Verificación actual: 198 unitarias/adaptadores aislados y 148 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
+Verificación actual: 199 unitarias/adaptadores aislados y 148 integración, sin fallos, errores u omitidas. [Pruebas, cobertura y evidencia seleccionada](docs/pruebas.md). [Tabla de trazabilidad obligatoria](../README.md#tabla-de-trazabilidad) e [índice de correcciones](docs/recuperacion-c2/correcciones.md).
 
-ADR, vistas completas y tres escenarios de caja negra están integrados. Carga de recuperación medida: SLO de 80 zombis cumplido en las tres repeticiones y parada en 160 ([resultados y análisis](docs/recuperacion-c2/carga.md#6-resultados)). Las evidencias de septiembre no se presentan como resultados de recuperación.
+ADR, vistas completas y tres escenarios de caja negra están integrados. Carga de recuperación medida: SLO de 80 zombis cumplido en las tres repeticiones (p95 ≤ 1,926 ms), 160 dentro del presupuesto y parada en 320; el perfilado identificó y corrigió el cuello de botella del índice de chunks ([resultados y análisis](docs/recuperacion-c2/carga.md#6-resultados)). Las evidencias de septiembre no se presentan como resultados de recuperación.
 
 ### Corte 3
 

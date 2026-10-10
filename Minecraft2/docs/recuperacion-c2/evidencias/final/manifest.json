@@ -1,0 +1,59 @@
+{
+  "sourceState": "final candidate sources identified by git commit; src, test, pom.xml and perf scripts unchanged after it",
+  "sourceCommit": "c2e03e7c6c4a5d9194c01fccb245c8bfb559666b",
+  "sourceGitTree": "ea8ea40a59fb02e8e2fb463b2a43d4d4aa621474",
+  "previousEvidence": "../integracion/manifest.json",
+  "changedSourcesSincePreviousEvidence": {
+    "Minecraft2/src/domain/world/World.java": "f0036bdfcf4b9cb46c9515ed3f323a8834948cb4997635cbd804b356e01a4e6e",
+    "Minecraft2/test/domain/world/WorldChunkIndexTest.java": "62c0173510b9a601ec4fdfb5d304476d935da7aef934a130b81ec0c667fe9573"
+  },
+  "environment": {
+    "java": "Temurin 17.0.20.1+1",
+    "maven": "3.9.11",
+    "os": "Windows 11 Pro 10.0.26200",
+    "cpu": "AMD Ryzen 5 4500U"
+  },
+  "cleanCopy": true,
+  "commands": [
+    { "command": "mvn -B clean test", "exit": 0 },
+    { "command": "mvn -B clean verify -DskipUnitTests=true", "exit": 0 },
+    { "command": "mvn -B clean verify", "exit": 0 }
+  ],
+  "tests": {
+    "surefire": { "classes": 38, "tests": 199, "failures": 0, "errors": 0, "skipped": 0 },
+    "failsafe": { "classes": 30, "tests": 148, "failures": 0, "errors": 0, "skipped": 0 },
+    "total": 347,
+    "duplicateClasses": 0,
+    "addedCase": "domain.world.WorldChunkIndexTest.chunkKeysOfTheLargestWorldHaveDistinctHashCodes"
+  },
+  "domainCoverage": {
+    "unit": { "LINE_COVERED": 887, "LINE_MISSED": 97, "BRANCH_COVERED": 555, "BRANCH_MISSED": 138 },
+    "integration": { "LINE_COVERED": 917, "LINE_MISSED": 67, "BRANCH_COVERED": 553, "BRANCH_MISSED": 140 }
+  },
+  "pit": {
+    "executedForThisCommit": false,
+    "evidenceCommit": "b5a8e7c2b836f3b6b5e005535faf8d1cf1f4ce98",
+    "scopeUnchanged": true,
+    "note": "World is outside the PIT selection; the selected classes and tests did not change"
+  },
+  "graphics": {
+    "harness": "presentation.game.PlayerControlsVisualSmoke",
+    "command": "PowerShell command documented in README.md",
+    "renderer": "AMD Radeon(TM) Graphics",
+    "exit": 0,
+    "automatedInput": true,
+    "humanPlaytest": false,
+    "closeAfterDeathVerified": true,
+    "screenshot": "control-windows.png"
+  },
+  "publicConsoleCases": 3,
+  "packagedJarSha256": "c5d0743673b8fbb915ce80ac6b8481fed15c31f1bd3fdb1c400b9377afb6ffc2",
+  "load": {
+    "executed": true,
+    "measuredCommit": "c2e03e7c6c4a5d9194c01fccb245c8bfb559666b",
+    "runs": ["../../../../perf/results/rec_baseline-20261010-003702", "../../../../perf/results/rec_stress-20261010-003715"],
+    "previousRuns": ["../../../../perf/results/rec_baseline-20261009-232756", "../../../../perf/results/rec_stress-20261009-232820"],
+    "sloAt80": "met in all three repetitions"
+  },
+  "validationDate": "2026-10-10"
+}

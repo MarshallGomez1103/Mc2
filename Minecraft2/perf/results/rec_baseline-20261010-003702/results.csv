@@ -1,0 +1,4 @@
+chunks,difficulty,zombies,repetition,sim_seconds,frames,wall_seconds,update_mean_ms,update_p95_ms,update_max_ms,ticks_per_wall_s,update_capacity_ticks_per_s,zombie_updates_per_wall_s,astar_calls,astar_calls_per_sim_s,astar_expansions,avg_active,heap_mb,player_deaths,failed_ticks,error_rate,min_active,population_shortfall_ticks
+100,VERY_HARD,3,1,30,1800,0.112,0.0586,0.0502,6.5936,16114.7,17050.8,48344,361,12.03,9213,3.0,71,7,0,0.000000,3,0
+100,VERY_HARD,3,2,30,1800,0.073,0.0389,0.0444,3.4869,24558.7,25736.1,73676,361,12.03,9213,3.0,71,7,0,0.000000,3,0
+100,VERY_HARD,3,3,30,1800,0.054,0.0286,0.0232,2.2410,33511.3,35000.8,100534,361,12.03,9213,3.0,71,7,0,0.000000,3,0

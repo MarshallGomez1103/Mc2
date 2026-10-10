@@ -5,7 +5,7 @@
 | Estado | **Implementado** en la integración y revisado contra el candidato final con evidencia de carga. |
 | Fecha | 2026-10-08 |
 | Autor | Ethian Daniel White Ortiz |
-| Revisión final | Ethian Daniel White Ortiz, 2026-10-09, sobre el commit medido `d180eb9` (mismo árbol que `620f901`) |
+| Revisión final | Ethian Daniel White Ortiz, 2026-10-10, sobre el candidato medido `c2e03e7` |
 | Corrección | REC-02 del [plan de recuperación](../recuperacion-c2/plan-equipo.md) |
 | Código evaluado | Base histórica `4220c40`; frontera implementada en `e730e9c`, incorporada con `jasub/final-a` y `feature/c2-Ethian`. Las fuentes comprobadas se identifican en el [manifiesto integrado](../recuperacion-c2/evidencias/integracion/manifest.json). |
 
@@ -81,7 +81,7 @@ El núcleo, dominio y aplicación, define todos sus puertos. Los adaptadores viv
 | K3 Controles | **Cumple.** `PlayerControlService` recibe datos y se prueba sin `Gdx`. | **Cumple igual.** La diferencia es nominal: interfaz más implementación. |
 | K4 Cambio | Una regla de oleada cambia `WaveRules` o `Difficulty`: 1 capa. Un enemigo nuevo afecta a dominio + `EnemyUpdateService` + render: 3 capas, igual que hoy. Un dispositivo nuevo, como un mando, solo exige otro traductor que produzca `PlayerFrameInput`. | Iguales en dominio. Un dispositivo nuevo implementa un adaptador del mismo puerto. Una persistencia distinta de JSON se aísla mejor, pero **no hay requisito** de segunda persistencia. |
 | K5 Proporción | **Alta.** Unas 3 clases nuevas y cambios en `GameSession`, `GameInput`, `VoxelGame` y `GameHud`, todos asignados a Thomas. | **Baja.** Mover `WorldStorage` toca `persistence`, `application`, `bootstrap` y pruebas de Jasub y Thomas. Hay que crear 4 a 6 interfaces con una sola implementación y cambiar el Observer de `World`, un paquete estable del dominio. |
-| K6 Tiempo | Construye un `PlayerFrameInput` por tick. Ese coste no se ha medido por separado; el harness de IA no ejecuta controles. La IA sí se midió: con 80 zombis, p95 ≤ 9,857 ms en las tres repeticiones ([carga.md](../recuperacion-c2/carga.md#6-resultados)). | Añade abstracciones y llamadas por interfaz. No hay una medición comparable que cuantifique su coste en este sistema. |
+| K6 Tiempo | Construye un `PlayerFrameInput` por tick. Ese coste no se ha medido por separado; el harness de IA no ejecuta controles. La IA sí se midió: con 80 zombis, p95 ≤ 1,926 ms en las tres repeticiones; el cuello de botella hallado (índice de chunks) se corrigió dentro de dominio ([carga.md](../recuperacion-c2/carga.md#6-resultados)). | Añade abstracciones y llamadas por interfaz. No hay una medición comparable que cuantifique su coste en este sistema. |
 | K7 Riesgo | Concentrado en los archivos de Thomas. JSON v1, dominio, IA y generación no cambian. | Cambios repartidos entre los tres dueños, con más conflictos de merge y más pruebas que migrar en 2 días. |
 
 **Resumen.** K1 y K3 ofrecen el aislamiento requerido en ambas opciones. K6 no tiene una comparación medida entre estilos; no se usa para afirmar que una opción sea más rápida. Las opciones se separan en **K5 y K7**, donde A es claramente mejor, y en la parte de K4 sobre una persistencia alternativa, donde B sería mejor ante un cambio que hoy no existe.
