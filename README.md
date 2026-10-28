@@ -2,6 +2,12 @@
 
 Videojuego voxel de escritorio desarrollado en Java 17, Maven y LibGDX por Elioth Thomas Gomez Morales, Jasub Sastre y Ethian Daniel White Ortiz.
 
+## Plan de entrega del Corte 3
+
+El [plan y checklist del Corte 3](Minecraft2/README.md#corte-3) reúne los requisitos del enunciado y la rúbrica, frentes para repartir entre el equipo, dependencias, entregables y evidencias de aceptación. Incluye Kubernetes, observabilidad y DAST; la bonificación conjunta está limitada a 10 puntos.
+
+La implementación del Corte 3 está pendiente. El primer hito es acordar con el profesor qué se despliega y cómo se verifica el SLO de un juego de escritorio sin servidor. Los resultados del Corte 2 conservan su alcance histórico.
+
 ## Recuperación del Corte 2
 
 El candidato común integra Thomas (`e730e9c`), Jasub (`b7c95a3`, `jasub/final-a`) y Ethian (`d186d46`). Controles, cobertura, flujo público, ADR y diagramas están incorporados y comprobados. Las corridas de carga de recuperación (baseline y estrés) y su análisis están incorporados: el SLO de 80 zombis se cumple en el equipo medido, y el perfilado identificó y corrigió el cuello de botella del índice de chunks. [Correcciones y estado](Minecraft2/docs/recuperacion-c2/correcciones.md).
