@@ -21,6 +21,7 @@ public final class Player {
     public static final double GRAVITY = -20.0;
     public static final double JUMP_SPEED = 8.0;
     public static final double MOVE_SPEED = 4.3;
+    public static final int MAX_SKIN_ID = 2;
 
     private static final float MIN_PITCH = -89f;
     private static final float MAX_PITCH = 89f;
@@ -41,6 +42,14 @@ public final class Player {
         this.pitch = 0f;
         this.velocityY = 0d;
         this.onGround = false;
+    }
+
+    public int getSkinId() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public void setSkinId(int skinId) {
+        throw new UnsupportedOperationException("stub");
     }
 
     public double getX() {

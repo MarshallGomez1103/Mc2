@@ -3,6 +3,7 @@ package application;
 import domain.enemy.Difficulty;
 import domain.player.PlayerLife;
 import domain.world.World;
+import java.util.Map;
 import java.util.Objects;
 
 /** Runtime de una partida. El menú puede cambiar preferencias sin alterar parámetros en uso. */
@@ -54,6 +55,15 @@ public final class GameSession {
             if (!life.isDead()) pistol.update(hordes.wave(), delta);
         }
     }
+    public void advanceAll(double rawDelta, Map<Integer, PlayerFrameInput> inputs) {
+        throw new UnsupportedOperationException("stub");
+    }
+    public int join(int skinId) { throw new UnsupportedOperationException("stub"); }
+    public void leave(int id) { throw new UnsupportedOperationException("stub"); }
+    public PlayerLife life(int id) { throw new UnsupportedOperationException("stub"); }
+    public PlayerControlState controls(int id) { throw new UnsupportedOperationException("stub"); }
+    public PistolService pistol(int id) { throw new UnsupportedOperationException("stub"); }
+    public void respawn(int id) { throw new UnsupportedOperationException("stub"); }
     public PlayerControlState controls() { return controlService.state(); }
     public void respawn() {
         life.respawn();

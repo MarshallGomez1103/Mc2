@@ -82,6 +82,26 @@ public final class World implements Subject<BlockChange> {
         return player;
     }
 
+    public int primaryPlayerId() {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public int addPlayer(Player player) {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public boolean removePlayer(int id) {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public Optional<Player> player(int id) {
+        throw new UnsupportedOperationException("stub");
+    }
+
+    public Map<Integer, Player> players() {
+        throw new UnsupportedOperationException("stub");
+    }
+
     public List<Chunk> getChunks() {
         return Collections.unmodifiableList(chunks);
     }
