@@ -1,0 +1,196 @@
+# Pipeline de integración de Minecraft2.
+# Los ids de los jobs son los nombres de los checks (ruleset "proteger-main"): no renombrarlos.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # bash con -eo pipefail: un `mvn ... | tee` fallido hace fallar el paso.
+    shell: bash
+
+jobs:
+  build-pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: Minecraft2/pom.xml
+      - name: Compilar, probar y verificar (surefire, failsafe, JaCoCo)
+        working-directory: Minecraft2
+        run: mvn -B -ntp verify 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Comprobar que el umbral de cobertura del dominio se ejecutó
+        working-directory: Minecraft2
+        run: |
+          # La comprobación de JaCoCo se omite sin avisar si falta jacoco-unit.exec.
+          test -s target/jacoco-unit.exec || { echo "::error::Falta target/jacoco-unit.exec"; exit 1; }
+          grep -q '(unit-domain-check)' "$RUNNER_TEMP/build.log" \
+            || { echo "::error::La ejecución unit-domain-check no aparece en el log"; exit 1; }
+          if grep -q 'Skipping JaCoCo' "$RUNNER_TEMP/build.log"; then
+            echo "::error::JaCoCo omitió una comprobación"; exit 1
+          fi
+          grep -q 'All coverage checks have been met' "$RUNNER_TEMP/build.log" \
+            || { echo "::error::JaCoCo no confirmó el cumplimiento del umbral"; exit 1; }
+      - name: Comprobar que las pruebas de arquitectura se ejecutaron
+        working-directory: Minecraft2
+        run: |
+          f=target/surefire-reports/TEST-architecture.ArchitectureBoundaryTest.xml
+          test -f "$f" || { echo "::error::Falta $f"; exit 1; }
+          n=$(sed -n 's/.*<testsuite [^>]*tests="\([0-9]*\)".*/\1/p' "$f" | head -1)
+          echo "ArchitectureBoundaryTest: ${n:-0} pruebas"
+          test "${n:-0}" -gt 0 || { echo "::error::ArchitectureBoundaryTest sin pruebas"; exit 1; }
+      - name: Resumen de cobertura del dominio
+        working-directory: Minecraft2
+        run: |
+          f=target/site/jacoco-domain-unit/jacoco.csv
+          test -f "$f" || { echo "::error::Falta $f"; exit 1; }
+          # Columnas del CSV de JaCoCo: 8 = LINE_MISSED, 9 = LINE_COVERED.
+          awk -F, 'NR>1 && $2 ~ /^domain/ {m+=$8; c+=$9}
+            END {if (m+c == 0) exit 1; printf "### Cobertura de líneas del dominio (unitarias): %.1f %%\n", 100*c/(m+c)}' \
+            "$f" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publicar reportes
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reportes-pruebas
+          path: |
+            Minecraft2/target/surefire-reports/
+            Minecraft2/target/failsafe-reports/
+            Minecraft2/target/site/
+          if-no-files-found: warn
+          retention-days: 14
+
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Los resultados se publican como artefacto, no en la pestaña Security: no hace falta
+    # security-events: write y los pull requests de forks también pueden ejecutar el job.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: Minecraft2/pom.xml
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: java
+          build-mode: manual
+      # El pom está en Minecraft2/: una compilación automática en la raíz no encuentra
+      # proyecto y analizaría cero archivos.
+      - name: Compilar para CodeQL
+        run: mvn -B -ntp -f Minecraft2/pom.xml compile
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        id: analyze
+        with:
+          category: /language:java
+          upload: never
+          upload-database: false
+          output: ${{ runner.temp }}/codeql-sarif
+      - name: Comprobar que CodeQL extrajo archivos Java
+        env:
+          DB_LOCATIONS: ${{ steps.analyze.outputs.db-locations }}
+        run: |
+          db=$(jq -r '.java // empty' <<< "$DB_LOCATIONS")
+          test -n "$db" -a -f "$db/src.zip" || { echo "::error::No hay base de datos CodeQL de Java"; exit 1; }
+          n=$(unzip -Z1 "$db/src.zip" | grep -c '\.java$' || true)
+          echo "Archivos Java extraídos: $n"
+          echo "### CodeQL: $n archivos Java extraídos" >> "$GITHUB_STEP_SUMMARY"
+          test "$n" -gt 0 || { echo "::error::CodeQL no extrajo ningún archivo Java"; exit 1; }
+      - name: Aplicar el umbral (security-severity >= 7.0)
+        run: bash scripts/umbral-sast.sh "$RUNNER_TEMP"/codeql-sarif/*.sarif
+      - name: Publicar SARIF
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sarif-codeql
+          path: ${{ runner.temp }}/codeql-sarif/
+          if-no-files-found: warn
+          retention-days: 14
+
+  sca:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: Minecraft2/pom.xml
+      - name: Dependencias con vulnerabilidad HIGH o CRITICAL y corrección disponible
+        run: bash scripts/sca.sh
+      - name: Publicar reporte
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reporte-sca
+          path: reportes/trivy-dependencias.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  secretos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # El historial completo: sin fetch-depth 0 el escaneo vería solo el último commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secretos en todo el historial (cero permitidos)
+        run: bash scripts/secretos.sh
+      # El reporte incluye autor y correo de cada commit señalado: solo se publica si el gate falla.
+      - name: Publicar reporte
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reporte-secretos
+          path: reportes/gitleaks.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  imagen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Construye Minecraft2/Dockerfile como mc2-server:ci y escanea el archivo exportado
+      # (docker save + trivy image --input): no se monta el socket de Docker en ningún contenedor.
+      - name: Imagen con vulnerabilidades CRITICAL y corrección disponible
+        run: bash scripts/escaneo-imagen.sh
+      - name: Publicar reporte
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reporte-imagen
+          path: reportes/trivy-imagen.json
+          if-no-files-found: warn
+          retention-days: 14
