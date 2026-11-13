@@ -97,10 +97,63 @@ PIT conserva su selección original y se comprobó nuevamente; [resultado de mut
 
 ## 7. Límites y tercer corte
 
-- Mundo finito completo en memoria, un jugador y estado global de WorldManager; no hay streaming ni arquitectura distribuida.
+- Mundo finito completo en memoria, un jugador y estado global de WorldManager; no hay streaming ni arquitectura distribuida. Esto describe el sistema hasta el Corte 2; el Corte 3 incorpora un servidor headless y varios jugadores ([ADR-002](adr/ADR-002-despliegue.md) y la vista de despliegue de la sección 8 de este documento).
 - Coordinación concentrada en GameSession/PlayerControlService; la separación hace comprobables las responsabilidades pero no elimina todos los acoplamientos de dominio.
 - JSON v1 conserva el mundo/jugador; vida, arma, enemigos, oleadas, restos y estamina son estado de sesión.
 - La carga headless de IA no garantiza FPS gráficos; la prueba visual automatizada tampoco acredita jugabilidad prolongada, equilibrio o SUS.
 - Carga medida en un solo equipo Windows, con población fija sin HordeManager ni controles; el coste por tick de PlayerFrameInput sigue sin medirse. ADR, vistas, flujo público, fronteras y carga están incorporados y contrastados con el código.
 - Rendimiento pendiente: cachear la caminabilidad durante A\*, escalonar o compartir rutas e indexar los zombis por celda para la separación. Cada cambio exige repetir baseline y estrés.
 - Tercer corte: el enunciado anuncia que esta batería de pruebas se automatizará en un pipeline de CI/CD con prácticas DevSecOps. Los comandos por nivel del README y los scripts de `perf/` son el punto de partida; los gates y umbrales se definirán con la consigna de ese corte. No se presupone un umbral de cobertura del 80 %.
+
+## 8. Vista de despliegue
+
+Previsto — responsable: Persona 3 (con Persona 1). **Toda esta vista es prevista**: los contenedores `mc2-server` y `mc2-front`, el Compose, los workflows y el runner todavía no existen. Debe corresponder a lo desplegado, de modo que se contrasta con `docker-compose.yml`, `.github/workflows/cd.yml` y los Dockerfiles antes de la entrega, y se corrige donde difiera. Hoy existe solo el [`Dockerfile`](../Dockerfile) de la aplicación de consola del Corte 2. La decisión que motiva esta vista es el [ADR-002](adr/ADR-002-despliegue.md), pendiente de confirmación con el profesor.
+
+Es la vista física del modelo 4+1 (equivalente a un C4 de despliegue) y responde a la pregunta de quien opera el sistema: qué corre dónde y cómo se comunica.
+
+```mermaid
+flowchart LR
+    subgraph red["Red local del equipo (previsto)"]
+        browser["Navegador del jugador"]
+        client["Cliente de escritorio<br/>JAR de Releases, Java 17"]
+
+        subgraph host["Equipo anfitrión: Docker Compose y runner autohospedado (previsto)"]
+            front["mc2-front<br/>LibGDX, Xvfb y noVNC<br/>puerto 6080"]
+            server["mc2-server<br/>JAR headless<br/>TCP 7777, HTTP 8080<br/>/health y /metrics"]
+            vol[("Volumen de mundos<br/>JSON v1")]
+            obs["Prometheus y Grafana<br/>opcional (previsto)"]
+        end
+    end
+
+    subgraph gh["GitHub (previsto)"]
+        actions["GitHub Actions<br/>ci.yml, cd.yml, load.yml"]
+        ghcr["GitHub Container Registry<br/>imágenes con SHA y versión"]
+        rel["GitHub Releases<br/>JAR del cliente"]
+    end
+
+    k8s["Kubernetes en kind<br/>opcional (previsto)"]
+
+    browser -->|"HTTP y WebSocket, 6080"| front
+    front -->|"TCP 7777, protocolo v1"| server
+    client -->|"TCP 7777, protocolo v1"| server
+    server -->|"lee y escribe"| vol
+    obs -->|"HTTP 8080 /metrics"| server
+    actions -->|"publica imágenes"| ghcr
+    actions -->|"publica el cliente"| rel
+    actions -->|"despliega en main"| host
+    ghcr -->|"descarga las imágenes"| host
+    rel -->|"descarga el JAR"| client
+    actions -.->|"manifiestos de k8s/"| k8s
+```
+
+| Contenedor o nodo | Responsabilidad | Tecnología | Puertos | Estado |
+| --- | --- | --- | --- | --- |
+| `mc2-server` | Sesión autoritativa del juego con tick fijo, varios jugadores, `/health` y `/metrics`. | Java 17, `ServerSocket` y `com.sun.net.httpserver` | 7777 (TCP) y 8080 (HTTP) | Previsto — responsable: Persona 2 (servidor) y Persona 3 (imagen) |
+| `mc2-front` | Cliente gráfico accesible desde el navegador. | LibGDX, Xvfb y noVNC | 6080 | Previsto — responsable: Persona 3 |
+| Cliente de escritorio | Mismo cliente fuera de Docker, publicado como JAR. | Java 17 y LibGDX | Conecta al 7777 | Previsto — responsable: Persona 3 |
+| Runner autohospedado | Ejecuta el job de despliegue de `main` y levanta los servicios con Compose. | GitHub Actions runner y Docker Compose | — | Previsto — responsable: Persona 3 |
+| GitHub Container Registry | Guarda las imágenes etiquetadas con SHA y versión. | GitHub Packages | — | Previsto — responsable: Persona 3 |
+| Prometheus y Grafana | Métricas del servidor y tablero del SLO. | Prometheus y Grafana | — | Opcional, bonificación: Previsto — responsable: Persona 3 |
+| Kubernetes | Despliegue alternativo con manifiestos de `k8s/`. | Kubernetes en kind | — | Opcional, bonificación: Previsto — responsable: Persona 3 |
+
+El front y los clientes de escritorio se comunican con el servidor por el mismo protocolo TCP; el navegador solo habla con el front. Los mundos se guardan en un volumen del servidor, no en el front. Cada detalle de ejecución (variables, orden de arranque, reversión) está en la [guía de implementación](implementacion.md) y en [devops.md](devops.md). Los riesgos de esta topología (sin autenticación en 7777 y 6080, runner autohospedado) están en [seguridad.md](seguridad.md#2-modelo-de-amenazas-stride).

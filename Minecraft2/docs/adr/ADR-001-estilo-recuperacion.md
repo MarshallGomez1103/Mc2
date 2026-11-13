@@ -6,7 +6,7 @@
 | Fecha | 2026-10-08 |
 | Autor | Ethian Daniel White Ortiz |
 | Revisión final | Ethian Daniel White Ortiz, 2026-10-10, sobre el candidato medido `c2e03e7` |
-| Corrección | REC-02 del [plan de recuperación](../recuperacion-c2/plan-equipo.md) |
+| Corrección | REC-02 del plan de recuperación del Corte 2 (archivado) |
 | Código evaluado | Base histórica `4220c40`; frontera implementada en `e730e9c`, incorporada con `jasub/final-a` y `feature/c2-Ethian`. Las fuentes comprobadas se identifican en el [manifiesto integrado](../recuperacion-c2/evidencias/integracion/manifest.json). |
 
 ## 1. Contexto

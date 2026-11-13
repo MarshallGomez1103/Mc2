@@ -84,7 +84,7 @@ ADR, vistas completas y tres escenarios de caja negra están integrados. Carga d
 
 **Plan y checklist de entrega continua y segura**
 
-**Estado: planificación; implementación y evidencias del Corte 3 pendientes.** Las evidencias de los cortes anteriores conservan su alcance histórico y no completan automáticamente ningún punto de este checklist. Los frentes aún no tienen responsables asignados.
+**Estado: Corte 3 en curso; implementación y evidencias pendientes.** Fecha límite: lunes 16 de noviembre de 2026, 23:59 (último commit de `main`). Las evidencias de los cortes anteriores conservan su alcance histórico y no completan automáticamente ningún punto de este checklist. Los frentes están asignados a las tres personas del equipo: reparto, ramas, archivos y calendario en el [README raíz](../README.md#asignación-del-corte-3) y en el [TODO](TODO.md). El alcance acordado con el profesor (front y back en contenedores separados, SLO de la comunicación front→back, ejecución local y multijugador en la misma red) prevalece sobre las premisas de «juego sin servidor» de C3-00, C3-01.4 y de la fila C3-04 hasta que el ADR-002 (`previsto`) lo registre.
 
 El objetivo es entregar el sistema del Corte 2 mediante un flujo reproducible que compile, pruebe, verifique la arquitectura y la seguridad, publique versiones y despliegue automáticamente. El alcance incluye los tres adicionales: Kubernetes, observabilidad y DAST. Cada uno puede aportar hasta 5 puntos, pero la bonificación conjunta tiene un máximo de 10 puntos.
 
@@ -92,7 +92,7 @@ Las referencias de evaluación son **Proyecto Tercer Corte: Entrega continua y s
 
 #### C3-00. Primer hito: acordar la entrega de un juego sin servidor
 
-Minecraft2 es un juego de escritorio Java 17/Maven/LibGDX, ejecutado en un proceso, con mundos JSON locales. No tiene API, servidor multijugador ni base de datos. El enunciado establece: «Si el sistema no tiene ningún componente de servidor, el grupo acuerda con el profesor qué se despliega y cómo se verifica el SLO antes de empezar».
+Hasta el Corte 2, Minecraft2 es un juego de escritorio Java 17/Maven/LibGDX, ejecutado en un proceso, con mundos JSON locales, sin API, servidor multijugador ni base de datos. Para el Corte 3 el equipo acordó con el profesor desplegar front y back en contenedores separados, medir el SLO en la comunicación front→back, ejecutar el entorno de forma local y permitir multijugador en la misma red; el cambio se registra en el [ADR-002](docs/adr/ADR-002-despliegue.md). El enunciado establece: «Si el sistema no tiene ningún componente de servidor, el grupo acuerda con el profesor qué se despliega y cómo se verifica el SLO antes de empezar».
 
 - [ ] **C3-00.1** Acordar con el profesor qué componente o modalidad se desplegará, dónde será verificable y qué demostrará el arranque con Docker Compose. Registrar el acuerdo antes de implementar la adaptación.
 
@@ -114,7 +114,7 @@ La base conserva las capas y contratos del [ADR-001](docs/adr/ADR-001-estilo-rec
 
 - [ ] **C3-01.3** Resolver los pendientes exigidos por la retroalimentación y registrar cómo se resolvieron en `Minecraft2/docs/evolucion.md` —previsto—, con enlaces a pruebas y cambios reales. No declarar resueltos los límites que se conservan.
 
-- [ ] **C3-01.4** Mantener JSON v1 y los mundos locales; usar datos temporales aislados para pruebas. No añadir servidor, base de datos, multijugador ni reorganizar el estilo sin necesidad y ADR correspondiente.
+- [ ] **C3-01.4** Mantener JSON v1 y los mundos locales; usar datos temporales aislados para pruebas. El servidor headless y el multijugador son la excepción acordada y se justifican en el ADR-002; no añadir base de datos ni reorganizar el estilo sin necesidad y ADR correspondiente.
 
 **Salida:** inventario trazable de pendientes y evolución de los tres cortes; los cambios de comportamiento quedan acompañados de pruebas pertinentes.
 
@@ -122,20 +122,20 @@ La base conserva las capas y contratos del [ADR-001](docs/adr/ADR-001-estilo-rec
 
 Las rutas de esta tabla se expresan desde la raíz Git. **Previsto** significa que el archivo o la evidencia todavía debe producirse; no es un enlace a una entrega existente. Los documentos continúan bajo `Minecraft2/docs/`, y el README raíz será la entrada principal.
 
-| Frente | Depende de | Salidas previstas | Evidencia y condición de aceptación |
-| --- | --- | --- | --- |
-| C3-00 · adaptación y despliegue | Acuerdo docente | ADR de despliegue, contrato de humo/carga y objetivo de DAST | Acuerdo explícito para un juego sin servidor, previo a la adaptación |
-| C3-01 · cierre y evolución | Fuentes del Corte 2 | `Minecraft2/docs/evolucion.md`, correcciones necesarias | Cada pendiente exigido tiene resolución reproducible; límites identificados |
-| C3-02 · contenedores | C3-00 | `Minecraft2/Dockerfile`, `Minecraft2/.dockerignore`, `docker-compose.yml`, `.env.example` | Arranque desde cero con Docker y un comando; readiness y ejecución sin root |
-| C3-03 · integración continua | C3-01 y C3-02 para la imagen | `.github/workflows/ci.yml`, ajuste de `Minecraft2/pom.xml`, `.github/dependabot.yml` | Checks obligatorios en push/PR, cobertura ≥70%, artefactos y duración <10 min |
-| C3-04 · arquitectura y carga | C3-00 para definir pruebas; C3-03/C3-06 para verificarlas desplegadas | Pruebas de fronteras existentes, `Minecraft2/perf/`, trazabilidad raíz | Dos reglas reales bloqueantes y SLO comprobado después de cada despliegue |
-| C3-05 · seguridad | C3-00, diagrama vigente y C3-02 | Gates CI, `Minecraft2/docs/seguridad.md`, ADR de seguridad | Cuatro controles bloqueantes y PR negativo cerrado sin fusionar |
-| C3-06 · publicación y despliegue | C3-02 a C3-05 | `.github/workflows/cd.yml`, imagen en registro, Releases | main despliega automáticamente; humo/carga bloqueantes; reversión probada |
-| C3-07 · Kubernetes | C3-00, C3-02 y C3-06 | `k8s/` | Manifiestos aplicados, probes, recursos y política justificada |
-| C3-08 · observabilidad | C3-00 y C3-06 | `observabilidad/` y documentación operativa | Métricas/tablero del SLO o logs centralizados con búsqueda verificable |
-| C3-09 · DAST | Objetivo viable en C3-00 y C3-06 | Job ZAP y hallazgos en seguridad | Escaneo del entorno desplegado en Actions; hallazgos tratados |
-| C3-10 · documentación y guía | Se inicia con C3-00; se cierra con C3-06 a C3-09 | README, documentos y vista de despliegue | Pasos ejecutables, coherentes con la implementación y sin ayuda del equipo |
-| C3-11 · entrega y presentación | Todos los frentes | Enlaces de evidencia, presentación y demostraciones | Último main verde, entorno disponible y ambos casos demostrados en 15 min |
+| Frente | Responsable | Depende de | Salidas previstas | Evidencia y condición de aceptación |
+| --- | --- | --- | --- | --- |
+| C3-00 · adaptación y despliegue | Thomas (acuerdo con el profesor, multijugador en dominio y aplicación); Jasub (adaptador de red y protocolo); Ethian (ADR-002) | Acuerdo docente | ADR de despliegue, contrato de humo/carga y objetivo de DAST | Alcance acordado (front y back separados, SLO front→back) registrado en el ADR-002 antes de la adaptación |
+| C3-01 · cierre y evolución | Thomas | Fuentes del Corte 2 | `Minecraft2/docs/evolucion.md`, correcciones necesarias | Cada pendiente exigido tiene resolución reproducible; límites identificados |
+| C3-02 · contenedores | Ethian | C3-00 | `Minecraft2/Dockerfile`, `Minecraft2/.dockerignore`, `docker-compose.yml`, `.env.example` | Arranque desde cero con Docker y un comando; readiness y ejecución sin root |
+| C3-03 · integración continua | Thomas | C3-01 y C3-02 para la imagen | `.github/workflows/ci.yml`, ajuste de `Minecraft2/pom.xml`, `.github/dependabot.yml` | Checks obligatorios en push/PR, cobertura ≥70%, artefactos y duración <10 min |
+| C3-04 · arquitectura y carga | Jasub (reglas de arquitectura y trazabilidad); Ethian (script de carga y umbrales en `Minecraft2/perf/`) | C3-00 para definir pruebas; C3-03/C3-06 para verificarlas desplegadas | Pruebas de fronteras existentes, `Minecraft2/perf/`, trazabilidad raíz | Dos reglas reales bloqueantes y SLO comprobado después de cada despliegue |
+| C3-05 · seguridad | Jasub (STRIDE, seguridad, ADR de seguridad, PR negativo); Thomas (cableado de los cuatro gates) | C3-00, diagrama vigente y C3-02 | Gates CI, `Minecraft2/docs/seguridad.md`, ADR de seguridad | Cuatro controles bloqueantes y PR negativo cerrado sin fusionar |
+| C3-06 · publicación y despliegue | Ethian | C3-02 a C3-05 | `.github/workflows/cd.yml`, imagen en registro, Releases | main despliega automáticamente; humo/carga bloqueantes; reversión probada |
+| C3-07 · Kubernetes | Ethian | C3-00, C3-02 y C3-06 | `k8s/` | Manifiestos aplicados, probes, recursos y política justificada |
+| C3-08 · observabilidad | Ethian | C3-00 y C3-06 | `observabilidad/` y documentación operativa | Métricas/tablero del SLO o logs centralizados con búsqueda verificable |
+| C3-09 · DAST | Jasub (job ZAP y hallazgos); Ethian (cableado en `cd.yml`) | Objetivo viable en C3-00 y C3-06 | Job ZAP y hallazgos en seguridad | Escaneo del entorno desplegado en Actions; hallazgos tratados |
+| C3-10 · documentación y guía | Thomas (README, evolución, guía); Jasub (seguridad, pruebas); Ethian (devops, vista de despliegue) | Se inicia con C3-00; se cierra con C3-06 a C3-09 | README, documentos y vista de despliegue | Pasos ejecutables, coherentes con la implementación y sin ayuda del equipo |
+| C3-11 · entrega y presentación | Thomas (integración y presentación), con material de Jasub y Ethian | Todos los frentes | Enlaces de evidencia, presentación y demostraciones | Último main verde, entorno disponible y ambos casos demostrados en 15 min |
 
 Las reglas y scripts de C3-04 se preparan antes de C3-06; su evidencia desplegada se completa al integrar ambos frentes. El empaquetado define primero los nombres de servicios, variables, comando de salud y artefactos; CI/CD, carga y documentación consumirán esos mismos nombres. La integración de workflows y del POM se realiza en secuencia para evitar cambios incompatibles. La documentación puede avanzar en paralelo, pero se cierra contra el sistema desplegado.
 
@@ -187,7 +187,7 @@ Contrato previsto de etapas y salidas:
 | Imagen y escaneo | Artefacto/contexto → imagen identificada y reporte | Falla la construcción o aparece vulnerabilidad crítica con corrección disponible |
 | Despliegue y verificación | Imagen aprobada → entorno, humo y carga | Despliegue, readiness, humo o SLO fallan |
 
-Los PR verificarán en un entorno de prueba aislado la modalidad acordada, sin credenciales de producción. El despliegue accesible de C3-06 se ejecutará al llegar a main. En C3-00 se precisará la evidencia de despliegue/verificación exigida como check del PR para este sistema sin servidor; no se contará como verificación un job que únicamente omita esos pasos.
+Los PR verificarán en un entorno de prueba aislado la modalidad acordada, sin credenciales de producción. El despliegue accesible de C3-06 se ejecutará al llegar a main. En C3-00 se precisa la evidencia de despliegue/verificación exigida como check del PR (compose efímero con servidor y front en el runner del PR); no se contará como verificación un job que únicamente omita esos pasos.
 
 **Salida:** un PR aprobado con checks bloqueantes, reportes y duración verificables, más main efectivamente protegida.
 
@@ -213,7 +213,7 @@ Contenido previsto para las columnas nuevas; no reemplaza las seis columnas exis
 
 | Aspecto del reto existente | Etapa del pipeline | Umbral que detiene el pipeline |
 | --- | --- | --- |
-| Actualizar muchos zombis por fotograma | Despliegue → readiness → humo → carga | Con 80 activos: p95 >16,67 ms, cualquier tick fallido o déficit de población; adaptación pendiente en C3-00 |
+| Actualizar muchos zombis por fotograma | Despliegue → readiness → humo → carga | Con 80 activos: p95 >16,67 ms, cualquier tick fallido o déficit de población; el tick se mide en el servidor desplegado (SLO-CARGA-01) y la adaptación se registra en el ADR-002 |
 | Ajustar dificultad y oleadas | Unitarias/integración; reglas de arquitectura | Falla de una prueba vinculada al reto o infracción de frontera; no atribuir un gate PIT que aún no exista |
 | Probar conducta y controles sin GPU | Unitarias/integración; reglas de arquitectura | Falla de pruebas o dependencia prohibida; cobertura del dominio <70% como gate transversal |
 | Conservar mundo, guardado y estado | Integración y humo del flujo acordado | Falla de regresión de sesión, persistencia o recorrido público de crear/guardar/reabrir/eliminar |
@@ -575,7 +575,7 @@ El modelado UML de la asignatura está en [docs/uml.md](docs/uml.md). Incluye el
 ## Registro del Corte 2
 
 Consultar [TODO.md](TODO.md) para tareas por estudiante y dependencias, y
-[ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md) como registro de fases y validaciones.
+el registro de fases y validaciones del Corte 2 (documento histórico retirado del árbol de entrega).
 La arquitectura vigente está en `docs/arquitectura.md`; los documentos de `docs/corte2/` son históricos; el cierre funcional
 está registrado en `docs/corte2/testing/final-horde-20260926.md`. Los resultados históricos
 se conservan identificados por fecha. `docs/uml.md` conserva vistas de las etapas anteriores; no se considera actualizado para una nueva entrega.

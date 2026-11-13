@@ -1,6 +1,6 @@
 # Diagramas de la recuperación del Corte 2
 
-Corrección REC-03 del [plan de recuperación](../../recuperacion-c2/plan-equipo.md). La decisión que explican está en [ADR-001](../../adr/ADR-001-estilo-recuperacion.md).
+Corrección REC-03 del plan de recuperación (archivado). La decisión que explican está en [ADR-001](../../adr/ADR-001-estilo-recuperacion.md).
 
 Los diagramas están en Mermaid y GitHub los renderiza directamente. Siguen los niveles de C4 (contexto, contenedor y componente). En C4, un **contenedor** es una unidad que se ejecuta o almacena datos: aquí es la aplicación de escritorio en la JVM o la carpeta de mundos. **No** implica Docker ni microservicios.
 

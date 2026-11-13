@@ -22,3 +22,19 @@ AGENTS.md
 AGENTS.override.md
 CLAUDE.md
 HANDOFF.md
+PROMPT-SIGUIENTE-SESION/
+.ai/
+.agents/
+.codex/
+.aws/
+
+# Variables de entorno reales (solo se versiona .env.example)
+.env
+
+# Enunciado y rúbrica del Tercer Corte (material docente, no se publica)
+asignacion/
+
+# Coordinacion del Corte 2 (archivada localmente, no se entrega)
+Minecraft2/ROADMAP_CORTE_2.md
+Minecraft2/docs/recuperacion-c2/plan-equipo.md
+Minecraft2/docs/corte2/CONTRATOS_DE_TRABAJO.md

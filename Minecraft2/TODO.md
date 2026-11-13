@@ -1,6 +1,171 @@
-# Recuperación del Corte 2 — checklist activo
+# CORTE 3 — Entrega continua y segura — checklist activo
 
-Plan y reparto por archivos: [plan del equipo](docs/recuperacion-c2/plan-equipo.md).
+Plan y requisitos: [Corte 3 en el README del proyecto](README.md#corte-3). Reparto, ramas y archivos por persona: [README raíz](../README.md#asignación-del-corte-3). Fecha límite: **lunes 16 de noviembre de 2026, 23:59** (se evalúa el último commit de `main`).
+
+Leyenda: `[ ]` pendiente; `[x]` terminada con evidencia. **Marcar solo con evidencia real**: enlace a la ejecución de Actions, al pull request o al commit, o el comando con su resultado. Los archivos, clases y pruebas citados aquí que todavía no existen están **previstos**: cada persona los crea en su rama; este documento solo los lista. Cada persona marca únicamente su propia sección.
+
+Orden obligatorio: (1) esqueleto de una sola sesión con `main` verde; (2) multijugador y skins; (3) adicionales. Si el pipeline de `main` no termina en verde en el último commit, los criterios de integración continua, arquitectura verificada y despliegue continuo quedan como máximo en nivel Básico.
+
+## Contrato común (CP0)
+
+Estos nombres se fijan en CP0 y no cambian sin avisar al equipo; los documentos, scripts y pruebas los siguen tal cual.
+
+- **Servicios:** `mc2-server` (back) y `mc2-front` (front). Dockerfiles: `Minecraft2/Dockerfile` (servidor) y `Minecraft2/Dockerfile.front`. Compose en la raíz del repositorio (`docker-compose.yml`), `.env.example` en la raíz, contexto de construcción `./Minecraft2`.
+- **Puertos:** 7777 TCP juego; 8080 HTTP `/health` y `/metrics` del servidor; 6080 HTTP noVNC del front.
+- **Variables de entorno:** `MC2_SERVER_HOST` (`mc2-server`), `MC2_SERVER_PORT` (`7777`), `MC2_HEALTH_PORT` (`8080`), `MC2_TICK_HZ` (`20`), `MC2_LOAD_ZOMBIES` (`0`; `80` para carga), `MC2_PLAYER_NAME`, `MC2_SKIN_ID` (0–2), `MC2_WORLD_DIR` (`/data/worlds`), `MC2_IMAGE_TAG`.
+- **Protocolo v1:** TCP con líneas JSON. Mensajes: `hello{name,skinId}`, `welcome{playerId,tickHz}`, `input{seq,...campos de PlayerFrameInput}`, `state{tick,players[],zombies[]}`, `bye`.
+- **Métricas Prometheus del servidor:** `mc2_tick_duration_seconds` (histograma), `mc2_tick_failures_total`, `mc2_zombies_active`, `mc2_players_connected`, `mc2_population_deficit_ticks_total`.
+- **Workflows:** `.github/workflows/ci.yml`, `.github/workflows/cd.yml` y `.github/workflows/load.yml` (`workflow_dispatch`). **Scripts:** `scripts/sca.sh`, `scripts/secretos.sh`, `scripts/escaneo-imagen.sh`, `scripts/umbral-sast.sh`, `scripts/deploy.sh`, `scripts/rollback.sh`.
+- **SLO:** SLO-CARGA-01 conservado (80 zombis activos, p95 del tick ≤ 16,67 ms, 0 ticks fallidos, 0 ticks con déficit, tres repeticiones) y SLO-RED-01 propuesto (p95 de ida y vuelta entrada→estado ≤ 50 ms, 0 errores). Ambos están **pendientes de confirmación con el profesor** hasta que se confirmen por escrito.
+- **Alcance acordado de palabra con el profesor (confirmación escrita pendiente):** front y back en contenedores separados, SLO de la comunicación front→back, ejecución local y multijugador en la misma red compartiendo el contenedor del front. El cambio de arquitectura se registra en el ADR-002.
+- **Skins:** tres (`skinId` 0–2, una por integrante). `Player.skinId` y su cableado en `VoxelGame` son de la persona 1; el protocolo y `RemotePlayerRenderer`, de la persona 2.
+- **Quién escribe cada archivo compartido:** `Minecraft2/pom.xml`, `ci.yml`, `dependabot.yml`, los cuatro scripts de seguridad, el README raíz y `.gitignore`: persona 1. `cd.yml`, `load.yml`, `deploy.sh`, `rollback.sh`, Docker, Compose, `perf/`, `k8s/` y `observabilidad/`: persona 3. El paso de ZAP lo entrega la persona 2 como fragmento y la persona 3 lo cablea en `cd.yml`. ADR-002: persona 3 (la persona 1 confirma el alcance con el profesor y revisa); ADR-003: persona 2 (la persona 1 revisa). `devops.md`: persona 3; `seguridad.md`: persona 2. `arquitectura.md` (vista de despliegue): persona 3.
+
+Lista de CP0:
+
+- [ ] Persona 1: confirmar por escrito el alcance acordado con el profesor y los SLO propuestos; la persona 3 registra el resultado en el ADR-002.
+- [ ] Persona 1: crear las ramas `c3/thomas`, `c3/jasub` y `c3/ethian` desde `main` y configurar la protección de `main` (pull request obligatorio, aprobación de otro integrante, checks requeridos).
+- [ ] Personas 2 y 3: revisar el contrato (protocolo, puertos, servicios, variables) y señalar cualquier cambio antes de empezar.
+- [ ] Probar Gitleaks sobre el historial completo del repositorio antes de convertirlo en control bloqueante.
+- [ ] Probar Trivy sobre la imagen base antes de convertirlo en control bloqueante.
+
+## Calendario
+
+| Momento | Persona 1 — Thomas | Persona 2 — Jasub | Persona 3 — Ethian | Condición para avanzar |
+| --- | --- | --- | --- | --- |
+| **CP0 · vie 13** | Confirma por escrito el alcance acordado con el profesor; ramas, protección de `main`, contrato fijo | Revisa el contrato (protocolo v1, puertos) | Revisa el contrato (servicios, `.env.example`) | Contrato de nombres, puertos y umbrales fijado en este TODO; Gitleaks sobre el historial completo y Trivy sobre la imagen base probados antes de bloquear |
+| **CP1 · vie 13–sáb 14 · esqueleto** | `ci.yml` con gates y JaCoCo ≥ 70 % de `domain/**`; `GameSession` de una sola sesión lista para el servidor (sin red); el arranque headless y `/health` son de la persona 2 (C3-00.8) | Adaptador de red mínimo (hola → estado → entrada), reglas de arquitectura, humo | Dockerfiles del back y del front, Compose con healthcheck, `cd.yml` a GHCR con despliegue y humo; prueba de concepto de noVNC | Pull request con todos los checks en verde; `main` verde con despliegue y humo |
+| **CP2 · sáb 14–dom 15** | Multijugador en dominio y aplicación (rojo → verde), `skinId` en `Player` | Protocolo con varios jugadores y tres skins renderizadas (`RemotePlayerRenderer`, cableado en `VoxelGame` por la persona 1), STRIDE y seguridad, pull request negativo | Carga SLO contra el entorno desplegado, reversión ejecutada, tag `v1.0.0` y Release con el JAR | Dos o tres clientes juegan juntos en la red local; SLO bloqueante probado con un umbral roto |
+| **CP3 · dom 15 · adicionales** | `evolucion.md`, `implementacion.md`, README | DAST con ZAP y hallazgos | Kubernetes en kind, observabilidad (Prometheus y Grafana, alerta, métrica de negocio) | Cada adicional con evidencia independiente |
+| **CP4 · lun 16 · cierre** | Integración final, README, ensayo de la demostración | Tabla de trazabilidad de ocho columnas, revisión cruzada | Vista de despliegue, `devops.md`, ADR | `main` verde; documentos, código y Compose coinciden; coevaluaciones entregadas |
+
+## Persona 1 — Thomas
+
+Rama: `c3/thomas`. Criterios que alimenta: Integración continua (15), cableado de DevSecOps (20), Documentación (10), Guía de implementación (10), apoyo a la presentación (10).
+
+### Alcance, ADR y pendientes del Corte 2
+
+- [ ] **C3-00.1 / C3-00.2** Alcance acordado y SLO propuestos confirmados por escrito con el profesor. Archivos: el resultado se registra en `Minecraft2/docs/adr/ADR-002-despliegue.md` (lo escribe la persona 3). Evidencia: confirmación escrita enlazada o citada en el ADR-002. Depende de: respuesta del profesor.
+- [ ] **C3-00.4** Revisar el ADR-002 de despliegue (contenedores separados, multijugador, SLO de la comunicación front→back) escrito por la persona 3 y aprobar su pull request. Evidencia: ADR-002 en `main` con el estado confirmado.
+- [ ] **C3-01.1 a C3-01.3** Inventario de pendientes y retroalimentación del Corte 2 con requisito, fuente, estado, corrección y evidencia; resolver los exigidos. Archivos: `Minecraft2/docs/evolucion.md` (previsto) y las correcciones necesarias. Evidencia: cada pendiente enlaza a prueba o cambio real; si falta la retroalimentación original, la revisión queda pendiente sin inferirla. Depende de: fuentes del Corte 2.
+
+### Multijugador y skin (dominio y aplicación, después del esqueleto)
+
+- [ ] **C3-00.5** `World` con varios `Player` por identificador y servicios con jugador explícito (hoy `world.getPlayer()` en `GameSession`, `EnemyUpdateService`, `PistolService` y `PlayerControlService`). Pruebas a crear: `WorldMultiPlayerTest`, `GameSessionMultiPlayerTest` (rojo primero, verde después, commits separados). Evidencia: `cd Minecraft2 && mvn -B test -Dtest=WorldMultiPlayerTest,GameSessionMultiPlayerTest` y la suite completa en verde con JSON v1 sin cambios. Depende de: esqueleto de una sola sesión con `main` verde.
+- [ ] **C3-00.6** `Player.skinId` (0–2) y cableado en `VoxelGame` con `MC2_SKIN_ID`. Pruebas: incluidas en `WorldMultiPlayerTest`. Evidencia: tres jugadores con tres skins distintas en la red local. Depende de: C3-00.5 y del protocolo de la persona 2.
+
+### Integración continua y protección de `main`
+
+- [ ] **C3-03.1** Protección de `main`: pull request obligatorio, aprobación de otro integrante y checks requeridos; sin push directo. Evidencia: configuración de reglas e historial de pull requests aprobados.
+- [ ] **C3-03.2 / C3-03.3** `ci.yml` en cada `push` y `pull_request` con un check por etapa (construcción, unitarias, integración, arquitectura, seguridad, imagen); sin `continue-on-error` en controles obligatorios. Archivos: `.github/workflows/ci.yml` (previsto). Evidencia: ejecuciones en Actions. Depende de: Dockerfiles de la persona 3 para el job de imagen.
+- [ ] **C3-03.4** Gate JaCoCo de líneas de `domain/**` ≥ 70 % que rompe la construcción. Archivos: `Minecraft2/pom.xml`. Evidencia: ejecución de Actions que falla al bajar el umbral a propósito y ejecución que pasa. Depende de: ninguna.
+- [ ] **C3-03.5 / C3-03.6** Reportes (pruebas, cobertura, seguridad, carga) como artefactos del SHA, caché de Maven y duración < 10 minutos. Evidencia: duraciones reales de las ejecuciones.
+- [ ] **C3-03.7** Badge del pipeline y URL o mecanismo del entorno en el README raíz. Evidencia: badge visible con el último estado real.
+- [ ] **C3-03.8** `.github/dependabot.yml` (previsto). Evidencia: archivo en `main`; el control de SCA sigue siendo independiente.
+- [ ] **C3-05.4** Cableado de los cuatro controles (SAST, SCA, secretos, imagen) con versiones fijas y un paso que aplica el umbral cuando la herramienta solo reporta. Archivos: `scripts/sca.sh`, `scripts/secretos.sh`, `scripts/escaneo-imagen.sh`, `scripts/umbral-sast.sh`. Evidencia: cada control falla el job con un caso preparado. Depende de: justificación de umbrales de la persona 2 (ADR-003).
+
+### Documentación, integración y presentación
+
+- [ ] **C3-10.1** README raíz: badge, URL o mecanismo, arranque con Compose, pipeline, versiones y cliente, tabla de trazabilidad de ocho columnas y tabla artefacto → ruta actualizada. Evidencia: pasos comprobados desde una copia limpia.
+- [ ] **C3-10.6** `Minecraft2/docs/evolucion.md` (previsto): tres cortes, decisiones mantenidas y cambiadas, resolución de pendientes del Corte 2 y límites finales.
+- [ ] **C3-10.8 a C3-10.11** `Minecraft2/docs/implementacion.md` (previsto) con las nueve partes, dos escenarios de costos, al menos cinco problemas con síntoma, causa y solución, y comandos comprobados. Depende de: sistema desplegado.
+- [ ] **C3-11** Integración final, presentación de 15 minutos y ensayo de las dos demostraciones (un cambio que pasa y otro que se bloquea). Material de seguridad de la persona 2 y de despliegue de la persona 3.
+- [ ] Entregar las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación.
+- [ ] Revisar el control antes de cada commit y de la entrega: requisito literal, archivos completos, rutas personales, marcadores sin resolver, enlaces, cifras con fecha y commit, pruebas omitidas informadas por separado.
+
+## Persona 2 — Jasub
+
+Rama: `c3/jasub`. Criterios que alimenta: Arquitectura verificada (15), DevSecOps (20), Documentación (10), DAST (+5).
+
+### Red, servidor headless y skins
+
+- [ ] **C3-00.7** Protocolo v1 y adaptador de red (TCP con líneas JSON, `ServerSocket` de la biblioteca estándar, sin dependencias nuevas). Pruebas a crear: `ProtocolCodecTest` (rojo primero), `GameServerIT`. Archivos: paquete nuevo del adaptador de red y cliente (nombre a fijar en CP0). Evidencia: `cd Minecraft2 && mvn -B test -Dtest=ProtocolCodecTest` y `mvn -B verify -DskipUnitTests=true -Dit.test=GameServerIT`. Depende de: contrato común.
+- [ ] **C3-00.8** Arranque headless del servidor con `/health` y `/metrics` (`com.sun.net.httpserver`) y las métricas del contrato; configuración por las variables `MC2_*`. Evidencia: `curl` a `/health` y `/metrics` con las cinco métricas del contrato; `GameServerIT` cubre el arranque. Depende de: `GameSession` de una sola sesión (persona 1, CP1); cambios de `pom.xml` por la persona 1.
+- [ ] **C3-00.9** Protocolo con varios jugadores y tres skins: `hello` y `state` con `skinId`, `RemotePlayerRenderer` en presentación. Pruebas a crear: `RemotePlayerRendererTest`. Evidencia: dos o tres clientes se ven en la red local con skins distintas. Depende de: C3-00.5 (persona 1).
+- [ ] **C3-04.5 (humo)** Ampliar `GameFlowSmokeIT` hasta el servidor (humo de caja negra por el protocolo). Archivos: `Minecraft2/test/presentation/GameFlowSmokeIT.java`. Evidencia: ejecución de Failsafe en Actions.
+
+### Arquitectura y trazabilidad
+
+- [ ] **C3-04.1 / C3-04.2** Al menos dos reglas bloqueantes del ADR-001 (dominio sin dependencias hacia aplicación, presentación, persistencia, bootstrap ni LibGDX; aplicación con `persistence.WorldStorage` como única dependencia hacia persistencia) más una regla nueva para la frontera de red en `ArchitectureBoundaryTest`. Evidencia: una infracción introducida a propósito rompe el job de arquitectura.
+- [ ] **C3-04.7 / C3-04.8** Tabla de trazabilidad de ocho columnas en el README raíz (solo el bloque de la tabla): etapa y umbral de cada fila; actualizar resultados con fecha y SHA cuando exista evidencia nueva; declarar los aspectos sin verificación automática y su razón. Depende de: pipeline en ejecución; SLO-RED-01 se incorpora cuando el profesor lo confirme.
+
+### Seguridad y DAST
+
+- [ ] **C3-05.1 a C3-05.3** STRIDE sobre el diagrama de contenedores actualizado a lo desplegado: al menos cinco amenazas específicas (por ejemplo, el flujo de `input` del cliente al servidor, el puerto 7777, `JsonWorldStorage` y los nombres de mundo, la cadena de imagen y JAR) con categoría, componente o flujo, mitigación y verificación; autenticación y autorización explicadas según existan usuarios. Archivos: `Minecraft2/docs/seguridad.md` (previsto).
+- [ ] **C3-05.4 (justificación)** `Minecraft2/docs/adr/ADR-003-seguridad.md` (previsto): herramientas y umbrales (SAST sin hallazgos altos o críticos sin tratar; SCA sin altas o críticas con corrección; cero secretos incluido el historial; imagen sin críticas con corrección). Revisión: persona 1.
+- [ ] **C3-05.6** Registro de cada hallazgo en `seguridad.md` con una de tres decisiones (corregido con commit, falso positivo con justificación, riesgo aceptado con justificación y trabajo necesario).
+- [ ] **C3-05.7** Pull request negativo con una credencial ficticia: check fallido conservado, cerrado sin fusionar y enlazado en `seguridad.md`. Nunca un secreto real.
+- [ ] **C3-09** Paso de OWASP ZAP baseline contra `/health` y el front noVNC del entorno desplegado, entregado como fragmento para `cd.yml` (persona 3); hallazgos tratados con las mismas tres decisiones. Evidencia: reporte como artefacto de Actions. Depende de: CD en verde.
+- [ ] **C3-10.7** `Minecraft2/docs/pruebas.md`: comandos, clasificación Surefire/Failsafe, reportes y relación con los checks reales.
+- [ ] Entregar las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación.
+- [ ] Revisar el control antes de cada commit y de la entrega: requisito literal, archivos completos, rutas personales, marcadores sin resolver, enlaces, cifras con fecha y commit, pruebas omitidas informadas por separado.
+
+## Persona 3 — Ethian
+
+Rama: `c3/ethian`. Criterios que alimenta: Contenerización (5), Despliegue continuo (15), SLO desplegado de Arquitectura verificada (15), Documentación (10), Kubernetes (+5) y observabilidad (+5).
+
+### Contenedores y entorno
+
+- [ ] **C3-02.1 / C3-02.2** `Minecraft2/Dockerfile` (servidor) y `Minecraft2/Dockerfile.front` multi-etapa, base de versión fija, usuario sin privilegios y `Minecraft2/.dockerignore` ajustado a ambos. Evidencia: construcción de las dos imágenes en Actions; los procesos corren sin root.
+- [ ] **C3-02.3 a C3-02.5** `docker-compose.yml` (raíz, contexto `./Minecraft2`) con `mc2-server` y `mc2-front`, `.env.example` con todas las variables del contrato y valores ficticios, healthchecks reales y `depends_on` con condición de salud. Evidencia: `cp .env.example .env && docker compose up --build --wait` desde la raíz deja ambos servicios saludables y `curl -fsS http://localhost:8080/health` responde. Depende de: servidor con `/health` (persona 2, CP1).
+- [ ] **C3-02.6** Arranque desde cero en una máquina con Docker, sin Java ni Maven en el host. Evidencia: registro de la comprobación.
+- [ ] Prueba de concepto de noVNC con OpenGL por software en `mc2-front`; si falla o es lenta, cliente de consola para humo y SLO. Evidencia: decisión registrada en ADR-002 y resultado real de la prueba.
+
+### Carga y SLO desplegado
+
+- [ ] **C3-04.3 / C3-04.4** Script de carga headless en `Minecraft2/perf/` (previsto; nombre a fijar en CP1) que conecta N clientes, mide el tiempo de ida y vuelta entrada→estado (SLO-RED-01) y lee el histograma `mc2_tick_duration_seconds` de `/metrics` (SLO-CARGA-01); sale con código distinto de cero si falta un resultado, no se alcanza la población o se rompe cualquier umbral, en tres repeticiones. Prueba a crear: `LoadSloGateTest` (prueba del script `LoadSloGate`; rojo primero). Evidencia: ejecución con un umbral roto a propósito que falla y ejecución con umbrales reales que pasa. Depende de: cliente de red de la persona 2.
+- [ ] **C3-04.5 / C3-04.6** Después de cada despliegue: readiness con timeout, humo y carga corta (con `MC2_LOAD_ZOMBIES=80`) contra el entorno desplegado; carga larga con `workflow_dispatch` en `.github/workflows/load.yml` (previsto). Evidencia: CSV, manifiesto y reporte como artefactos con SHA y parámetros.
+
+### Entrega continua
+
+- [ ] **C3-06.1 / C3-06.2** `.github/workflows/cd.yml` (previsto): imagen a GHCR con SHA y versión semántica con tag, despliegue automático desde `main` con Compose en un runner autohospedado restringido al job de `main` con Environment, nunca código de pull requests. Archivos: `scripts/deploy.sh`. Evidencia: ejecución de Actions y paquete publicado.
+- [ ] **C3-06.3 / C3-06.4** Secretos en GitHub Secrets o Environments; readiness, humo y carga en ese orden con salida distinta de cero si fallan; URL o mecanismo verificable. Evidencia: ejecución de Actions.
+- [ ] **C3-06.5** Reversión al tag o SHA anterior con verificación posterior. Archivos: `scripts/rollback.sh`. Evidencia: una ejecución real documentada en `Minecraft2/docs/devops.md`.
+- [ ] **C3-06.6 a C3-06.8** Tags semánticos, `CHANGELOG.md` (previsto) o Releases, tag `v1.0.0` y JAR del cliente en GitHub Releases; verificar la descarga y la conexión al servidor desplegado.
+
+### Documentación de despliegue
+
+- [ ] **C3-00.4** `Minecraft2/docs/adr/ADR-002-despliegue.md` (existe como esqueleto propuesto): contexto, alternativas, decisión y consecuencias del despliegue con contenedores separados; completar con la confirmación del profesor y la evidencia de la prueba de noVNC. Revisión: persona 1.
+- [ ] **C3-10.2** `Minecraft2/docs/devops.md` (previsto): diagrama del pipeline, etapa y check, entrada y salida, umbral y su justificación, publicación, despliegue y reversión con evidencia.
+- [ ] **C3-10.4** Vista de despliegue (C4 de despliegue o vista física 4+1) en `Minecraft2/docs/arquitectura.md`: nodos, contenedores, comunicaciones, datos y límites de confianza, coherente con lo desplegado. Revisión: persona 1.
+
+### Adicionales (solo con CI y CD en verde)
+
+- [ ] **C3-07 · Kubernetes** `k8s/` (previsto): `Deployment`, `Service`, `ConfigMap` y plantilla de `Secret` sin credenciales, probes de liveness y readiness, límites de recursos y al menos una `NetworkPolicy` o política RBAC justificada; desplegado en kind. Evidencia: estado real de los recursos y la política verificada, desde el pipeline o paso a paso.
+- [ ] **C3-08 · Observabilidad** `observabilidad/` (previsto): Prometheus y Grafana sobre `/metrics` del servidor, tablero con p95 del tick, tasa de error y throughput, una regla de alerta y la métrica de negocio (jugadores y zombis activos). Las unidades son ticks, no latencia HTTP ni FPS. Evidencia: datos reales del entorno y `promtool check config` en el pipeline.
+- [ ] Entregar las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación.
+- [ ] Revisar el control antes de cada commit y de la entrega: requisito literal, archivos completos, rutas personales, marcadores sin resolver, enlaces, cifras con fecha y commit, pruebas omitidas informadas por separado.
+
+## Bonificaciones
+
+La bonificación conjunta tiene un máximo de 10 puntos. Cada adicional necesita evidencia independiente y arranca solo con CI y CD en verde.
+
+- [ ] Kubernetes (+5): ver C3-07 en la sección de la persona 3.
+- [ ] Observabilidad (+5): ver C3-08 en la sección de la persona 3.
+- [ ] DAST con ZAP (+5): ver C3-09 en la sección de la persona 2; el objetivo es `/health` y el front noVNC del entorno desplegado.
+
+## Integración final
+
+- [ ] Orden: la persona 1 integra primero; después la persona 2 (rebase sobre `main`); por último la persona 3 (rebase). Cada pull request lo aprueba otro integrante.
+- [ ] Quien integra el último ejecuta `cd Minecraft2 && mvn clean verify` y el pipeline completo, y deja la versión final en `main` sin conflictos.
+- [ ] Documentos, código y Compose coinciden: nombres de servicios, variables, puertos y comandos iguales en README, `implementacion.md`, `.env.example`, `docker-compose.yml` y workflows.
+- [ ] Revisión final de enlaces, rutas personales y marcadores sin resolver en todos los documentos entregables.
+- [ ] El último commit de `main` anterior a la fecha límite termina con el pipeline en verde.
+- [ ] Repositorio público o con el profesor como colaborador, con el historial de Actions visible; URL o mecanismo del entorno activo durante la calificación.
+- [ ] Captura del juego en el README raíz (opcional): crear primero el archivo de imagen y enlazarlo después; no hay imagen todavía.
+
+## Cierre del equipo
+
+- [ ] SLO-CARGA-01 y SLO-RED-01 confirmados con el profesor y reflejados en los documentos.
+- [ ] Presentación de 15 minutos ensayada con las dos demostraciones.
+- [ ] Las tres personas entregan las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación; no se modifican después.
+- [ ] Enlaces de evidencia reunidos: ejecuciones de Actions, pull requests aprobados y bloqueado, Releases, reversión y registro de hallazgos.
+
+---
+
+# Recuperación del Corte 2 — registro anterior
+
+Plan y reparto por archivos: plan del equipo del Corte 2 (archivado fuera del árbol de entrega).
 Estado de cierre al 9 de octubre de 2026: los tres frentes están integrados y la carga de recuperación está medida y analizada. Falta publicar el candidato y enviar la solicitud de revisión. La meta del 8 de octubre pertenece al calendario inicial.
 
 Esta sección registra la recuperación. Las secciones que siguen conservan el historial anterior. Marcar `[x]` solo después de revisar implementación, pruebas y evidencia real.
@@ -48,17 +213,17 @@ Evidencia de integración: [reporte](docs/recuperacion-c2/integracion.md) e [inv
 
 REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equipo medido (p95 ≤ 1,926 ms en las tres repeticiones, 0 fallidos, población sostenida); el estrés se detuvo en 320. JFR identificó el índice de chunks como cuello de botella; se corrigió con regresión y se repitió la carga. La actualización de cada clon sigue siendo responsabilidad de cada integrante.
 
-## Cierre del equipo
+## Cierre del equipo (recuperación del Corte 2)
 
-- [ ] Ethian: revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica contra el candidato con carga; [criterios de cierre](docs/pruebas.md#verificación-del-candidato-de-entrega).
+- [ ] Revisar cada observación de la retroalimentación y cada requisito obligatorio de la rúbrica contra el candidato con carga (responsable: Ethian); [criterios de cierre](docs/pruebas.md#verificación-del-candidato-de-entrega).
 - [x] `mvn clean verify` aprobado; resultados actuales separados por nivel y cobertura de dominio.
 - [x] Flujo público reproducible y revisión gráfica real de controles afectados.
 - [x] ADR y diagramas corresponden al candidato final integrado.
 - [x] Tabla obligatoria en README raíz e índice directo de correcciones para revisión.
 - [x] Archivos, evidencias e índice del candidato integrado revisados antes del commit; repetido al incorporar la carga.
 - [x] Integración técnica publicada en main; candidato base `b5a8e7c`.
-- [x] Ethian: evidencia de carga incorporada y candidato verificado (199 + 148, sin fallos, errores ni omitidas).
-- [ ] Ethian: publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado.
+- [x] Evidencia de carga incorporada y candidato verificado (199 + 148, sin fallos, errores ni omitidas).
+- [ ] Publicar el candidato final y enviar la solicitud de revisión con enlaces del commit entregado (responsable: Ethian).
 
 ---
 
@@ -67,7 +232,7 @@ REC-E1–E9 completos. Resultado: SLO-CARGA-01 cumplido con 80 zombis en el equi
 # TODO — Minecraft 2
 
 Checklist único: `[ ]` pendiente, `[x]` terminada con evidencia.
-Mapa maestro y ownership: [ROADMAP_CORTE_2.md](ROADMAP_CORTE_2.md).
+Mapa maestro y ownership: hoja de ruta del Corte 2 (archivada fuera del árbol de entrega).
 
 ## Integración de jugabilidad — 2026-09-26
 
@@ -294,7 +459,3 @@ No editar archivos de otro owner sin aviso. POM solo Estudiante 3.
 Decisiones fijas: zombies no persistidos; JSON sin cambios para enemigos; FSM + A*
 sin ML/LLM/Behavior Tree; 2.5D desde World actual; sin streaming.
 Documentación de pruebas canónica: docs/corte2/testing/, sin duplicar docs/testing/.
-
-# CORTE 3 — TODAVÍA NO DEFINIDO
-
-Pendiente de definición.

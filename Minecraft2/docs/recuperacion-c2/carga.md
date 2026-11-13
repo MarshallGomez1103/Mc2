@@ -1,6 +1,6 @@
 # Carga de la IA de enemigos — recuperación del Corte 2
 
-Correcciones REC-08 y REC-E4 a E9 del [plan de recuperación](plan-equipo.md). Responsable: Ethian Daniel White Ortiz.
+Correcciones REC-08 y REC-E4 a E9 del plan de recuperación (archivado). Responsable: Ethian Daniel White Ortiz.
 
 Relación con la arquitectura: [ADR-001](../adr/ADR-001-estilo-recuperacion.md), criterio K6 y exigencia 3 del reto («coste de actualización»).
 
