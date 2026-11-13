@@ -33,6 +33,7 @@ public final class Player {
     private float pitch;
     private double velocityY;
     private boolean onGround;
+    private int skinId;
 
     public Player(double x, double y, double z) {
         this.x = x;
@@ -45,11 +46,15 @@ public final class Player {
     }
 
     public int getSkinId() {
-        throw new UnsupportedOperationException("stub");
+        return skinId;
     }
 
+    /** Skin index 0..MAX_SKIN_ID. Not persisted: the launcher or the network hello sets it. */
     public void setSkinId(int skinId) {
-        throw new UnsupportedOperationException("stub");
+        if (skinId < 0 || skinId > MAX_SKIN_ID) {
+            throw new IllegalArgumentException("skinId must be between 0 and " + MAX_SKIN_ID);
+        }
+        this.skinId = skinId;
     }
 
     public double getX() {

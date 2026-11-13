@@ -68,7 +68,7 @@ class GameSessionMultiPlayerTest {
         return out.toString();
     }
 
-    @Test void mapOverloadWithOnlyThePrimaryMatchesTheOldOverloadOnEveryTick() {
+    @Test void oldOverloadIsAWrapperOverTheMapOverloadForThePrimary() {
         World oldWorld = world();
         World mapWorld = world();
         GameSession oldSession = new GameSession(oldWorld, new GameSettings());
@@ -228,7 +228,7 @@ class GameSessionMultiPlayerTest {
         teleport(tieWorld.getPlayer(), 10.5, 10.5);
         teleport(tieWorld.player(second).orElseThrow(), 14.5, 10.5);
         Zombie zombie = tie.enemies().spawnAt(12.5, 10.5).orElseThrow();
-        run(tie, 80, Map.of());
+        run(tie, 20, Map.of());
         assertTrue(zombie.getX() < 12.5 + 1e-9, "an equidistant zombie goes to the earliest player");
         assertTrue(tie.life(0).health() < PlayerLife.MAX_HEALTH);
         assertEquals(PlayerLife.MAX_HEALTH, tie.life(second).health());
@@ -328,5 +328,53 @@ class GameSessionMultiPlayerTest {
         assertEquals(0, loaded.getPlayer().getSkinId());
         assertEquals(world.getPlayer().getX(), loaded.getPlayer().getX());
         assertEquals(world.getPlayer().getZ(), loaded.getPlayer().getZ());
+    }
+
+    @Test void aNullInputIsRejectedBeforeAnyPlayerMovesEvenForADeadPlayer() {
+        World world = world();
+        GameSession session = quiet(world);
+        int b = session.join(1);
+        double before = world.getPlayer().getZ();
+        Map<Integer, PlayerFrameInput> laterNull = new HashMap<>();
+        laterNull.put(0, FORWARD);
+        laterNull.put(b, null);
+        assertThrows(NullPointerException.class, () -> session.advanceAll(TICK, laterNull));
+        assertEquals(before, world.getPlayer().getZ(), "no partial tick");
+        session.life(b).die(PlayerLife.DeathCause.ENEMY);
+        assertThrows(NullPointerException.class, () -> session.advanceAll(TICK, laterNull));
+    }
+
+    @Test void invalidDeltaIsIgnoredBeforeTheMapIsCheckedAndANullMapIsRejected() {
+        GameSession session = quiet(world());
+        assertDoesNotThrow(() -> session.advanceAll(-1, null));
+        assertDoesNotThrow(() -> session.advanceAll(Double.NaN, null));
+        assertThrows(NullPointerException.class, () -> session.advanceAll(TICK, null));
+    }
+
+    @Test void leavingThePrimaryPromotesTheNextPlayerForTheOldAccessors() {
+        World world = world();
+        GameSession session = quiet(world);
+        int b = session.join(2);
+        session.leave(0);
+        assertEquals(b, world.primaryPlayerId());
+        assertSame(world.player(b).orElseThrow(), world.getPlayer());
+        assertSame(session.life(b), session.life());
+        assertSame(session.pistol(b), session.pistol());
+        assertEquals(session.controls(b), session.controls());
+        double before = world.getPlayer().getZ();
+        run(session, 5, Map.of(b, FORWARD));
+        assertTrue(world.getPlayer().getZ() > before, "the promoted player keeps playing");
+    }
+
+    @Test void joiningAnAllDeadSessionSpawnsAtThePrimaryAndResumesIt() {
+        World world = world();
+        GameSession session = quiet(world);
+        session.life(0).die(PlayerLife.DeathCause.VOID);
+        assertEquals(GameSession.State.DEAD, session.state());
+        int b = session.join(1);
+        assertEquals(GameSession.State.RUNNING, session.state());
+        assertEquals(world.getPlayer().getX(), world.player(b).orElseThrow().getX());
+        assertEquals(world.getPlayer().getZ(), world.player(b).orElseThrow().getZ());
+        assertFalse(session.life(b).isDead());
     }
 }

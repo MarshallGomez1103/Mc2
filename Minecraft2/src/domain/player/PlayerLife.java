@@ -26,6 +26,10 @@ public final class PlayerLife {
         saveCheckpoint();
     }
 
+    public Player player() {
+        return player;
+    }
+
     public int health() {
         return (int) Math.floor(health + 1e-9);
     }
