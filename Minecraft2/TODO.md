@@ -109,7 +109,7 @@ Rama: `c3/ethian`. Criterios que alimenta: Contenerización (5), Despliegue cont
 - [ ] **C3-02.1 / C3-02.2** `Minecraft2/Dockerfile` (servidor) y `Minecraft2/Dockerfile.front` multi-etapa, base de versión fija, usuario sin privilegios y `Minecraft2/.dockerignore` ajustado a ambos. Evidencia: construcción de las dos imágenes en Actions; los procesos corren sin root.
 - [ ] **C3-02.3 a C3-02.5** `docker-compose.yml` (raíz, contexto `./Minecraft2`) con `mc2-server` y `mc2-front`, `.env.example` con todas las variables del contrato y valores ficticios, healthchecks reales y `depends_on` con condición de salud. Evidencia: `cp .env.example .env && docker compose up --build --wait` desde la raíz deja ambos servicios saludables y `curl -fsS http://localhost:8080/health` responde. Depende de: servidor con `/health` (persona 2, CP1).
 - [ ] **C3-02.6** Arranque desde cero en una máquina con Docker, sin Java ni Maven en el host. Evidencia: registro de la comprobación.
-- [ ] Prueba de concepto de noVNC con OpenGL por software en `mc2-front`; si falla o es lenta, cliente de consola para humo y SLO. Evidencia: decisión registrada en ADR-002 y resultado real de la prueba.
+- [x] Prueba de concepto de noVNC con OpenGL por software en `mc2-front`; si falla o es lenta, cliente de consola para humo y SLO. Evidencia: decisión registrada en ADR-002 y resultado real de la prueba. **Hecha el 15-11-2026** (commit `4d09fd8` de `c3/ethian`): el cliente arranca con Mesa llvmpipe y se juega desde el navegador a 50 FPS en el HUD (mundo pequeño, radio 1); resultado, equipo y captura en [ADR-002 §7](docs/adr/ADR-002-despliegue.md#7-evidencia-y-enlaces). Se mantiene la opción A; el humo y la carga no dependen del front.
 
 ### Carga y SLO desplegado
 
