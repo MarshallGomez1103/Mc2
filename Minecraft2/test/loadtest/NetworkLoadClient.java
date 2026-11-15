@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class NetworkLoadClient {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration CLIENT_WARMUP = Duration.ofSeconds(2);
 
     /** Configuración de una corrida. */
     public record Settings(String host, int gamePort, int healthPort, LoadSloGate.Thresholds thresholds,
@@ -117,13 +118,19 @@ public final class NetworkLoadClient {
         AtomicLong networkErrors = new AtomicLong();
         waitForPopulation(settings, t.zombies());
 
-        PrometheusSnapshot before = scrape(settings, networkErrors);
         List<SessionClient> clients = new ArrayList<>();
         for (int c = 0; c < t.clients(); c++) {
             SessionClient client = new SessionClient("carga-" + index + "-" + c, c % 3, networkErrors);
             if (client.connect(settings)) clients.add(client);
         }
         clients.forEach(SessionClient::startSending);
+        // Calentamiento del generador de carga: se descartan las muestras de la conexión y del JIT del cliente,
+        // que no son tiempo del servidor. La ventana medida (y la lectura inicial de /metrics) empieza después.
+        if (!clients.isEmpty()) {
+            Thread.sleep(CLIENT_WARMUP.toMillis());
+            clients.forEach(SessionClient::discardSamples);
+        }
+        PrometheusSnapshot before = scrape(settings, networkErrors);
 
         int zombiesMin = Integer.MAX_VALUE;
         long end = System.nanoTime() + settings.measure().toNanos();
@@ -292,7 +299,8 @@ public final class NetworkLoadClient {
                             + "\"left\":false,\"right\":false,\"sprint\":false,\"jump\":false,\"deltaYaw\":0.5,"
                             + "\"deltaPitch\":0.0,\"primary\":false,\"secondary\":false,\"togglePistol\":false}", seq, forward));
                 } catch (IOException e) {
-                    fail(e);
+                    // Si ya se pidió el cierre, el socket cerrado es el cierre propio y no un error de red.
+                    if (running) fail(e);
                     return;
                 }
                 next += periodNanos;
@@ -342,6 +350,10 @@ public final class NetworkLoadClient {
 
         boolean isHealthy() {
             return running && !failed;
+        }
+
+        void discardSamples() {
+            roundTrips.clear();
         }
 
         List<Double> roundTripsMs() {

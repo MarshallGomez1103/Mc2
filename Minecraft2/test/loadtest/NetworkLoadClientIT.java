@@ -33,7 +33,10 @@ class NetworkLoadClientIT {
     @Test void compliantServerPassesAndWritesOneRowPerRepetition() throws Exception {
         // Arrange: 80 zombis y ticks de 1,5 ms.
         try (var server = new FakeGameServer(80, 0.0015)) {
-            var settings = NetworkLoadClient.Settings.fromEnvironment(environment(server.gamePort(), server.healthPort()));
+            var env = environment(server.gamePort(), server.healthPort());
+            // Esta prueba verifica la medición y el veredicto, no el rendimiento de la máquina que la ejecuta.
+            env.put("MC2_SLO_RTT_P95_MS", "500");
+            var settings = NetworkLoadClient.Settings.fromEnvironment(env);
             // Act
             int exit = NetworkLoadClient.run(settings);
             // Assert
