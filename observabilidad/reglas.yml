@@ -1,0 +1,39 @@
+# Reglas de registro y alertas del SLO. Unidades: duración del tick del servidor (no latencia HTTP ni FPS).
+groups:
+  - name: mc2-slo
+    rules:
+      # p95 del tick en los últimos 5 minutos, en segundos (SLO-CARGA-01: ≤ 0,01667 s).
+      - record: mc2:tick_duration_seconds:p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(mc2_tick_duration_seconds_bucket[5m])))
+      # Throughput: ticks por segundo (20 esperados con MC2_TICK_HZ=20).
+      - record: mc2:ticks:rate_5m
+        expr: sum(rate(mc2_tick_duration_seconds_count[5m]))
+      # Tasa de error: fracción de ticks fallidos.
+      - record: mc2:tick_failures:ratio_5m
+        expr: sum(rate(mc2_tick_failures_total[5m])) / clamp_min(sum(rate(mc2_tick_duration_seconds_count[5m])), 1e-9)
+
+  - name: mc2-alertas
+    rules:
+      - alert: Mc2TickP95SobreElSLO
+        expr: mc2:tick_duration_seconds:p95_5m > 0.01667
+        for: 2m
+        labels:
+          severidad: aviso
+        annotations:
+          resumen: 'p95 del tick {{ $value | humanizeDuration }} > 16,67 ms (SLO-CARGA-01)'
+          descripcion: 'El servidor tarda más de un fotograma a 60 FPS en el 5 % de los ticks durante 2 minutos.'
+      - alert: Mc2TicksFallidos
+        expr: increase(mc2_tick_failures_total[5m]) > 0
+        labels:
+          severidad: critica
+        annotations:
+          resumen: 'Hubo {{ $value }} ticks fallidos en 5 minutos'
+          descripcion: 'SLO-CARGA-01 exige 0 ticks fallidos.'
+      - alert: Mc2ServidorSinMetricas
+        expr: up{job="mc2-server"} == 0
+        for: 1m
+        labels:
+          severidad: critica
+        annotations:
+          resumen: 'Prometheus no puede leer /metrics de mc2-server'
+          descripcion: 'El servidor está caído o /metrics no responde desde hace 1 minuto.'

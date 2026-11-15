@@ -1,0 +1,193 @@
+# Adicionales del Corte 3 (bonificación): observabilidad (C3-08) y Kubernetes en kind (C3-07).
+# Las comprobaciones estáticas corren en los pull requests que tocan k8s/ u observabilidad/. El despliegue en kind
+# y la verificación con datos reales se ejecutan bajo demanda con una etiqueta ya publicada en GHCR, para que un
+# adicional nunca deje en rojo el pipeline de main.
+name: adicionales
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'k8s/**'
+      - 'observabilidad/**'
+      - '.github/workflows/adicionales.yml'
+  workflow_dispatch:
+    inputs:
+      etiqueta:
+        description: 'Etiqueta publicada en GHCR (SHA de 40 caracteres o vX.Y.Z)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PROMETHEUS_IMAGE: prom/prometheus:v3.15.0
+  KIND_VERSION: v0.27.0
+
+jobs:
+  observabilidad-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: promtool check config y check rules
+        run: |
+          # check config valida también las reglas de rule_files; se monta reglas.yml donde lo busca la configuración.
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/observabilidad/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v "$PWD/observabilidad/reglas.yml:/etc/prometheus/reglas.yml:ro" \
+            "$PROMETHEUS_IMAGE" check config /etc/prometheus/prometheus.yml
+          docker run --rm --entrypoint promtool -v "$PWD/observabilidad:/cfg:ro" "$PROMETHEUS_IMAGE" check rules /cfg/reglas.yml
+      - name: Tablero y Compose válidos
+        run: |
+          jq -e '.uid == "mc2-slo" and (.panels | length) >= 4' observabilidad/grafana/dashboards/mc2-slo.json
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f observabilidad/compose.yml config --quiet
+
+  kubernetes-manifiestos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Renderizar con kustomize y comprobar los controles exigidos
+        run: |
+          kubectl kustomize k8s/ > "$RUNNER_TEMP/k8s.yaml"
+          for kind in Deployment Service ConfigMap NetworkPolicy Role RoleBinding; do
+            grep -q "^kind: ${kind}$" "$RUNNER_TEMP/k8s.yaml" || { echo "::error::Falta ${kind}"; exit 1; }
+          done
+          for campo in livenessProbe readinessProbe limits runAsNonRoot readOnlyRootFilesystem; do
+            n=$(grep -c "${campo}" "$RUNNER_TEMP/k8s.yaml")
+            [[ "$n" -ge 2 ]] || { echo "::error::${campo} no está en los dos Deployment"; exit 1; }
+          done
+          ! grep -q 'kind: Secret' "$RUNNER_TEMP/k8s.yaml" || { echo "::error::kustomization incluye un Secret"; exit 1; }
+
+  kubernetes-kind:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    env:
+      ETIQUETA: ${{ inputs.etiqueta }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Instalar kind
+        run: |
+          go install "sigs.k8s.io/kind@${KIND_VERSION}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Crear el clúster y cargar las imágenes publicadas
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          registro="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
+          kind create cluster --name mc2 --config k8s/kind.yaml --wait 120s
+          for s in server front; do
+            docker pull "${registro}/mc2-${s}:${ETIQUETA}"
+            kind load docker-image --name mc2 "${registro}/mc2-${s}:${ETIQUETA}"
+          done
+          # Las dos imágenes se despliegan con la misma etiqueta publicada.
+          sed -i "s/newTag: local/newTag: ${ETIQUETA}/" k8s/kustomization.yaml
+          kubectl kustomize k8s/ | grep 'image:'
+      - name: Aplicar los manifiestos y esperar el despliegue
+        run: |
+          kubectl apply -k k8s/
+          kubectl -n mc2 rollout status deployment/mc2-server --timeout=180s
+          kubectl -n mc2 rollout status deployment/mc2-front --timeout=240s
+      - name: Estado real de los recursos
+        if: always()
+        run: |
+          {
+            echo '### Recursos en kind'
+            echo '```'
+            kubectl -n mc2 get deploy,po,svc,pvc,networkpolicy,role,rolebinding,sa -o wide
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Verificar la NetworkPolicy (un pod sin permiso es rechazado; uno con permiso entra)
+        run: |
+          prueba() {
+            local nombre="$1" etiquetas="$2"
+            kubectl -n mc2 run "$nombre" --image=busybox:1.37 --restart=Never --labels="$etiquetas" \
+              --overrides='{"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65534,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"'"$nombre"'","image":"busybox:1.37","command":["sh","-c","nc -z -w 5 mc2-server 7777"],"securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}}]}}' >/dev/null
+            kubectl -n mc2 wait --for=jsonpath='{.status.phase}'=Succeeded "pod/$nombre" --timeout=60s >/dev/null 2>&1 && echo permitido || echo rechazado
+          }
+          sin=$(prueba sin-permiso "app=intruso")
+          con=$(prueba con-permiso "mc2/cliente=true")
+          echo "Pod sin etiqueta → 7777: ${sin}; pod con mc2/cliente=true → 7777: ${con}" | tee -a "$GITHUB_STEP_SUMMARY"
+          [[ "$sin" == rechazado && "$con" == permitido ]] || { echo "::error::La NetworkPolicy no se comporta como se espera"; exit 1; }
+      - name: Salud y métricas del servidor por port-forward
+        run: |
+          kubectl -n mc2 port-forward svc/mc2-server 18080:8080 >/dev/null 2>&1 &
+          sleep 3
+          curl -fsS http://127.0.0.1:18080/health
+          curl -fsS http://127.0.0.1:18080/metrics | grep '^mc2_' | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Diagnóstico
+        if: failure()
+        run: |
+          kubectl -n mc2 describe pods || true
+          kubectl -n mc2 logs deploy/mc2-server --tail=100 || true
+
+  observabilidad-datos:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: read
+    env:
+      MC2_IMAGE_TAG: ${{ inputs.etiqueta }}
+      MC2_LOAD_ZOMBIES: '80'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: Minecraft2/pom.xml
+      - name: Levantar el juego con Prometheus y Grafana
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
+          export MC2_REGISTRY="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}"
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f observabilidad/compose.yml up -d --no-build --wait --wait-timeout 240
+      - name: Generar tráfico real (carga corta, 1 repetición)
+        env:
+          MC2_LOAD_REPETITIONS: '1'
+          MC2_LOAD_SECONDS: '60'
+          MC2_LOAD_OUT: ${{ runner.temp }}/carga
+        run: cd Minecraft2 && perf/run-slo.sh corta || echo "La carga informó incumplimientos; los datos se usan igual para el tablero"
+      - name: Consultar Prometheus y Grafana con datos del entorno
+        run: |
+          sleep 20
+          q() { curl -fsS --get http://127.0.0.1:9090/api/v1/query --data-urlencode "query=$1" | jq -c '.data.result'; }
+          {
+            echo '### Consultas a Prometheus (datos reales del entorno)'
+            echo "- p95 del tick (5 min): $(q 'mc2:tick_duration_seconds:p95_5m')"
+            echo "- ticks/s: $(q 'mc2:ticks:rate_5m')"
+            echo "- tasa de error: $(q 'mc2:tick_failures:ratio_5m')"
+            echo "- zombis activos: $(q 'mc2_zombies_active')"
+            echo "- jugadores conectados: $(q 'mc2_players_connected')"
+            echo "- reglas de alerta cargadas: $(curl -fsS http://127.0.0.1:9090/api/v1/rules | jq -c '[.data.groups[].rules[] | select(.type=="alerting") | {name, state}]')"
+            echo "- tablero en Grafana: $(curl -fsS http://127.0.0.1:3000/api/dashboards/uid/mc2-slo | jq -r '.dashboard.title')"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$(q 'mc2:ticks:rate_5m' | jq 'length')" -gt 0 || { echo "::error::Prometheus no tiene datos del servidor"; exit 1; }
+      - name: Apagar
+        if: always()
+        run: docker compose -f docker-compose.yml -f observabilidad/compose.yml down -v

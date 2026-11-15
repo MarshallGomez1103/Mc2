@@ -1,0 +1,134 @@
+# mc2-server: una sola réplica, porque la sesión del juego es autoritativa y vive en memoria.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mc2-server
+  namespace: mc2
+  labels:
+    app.kubernetes.io/part-of: minecraft2
+# El servidor no habla con la API de Kubernetes: no se monta ningún token.
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mc2-worlds
+  namespace: mc2
+  labels:
+    app.kubernetes.io/part-of: minecraft2
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mc2-server
+  namespace: mc2
+  labels:
+    app.kubernetes.io/name: mc2-server
+    app.kubernetes.io/part-of: minecraft2
+spec:
+  replicas: 1
+  strategy:
+    # Dos servidores no pueden compartir el volumen de mundos: se reemplaza, no se superpone.
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mc2-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mc2-server
+        app.kubernetes.io/part-of: minecraft2
+    spec:
+      serviceAccountName: mc2-server
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mc2-server
+          image: ghcr.io/marshallgomez1103/mc2-server:local
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: mc2-config
+          ports:
+            - name: juego
+              containerPort: 7777
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: worlds
+              mountPath: /data/worlds
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: worlds
+          persistentVolumeClaim:
+            claimName: mc2-worlds
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mc2-server
+  namespace: mc2
+  labels:
+    app.kubernetes.io/name: mc2-server
+    app.kubernetes.io/part-of: minecraft2
+spec:
+  selector:
+    app.kubernetes.io/name: mc2-server
+  ports:
+    - name: juego
+      port: 7777
+      targetPort: juego
+      protocol: TCP
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP

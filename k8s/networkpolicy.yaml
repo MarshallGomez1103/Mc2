@@ -1,0 +1,62 @@
+# Política de red justificada (amenaza: cualquier pod del clúster podría enviar entradas al servidor o leer
+# sus métricas). Todo el tráfico de entrada del espacio de nombres se niega por defecto y se abre solo:
+#   - 7777 (juego) desde pods con la etiqueta mc2/cliente=true (el front y el cliente de carga);
+#   - 8080 (/health y /metrics) desde pods con mc2/metricas=true (Prometheus) y desde los clientes;
+#   - 6080 (noVNC) solo desde dentro del espacio de nombres; el jugador entra por kubectl port-forward.
+# Las sondas del kubelet no pasan por la NetworkPolicy, así que /health sigue funcionando para Kubernetes.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: denegar-entrada
+  namespace: mc2
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mc2-server-entrada
+  namespace: mc2
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mc2-server
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              mc2/cliente: "true"
+      ports:
+        - port: 7777
+          protocol: TCP
+        - port: 8080
+          protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              mc2/metricas: "true"
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 8080
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mc2-front-entrada
+  namespace: mc2
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mc2-front
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 6080
+          protocol: TCP

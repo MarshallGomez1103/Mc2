@@ -1,0 +1,16 @@
+# kubectl apply -k k8s/   (secret.example.yaml no se incluye: es una plantilla sin credenciales)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - rbac.yaml
+  - server.yaml
+  - front.yaml
+  - networkpolicy.yaml
+# La etiqueta se fija al SHA o a la versión publicados: kustomize edit set image ...:<etiqueta>.
+images:
+  - name: ghcr.io/marshallgomez1103/mc2-server
+    newTag: local
+  - name: ghcr.io/marshallgomez1103/mc2-front
+    newTag: local

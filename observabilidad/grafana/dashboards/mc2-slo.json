@@ -1,0 +1,91 @@
+{
+  "uid": "mc2-slo",
+  "title": "Minecraft2 — SLO del servidor",
+  "description": "Tick del servidor (SLO-CARGA-01), tasa de error, throughput y métrica de negocio. Unidades: ticks del servidor, no latencia HTTP ni FPS.",
+  "tags": ["minecraft2", "slo"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "p95 del tick (SLO-CARGA-01 ≤ 16,67 ms)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 9 },
+      "datasource": { "type": "prometheus", "uid": "mc2-prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "mc2:tick_duration_seconds:p95_5m", "legendFormat": "p95 (5 min)" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(mc2_tick_duration_seconds_bucket[1m])))", "legendFormat": "p95 (1 min)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 0.01667 } ] },
+          "custom": { "thresholdsStyle": { "mode": "line" } }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Tasa de error (ticks fallidos / ticks)",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 9 },
+      "datasource": { "type": "prometheus", "uid": "mc2-prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "mc2:tick_failures:ratio_5m", "legendFormat": "fallidos" },
+        { "refId": "B", "expr": "sum(rate(mc2_population_deficit_ticks_total[5m])) / clamp_min(sum(rate(mc2_tick_duration_seconds_count[5m])), 1e-9)", "legendFormat": "con déficit de población" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Throughput (ticks por segundo)",
+      "gridPos": { "x": 0, "y": 9, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mc2-prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "mc2:ticks:rate_5m", "legendFormat": "ticks/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Métrica de negocio: jugadores y zombis activos",
+      "gridPos": { "x": 12, "y": 9, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "mc2-prometheus" },
+      "targets": [
+        { "refId": "A", "expr": "mc2_players_connected", "legendFormat": "jugadores conectados" },
+        { "refId": "B", "expr": "mc2_zombies_active", "legendFormat": "zombis activos" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "min": 0, "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Servidor alcanzable",
+      "gridPos": { "x": 0, "y": 17, "w": 6, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "mc2-prometheus" },
+      "targets": [ { "refId": "A", "expr": "up{job=\"mc2-server\"}" } ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [ { "type": "value", "options": { "0": { "text": "caído", "color": "red" }, "1": { "text": "arriba", "color": "green" } } } ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "alertlist",
+      "title": "Alertas del SLO",
+      "gridPos": { "x": 6, "y": 17, "w": 18, "h": 4 },
+      "options": { "showOptions": "current", "maxItems": 10, "stateFilter": { "firing": true, "pending": true } }
+    }
+  ]
+}
