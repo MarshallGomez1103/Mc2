@@ -9,7 +9,7 @@ RUN mvn -B -ntp dependency:go-offline
 COPY src ./src
 COPY test ./test
 # Las pruebas corren en ci.yml; aquí solo se empaqueta el JAR.
-RUN mvn -B -ntp -DskipTests -Djacoco.skip=true package \
+RUN mvn -B -ntp -DskipTests -DskipUnitTests=true -Djacoco.skip=true package \
     && cp target/minecraft2-*.jar /build/app.jar
 
 FROM eclipse-temurin:17.0.20.1_1-jre-noble
