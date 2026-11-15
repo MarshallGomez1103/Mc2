@@ -17,7 +17,7 @@
         <main.class>bootstrap.Minecraft2Application</main.class>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Minimum line coverage of domain/** measured on unit tests only (jacoco-unit.exec); integration data is not added. -->
-        <jacoco.domain.line.minimum>0.70</jacoco.domain.line.minimum>
+        <jacoco.domain.line.minimum>0.99</jacoco.domain.line.minimum>
         <skipUnitTests>false</skipUnitTests>
         <unitCoverageArgLine></unitCoverageArgLine>
         <integrationCoverageArgLine></integrationCoverageArgLine>
