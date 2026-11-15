@@ -1,0 +1,58 @@
+# Imagen de mc2-front: el cliente LibGDX en un escritorio virtual (Xvfb) con OpenGL por software (Mesa llvmpipe),
+# publicado en el navegador con noVNC (6080/HTTP). Construcción: docker build -f Minecraft2/Dockerfile.front Minecraft2
+FROM maven:3.9.16-eclipse-temurin-17-noble AS build
+WORKDIR /build
+
+COPY pom.xml .
+RUN mvn -B -ntp dependency:go-offline
+
+COPY src ./src
+COPY test ./test
+RUN mvn -B -ntp -DskipTests -Djacoco.skip=true package \
+    && cp target/minecraft2-*.jar /build/app.jar
+
+FROM eclipse-temurin:17.0.20.1_1-jre-noble
+
+ARG MC2_VERSION=dev
+ARG MC2_REVISION=desconocida
+LABEL org.opencontainers.image.title="mc2-front" \
+      org.opencontainers.image.description="Cliente de Minecraft2 jugable desde el navegador (noVNC)" \
+      org.opencontainers.image.source="https://github.com/MarshallGomez1103/Mc2" \
+      org.opencontainers.image.version="${MC2_VERSION}" \
+      org.opencontainers.image.revision="${MC2_REVISION}"
+
+# Xvfb (pantalla virtual), x11vnc (servidor VNC solo en localhost del contenedor), noVNC + websockify
+# (VNC en el navegador) y Mesa (OpenGL por software). Las bibliotecas X11 son las que carga GLFW/LWJGL.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        xvfb x11vnc novnc websockify \
+        libgl1 libgl1-mesa-dri libglx-mesa0 libegl1 \
+        libx11-6 libxext6 libxrender1 libxtst6 libxi6 libxrandr2 libxcursor1 libxinerama1 libxxf86vm1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home app \
+    && mkdir -p /data/worlds \
+    && chown -R app:app /data
+
+WORKDIR /app
+COPY --from=build --chown=root:root /build/app.jar /app/app.jar
+COPY --chown=root:root docker/front-entrypoint.sh /app/front-entrypoint.sh
+# Un checkout de Windows puede traer CRLF: se normaliza para que bash pueda ejecutar el script.
+RUN sed -i 's/\r$//' /app/front-entrypoint.sh && chmod 0755 /app/front-entrypoint.sh \
+    && ln -sf /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+ENV MC2_SERVER_HOST=mc2-server \
+    MC2_SERVER_PORT=7777 \
+    MC2_PLAYER_NAME=jugador \
+    MC2_SKIN_ID=0 \
+    MC2_WORLD_DIR=/data/worlds \
+    MC2_SCREEN=1280x720x24 \
+    LIBGL_ALWAYS_SOFTWARE=1 \
+    GALLIUM_DRIVER=llvmpipe
+
+USER app
+EXPOSE 6080
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
+    CMD ["bash", "-c", "kill -0 \"$(cat /tmp/mc2-client.pid)\" && exec 3<>/dev/tcp/127.0.0.1/6080 && printf 'GET /vnc.html HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200'"]
+
+ENTRYPOINT ["/app/front-entrypoint.sh"]

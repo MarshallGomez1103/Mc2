@@ -1,0 +1,77 @@
+# Minecraft2, Corte 3: servidor headless (mc2-server) y cliente en el navegador (mc2-front).
+# Arranque local desde la raíz del repositorio:
+#   cp .env.example .env && docker compose up --build --wait
+# Despliegue desde el registro (cd.yml, scripts/deploy.sh): MC2_IMAGE_TAG fija el SHA o la versión publicados.
+name: mc2
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  mc2-server:
+    <<: *hardening
+    image: ${MC2_REGISTRY:-ghcr.io/marshallgomez1103}/mc2-server:${MC2_IMAGE_TAG:-local}
+    build:
+      context: ./Minecraft2
+      dockerfile: Dockerfile
+    environment:
+      MC2_SERVER_PORT: "7777"
+      MC2_HEALTH_PORT: "8080"
+      MC2_TICK_HZ: ${MC2_TICK_HZ:-20}
+      MC2_LOAD_ZOMBIES: ${MC2_LOAD_ZOMBIES:-0}
+      MC2_WORLD_DIR: ${MC2_WORLD_DIR:-/data/worlds}
+    ports:
+      # Juego: abierto a la red local para el multijugador.
+      - "${MC2_SERVER_PORT:-7777}:7777"
+      # /health y /metrics: solo en el equipo anfitrión.
+      - "127.0.0.1:${MC2_HEALTH_PORT:-8080}:8080"
+    volumes:
+      - mc2-worlds:/data/worlds
+    tmpfs:
+      - /tmp:exec,mode=1777
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200'"]
+      interval: 10s
+      timeout: 3s
+      start_period: 40s
+      retries: 5
+
+  mc2-front:
+    <<: *hardening
+    image: ${MC2_REGISTRY:-ghcr.io/marshallgomez1103}/mc2-front:${MC2_IMAGE_TAG:-local}
+    build:
+      context: ./Minecraft2
+      dockerfile: Dockerfile.front
+    environment:
+      MC2_SERVER_HOST: ${MC2_SERVER_HOST:-mc2-server}
+      MC2_SERVER_PORT: "7777"
+      MC2_PLAYER_NAME: ${MC2_PLAYER_NAME:-jugador}
+      MC2_SKIN_ID: ${MC2_SKIN_ID:-0}
+      MC2_WORLD_DIR: ${MC2_WORLD_DIR:-/data/worlds}
+    ports:
+      # noVNC sin contraseña: solo en el equipo anfitrión (ver seguridad.md).
+      - "127.0.0.1:6080:6080"
+    volumes:
+      - mc2-front-data:/data
+    tmpfs:
+      - /tmp:exec,mode=1777
+      - /home/app:mode=1777
+    shm_size: 256m
+    depends_on:
+      mc2-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kill -0 \"$$(cat /tmp/mc2-client.pid)\" && exec 3<>/dev/tcp/127.0.0.1/6080 && printf 'GET /vnc.html HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && head -1 <&3 | grep -q ' 200'"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 5
+
+volumes:
+  mc2-worlds:
+  mc2-front-data:

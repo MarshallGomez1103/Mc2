@@ -1,7 +1,9 @@
+# Contexto mínimo para Dockerfile (mc2-server) y Dockerfile.front (mc2-front): todo excluido salvo lo necesario.
 **
-!Dockerfile
 !pom.xml
 !src/
 !src/**
 !test/
 !test/**
+!docker/
+!docker/**
