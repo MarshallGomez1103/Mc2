@@ -116,7 +116,7 @@ En la pestaña Actions se abre la ejecución, el job en rojo y su primer paso co
 
 ### Badge
 
-Badge de estado del pipeline en el README raíz. Previsto — responsable: Persona 1.
+Badge de estado del pipeline en el [README raíz](../../README.md), enlazado al workflow `ci.yml` y a la rama `main`.
 
 ## 4. Flujo de ramas, pull request y protección de `main`
 
