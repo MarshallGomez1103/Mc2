@@ -13,7 +13,7 @@
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit.version>5.10.2</junit.version>
-        <gdx.version>1.12.1</gdx.version>
+        <gdx.version>1.14.2</gdx.version>
         <main.class>bootstrap.Minecraft2Application</main.class>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Minimum line coverage of domain/** measured on unit tests only (jacoco-unit.exec); integration data is not added. -->
