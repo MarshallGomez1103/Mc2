@@ -84,7 +84,16 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
     private final Map<Chunk, ModelInstance> instances = new LinkedHashMap<>();
     private final Set<Chunk> dirtyChunks = new LinkedHashSet<>();
 
+    private RemoteVoxelGame remote;
     private int frame;
+
+    /** Remote presentation delegates to a view that never constructs a GameSession. */
+    public VoxelGame(network.NetworkClient client) {
+        this.world = null; this.interactionService = null; this.texturesEnabled = true;
+        this.gameSettings = new GameSettings(); this.managedByShell = false;
+        this.screenshotPath = null; this.screenshotFrame = 0;
+        this.remote = new RemoteVoxelGame(client);
+    }
 
     public VoxelGame(World world, PlayerInteractionService interactionService) {
         this(world, interactionService, true, new GameSettings());
@@ -113,6 +122,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     @Override
     public void create() {
+        if (remote != null) { remote.create(); return; }
         camera = new PerspectiveCamera(FIELD_OF_VIEW, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.near = NEAR_PLANE;
         camera.far = FAR_PLANE;
@@ -169,6 +179,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     @Override
     public void render() {
+        if (remote != null) { remote.render(); return; }
         Player player = world.getPlayer();
 
         if (!managedByShell) {
@@ -350,6 +361,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     @Override
     public void resize(int width, int height) {
+        if (remote != null) { remote.resize(width,height); return; }
         if (camera != null && width > 0 && height > 0) {
             camera.viewportWidth = width;
             camera.viewportHeight = height;
@@ -360,6 +372,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
 
     @Override
     public void dispose() {
+        if (remote != null) { remote.dispose(); return; }
         // Volver al menú después de morir no debe dejar una posición bajo el vacío guardable.
         if (session != null && session.life().isDead()) {
             session.respawn();
