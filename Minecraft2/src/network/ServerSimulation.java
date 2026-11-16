@@ -64,23 +64,26 @@ final class ServerSimulation {
         // Fixed-population mode advances the real controls, physics and AI, but not wave growth.
         // Respawn only in this benchmark mode so a dead target cannot silently freeze the measured AI.
         if (session.life().isDead()) session.respawn();
-        refill();
+        int spawned = refill(4);
         loadControls.update(delta, input);
         session.life().update();
         session.life().advance(delta);
         session.enemies().update(session.life(), delta);
         if (session.life().isDead()) session.respawn();
-        refill();
+        refill(4 - spawned);
     }
-    private void refill() {
+    private int refill(int budget) {
         int active = activeZombies();
+        int spawned = 0;
         Player player = world.getPlayer();
-        for (int attempts = 0; active < target && attempts < target * 4; attempts++) {
+        // Bound startup/refill work and stagger first path searches across ticks.
+        for (int attempts = 0; active < target && spawned < budget && attempts < 32; attempts++) {
             double angle = random.nextDouble() * Math.PI * 2;
             double radius = 8 + random.nextDouble() * 10;
             if (session.enemies().spawnAt(player.getX() + Math.cos(angle) * radius,
-                    player.getZ() + Math.sin(angle) * radius).isPresent()) active++;
+                    player.getZ() + Math.sin(angle) * radius).isPresent()) { active++; spawned++; }
         }
+        return spawned;
     }
     int activeZombies() {
         return (int) session.enemies().zombies().stream().filter(Zombie::isAlive).count();
