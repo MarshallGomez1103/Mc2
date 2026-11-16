@@ -16,7 +16,7 @@ El [plan y checklist del Corte 3](Minecraft2/README.md#corte-3) reúne los requi
 
 ## Asignación del Corte 3
 
-Cada integrante encuentra su trabajo bajo el encabezado de su persona. Los identificadores `C3-xx` son los del [plan del Corte 3](Minecraft2/README.md#corte-3). Las rutas, clases y pruebas marcadas como `previsto` todavía no existen: las crea cada persona en su rama y este README solo las lista. Las de la persona 1 que ya existen en esta rama no llevan marca. Los puertos, variables de entorno, servicios, protocolo y métricas están fijados en el contrato común del [TODO](Minecraft2/TODO.md) y no cambian sin avisar al equipo.
+Cada integrante encuentra su trabajo bajo el encabezado de su persona. Los identificadores `C3-xx` son los del [plan del Corte 3](Minecraft2/README.md#corte-3). Las rutas, clases y pruebas marcadas como `previsto` todavía no existen: las crea cada persona en su rama y este README solo las lista. Las de la persona 1 que ya existen en `main` no llevan marca. Los puertos, variables de entorno, servicios, protocolo y métricas están fijados en el contrato común del [TODO](Minecraft2/TODO.md) y no cambian sin avisar al equipo.
 
 **Skins.** Hay tres skins de jugador (`skinId` 0–2, una por integrante). La persona 1 añade `Player.skinId` en el dominio y lo cablea en `VoxelGame`; la persona 2 lo transporta en el protocolo (`hello` y `state`) y lo dibuja con la clase de presentación `RemotePlayerRenderer`.
 
@@ -25,7 +25,7 @@ Cada integrante encuentra su trabajo bajo el encabezado de su persona. Los ident
 - **Rama:** `c3/thomas`.
 - **Frentes:** C3-00 (confirmación por escrito del alcance, revisión del ADR-002, multijugador y skin en dominio/aplicación), C3-01 (pendientes del Corte 2 y `evolucion.md`), C3-03 (integración continua y protección de `main`), C3-05.4 (cableado de los cuatro controles en el workflow), C3-10 (README raíz, `evolucion.md`, `implementacion.md`) y C3-11 (integración final y presentación).
 - **Archivos de escritura exclusiva:** `Minecraft2/pom.xml`, `.github/workflows/ci.yml`, `.github/dependabot.yml`, `scripts/sca.sh`, `scripts/secretos.sh`, `scripts/escaneo-imagen.sh`, `scripts/umbral-sast.sh`, `README.md` (raíz; Jasub edita solo el bloque de la tabla de trazabilidad), `.gitignore`, `Minecraft2/docs/evolucion.md`, `Minecraft2/docs/implementacion.md` (existe como esqueleto), y en dominio y aplicación las clases que hoy usan `world.getPlayer()`: `World`, `Player`, `GameSession`, `EnemyUpdateService`, `PistolService`, `PlayerControlService` y el cableado en `VoxelGame`.
-- **Primera prueba roja a escribir (CP2):** `WorldMultiPlayerTest` y después `GameSessionMultiPlayerTest` (ambas existen en esta rama). El primer entregable (CP1) fue `ci.yml` con los gates y el umbral de cobertura de `domain/**`, ya activo en `main`.
+- **Primera prueba roja a escribir (CP2):** `WorldMultiPlayerTest` y después `GameSessionMultiPlayerTest` (ambas ya están en `main`). El primer entregable (CP1) fue `ci.yml` con los gates y el umbral de cobertura de `domain/**`, ya activo en `main`.
 - **Comando de aceptación:** `cd Minecraft2 && mvn -B clean verify` con JDK 17 (unitarias, integración, gate de cobertura ≥ 70 % de líneas de `domain/**` y reglas de arquitectura); durante el desarrollo, `mvn -B test -Dtest=WorldMultiPlayerTest,GameSessionMultiPlayerTest`. En GitHub, un check verde por etapa en el pull request.
 - **Criterio de la rúbrica que alimenta:** Integración continua (15), el cableado de los gates de DevSecOps (20), Documentación y repositorio (10), Guía de implementación (10) y apoyo a la presentación (10).
 - **Dependencias:** el servidor de una sola sesión con `/health` (Jasub, CP1) y los Dockerfiles (Ethian) para el job de imagen; el multijugador del dominio debe integrarse antes del protocolo con varios jugadores de Jasub.
@@ -87,7 +87,7 @@ La rúbrica sugiere los documentos bajo `docs/` en la raíz del repositorio. Est
 | .env.example | `.env.example` (raíz) | Ethian | `previsto` |
 | Workflow de integración continua | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Thomas | Existe y está activo en `main` (cinco jobs) |
 | Workflows de despliegue y carga | `.github/workflows/cd.yml`, `.github/workflows/load.yml` | Ethian | `previsto` |
-| Dependabot | [.github/dependabot.yml](.github/dependabot.yml) | Thomas | Existe en esta rama; entra en `main` con el [pull request #3](https://github.com/MarshallGomez1103/Mc2/pull/3) |
+| Dependabot | [.github/dependabot.yml](.github/dependabot.yml) | Thomas | Existe y está en `main` ([pull request #3](https://github.com/MarshallGomez1103/Mc2/pull/3)) |
 | CHANGELOG.md | `CHANGELOG.md` (raíz) | Ethian | `previsto` |
 | docs/devops.md | [Minecraft2/docs/devops.md](Minecraft2/docs/devops.md) | Ethian, con Thomas | Existe (parcial): la parte de integración continua está documentada con ejecuciones reales; despliegue, carga y reversión están `previsto` |
 | docs/seguridad.md | [Minecraft2/docs/seguridad.md](Minecraft2/docs/seguridad.md) | Jasub, con Thomas | Existe (parcial): los cuatro controles corren en el pipeline y hay dos demostraciones de bloqueo; el resto se completa con ejecuciones reales |

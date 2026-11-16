@@ -124,7 +124,7 @@ Badge de estado del pipeline en el [README raíz](../../README.md), enlazado al 
 - Ruleset de `main` (`proteger-main`, activo, consultado con la API de GitHub el 15 de noviembre de 2026): se aplica a la rama por defecto y exige pull request con al menos una aprobación, los cinco checks de `ci.yml` con esos nombres exactos (`build-pruebas`, `sast`, `sca`, `secretos` e `imagen`), historial sin reescrituras forzadas y sin borrado de la rama. No tiene actores con excepción, de modo que nadie hace push directo a `main`. No exige que la rama esté al día con `main` antes de fusionar, y descarta las aprobaciones cuando entra un push nuevo al pull request.
 - Cada cambio entra por pull request aprobado por otro integrante; el orden de integración y las ramas por integrante están en el [README raíz](../../README.md).
 - Evidencia: el [pull request #1](https://github.com/MarshallGomez1103/Mc2/pull/1) lo aprobó otro integrante antes de fusionarlo; la ejecución de `main` posterior pasó los cinco checks ([43736236291](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736236291)).
-- Dependabot para mantener dependencias y acciones al día; no sustituye el control SCA. El archivo `.github/dependabot.yml` está en revisión en el [pull request #3](https://github.com/MarshallGomez1103/Mc2/pull/3) y aún no está en `main`.
+- Dependabot para mantener dependencias y acciones al día; no sustituye el control SCA. El archivo `.github/dependabot.yml` está en `main` desde el [pull request #3](https://github.com/MarshallGomez1103/Mc2/pull/3).
 
 ## 5. Versionado semántico y versiones
 
