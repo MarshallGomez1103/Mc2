@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** Reglas de dependencia del ADR-001, comprobadas sin una biblioteca adicional. */
+/** Reglas de capas de ADR-001 y ADR-004; analizan dependencias de fuentes, no reflexión. */
 class ArchitectureBoundaryTest {
     /** Text blocks, strings, chars and comments, which may name a package without depending on it. */
     private static final Pattern CODE_NOISE = Pattern.compile(
@@ -20,8 +20,15 @@ class ArchitectureBoundaryTest {
     private static final Pattern QUALIFIED = Pattern.compile("(?<![\\w.])([A-Za-z_]\\w*(?:\\.(?:\\w+|\\*))+)");
 
     private static final List<String> DOMAIN_FORBIDDEN = List.of("application.", "presentation.", "persistence.",
-            "bootstrap.", "com.badlogic.");
-    private static final List<String> APPLICATION_FORBIDDEN = List.of("presentation.", "bootstrap.", "com.badlogic.");
+            "bootstrap.", "network.", "com.badlogic.", "org.lwjgl.", "java.awt.", "javax.swing.", "javafx.",
+            "java.net.", "javax.net.", "java.nio.channels.", "com.sun.net.httpserver.");
+    private static final List<String> APPLICATION_FORBIDDEN = List.of("presentation.", "bootstrap.", "network.",
+            "com.badlogic.", "org.lwjgl.", "java.awt.", "javax.swing.", "javafx.",
+            "java.net.", "javax.net.", "java.nio.channels.", "com.sun.net.httpserver.");
+    private static final List<String> NETWORK_FORBIDDEN = List.of("presentation.", "bootstrap.",
+            "com.badlogic.", "org.lwjgl.", "java.awt.", "javax.swing.", "javafx.");
+    private static final List<String> PERSISTENCE_FORBIDDEN = List.of("application.", "presentation.",
+            "bootstrap.", "network.", "com.badlogic.", "org.lwjgl.", "java.awt.", "javax.swing.", "javafx.");
 
     @TempDir Path fixture;
 
@@ -30,6 +37,41 @@ class ArchitectureBoundaryTest {
     }
     @Test void applicationOnlyUsesTheWorldStorageAbstractionOutsideItsCore() throws Exception {
         assertNoViolations(Path.of("src", "application"), APPLICATION_FORBIDDEN, true);
+    }
+    @Test void networkStaysIndependentOfPresentationCompositionAndGraphics() throws Exception {
+        assertNoViolations(Path.of("src", "network"), NETWORK_FORBIDDEN, false);
+    }
+    @Test void persistenceDoesNotDependOnUpperLayersOrTransport() throws Exception {
+        assertNoViolations(Path.of("src", "persistence"), PERSISTENCE_FORBIDDEN, false);
+    }
+    @Test void coreRejectsTheNetworkAdapterAndDirectSockets() throws Exception {
+        write("A.java", "package domain; class A { network.ProtocolCodec codec; java.net.Socket socket; }");
+        assertEquals(2, violations(fixture, DOMAIN_FORBIDDEN, false).size());
+        assertEquals(2, violations(fixture, APPLICATION_FORBIDDEN, true).size());
+    }
+    @Test void networkRejectsUiAndCompositionEvenWithoutImports() throws Exception {
+        write("A.java", "package network; class A { presentation.game.VoxelGame view; bootstrap.ClientBootstrap root; }");
+        assertEquals(2, violations(fixture, NETWORK_FORBIDDEN, false).size());
+    }
+    @Test void networkRejectsGraphicsBackendsAndStandardDesktopUi() throws Exception {
+        write("A.java", "package network; import static com.badlogic.gdx.Gdx.graphics; "
+                + "class A { org.lwjgl.glfw.GLFW backend; java.awt.Frame window; javax.swing.JFrame swing; }");
+        assertEquals(4, violations(fixture, NETWORK_FORBIDDEN, false).size());
+    }
+    @Test void storageCannotReachBackIntoTheNetworkAdapter() throws Exception {
+        write("A.java", "package persistence; import network.GameServer; class A { }");
+        assertEquals(1, violations(fixture, PERSISTENCE_FORBIDDEN, false).size());
+    }
+    @Test void networkAllowsItsRealApplicationDomainAndJsonDependencies() throws Exception {
+        write("A.java", "package network; import application.GameSession; import domain.world.World; "
+                + "import persistence.JsonParser; import persistence.JsonWorldStorage; "
+                + "class A { java.net.ServerSocket socket; com.sun.net.httpserver.HttpServer health; }");
+        assertEquals(List.of(), violations(fixture, NETWORK_FORBIDDEN, false));
+    }
+    @Test void scannerIgnoresUiNamesInCommentsStringsAndTextBlocks() throws Exception {
+        write("A.java", "package network; /* presentation.game.VoxelGame */ class A { "
+                + "String x = \"bootstrap.ClientBootstrap\"; String y = \"\"\"\ncom.badlogic.gdx.Gdx\n\"\"\"; }");
+        assertEquals(List.of(), violations(fixture, NETWORK_FORBIDDEN, false));
     }
     @Test void scannerDetectsFullyQualifiedUseWithoutImport() throws Exception {
         write("A.java", "package domain;\nclass A { Object v = new com.badlogic.gdx.math.Vector2(); }\n");
@@ -75,7 +117,7 @@ class ArchitectureBoundaryTest {
         assertEquals(1, violations(fixture, DOMAIN_FORBIDDEN, false).size());
     }
     @Test void realLayersContainSourcesSoTheRulesAreNotVacuous() throws Exception {
-        for (String layer : List.of("domain", "application")) {
+        for (String layer : List.of("domain", "application", "network", "persistence")) {
             try (var paths = Files.walk(Path.of("src", layer))) {
                 assertTrue(paths.filter(p -> p.toString().endsWith(".java")).count() > 0, layer);
             }
