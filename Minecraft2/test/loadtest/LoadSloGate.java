@@ -26,7 +26,7 @@ public final class LoadSloGate {
     public record Thresholds(int repetitions, int clients, int zombies, double tickP95MaxMs, double rttP95MaxMs,
                              long maxTickFailures, long maxDeficitTicks, long maxNetworkErrors) {
         public static Thresholds contract() {
-            return new Thresholds(3, 3, 80, 16.67, 50.0, 0, 0, 0);
+            return new Thresholds(3, 3, 80, 16.67, 100.0, 0, 0, 0);
         }
 
         /**

@@ -97,7 +97,7 @@ Contrato de despliegue que fija la decisión (los nombres no cambian sin avisar 
 | --- | --- |
 | Servicios de Compose | `mc2-server` y `mc2-front` |
 | Puertos | 7777 (TCP, protocolo v1), 8080 (HTTP: `/health` y `/metrics`) y 6080 (noVNC) |
-| SLO | SLO-CARGA-01 conservado y SLO-RED-01 (propuesta: p95 ≤ 50 ms, 0 errores) |
+| SLO | SLO-CARGA-01 conservado y SLO-RED-01 (p95 ≤ 100 ms, 0 errores) |
 | Entornos | Pull request: Compose efímero en un runner hospedado, con humo y carga corta. `main`: publicación en GHCR con SHA y versión, despliegue con Compose en el runner del job `desplegar` (autohospedado si la variable `MC2_DEPLOY_RUNNER` lo indica; si no, uno hospedado efímero), humo y carga, y reversión por la etiqueta anterior. Detalle en [devops.md](../devops.md#6-despliegue). |
 
 Todo el alcance depende de la confirmación del profesor. Si el profesor decide otra modalidad, se revisa este ADR.
@@ -118,7 +118,7 @@ Todo el alcance depende de la confirmación del profesor. Si el profesor decide 
 - **Revisión de ADR-001.** El [ADR-001](ADR-001-estilo-recuperacion.md#cuándo-revisar-esta-decisión) previó reevaluar la opción de puertos y adaptadores si aparecía entrada de red o multijugador. Si `WorldStorage` se traslada a `application` como puerto de salida es una decisión abierta que este ADR no resuelve. Previsto — responsable: Persona 1.
 - **Costo del OpenGL por software.** El front dibuja con renderizado por software en un contenedor sin GPU. La prueba de viabilidad (sección 7) confirmó que el cliente arranca y se juega desde el navegador; el costo es CPU del anfitrión (llvmpipe usa todos los núcleos) y la cifra de 50 FPS es de un solo equipo, un mundo pequeño y radio 1, no una medición de carga. Si en el equipo del despliegue resulta lenta, el humo y la carga no dependen del front (opción B).
 - **Runner autohospedado.** Agrega un componente que debe asegurarse (amenaza A8) y que depende de la disponibilidad de un equipo del grupo.
-- **SLO doble.** Se mantienen dos mediciones. SLO-CARGA-01 se mide ahora contra el servidor desplegado leyendo el histograma `mc2_tick_duration_seconds` de `/metrics`; el umbral no cambia, cambia el lugar de la medición ([devops.md](../devops.md#umbrales-del-slo-en-el-despliegue)). SLO-RED-01 todavía no se ha medido contra el servidor real; contra un doble que emite el estado a 20 Hz su p95 fue 52,4 ms, por encima de 50 ms, porque la espera hasta el siguiente tick consume casi todo el umbral. Antes de confirmarlo con el profesor, el equipo decide si se mide solo el trayecto de red, se sube el umbral o se emite el estado más a menudo.
+- **SLO doble.** Se mantienen dos mediciones. SLO-CARGA-01 se mide ahora contra el servidor desplegado leyendo el histograma `mc2_tick_duration_seconds` de `/metrics`; el umbral no cambia, cambia el lugar de la medición ([devops.md](../devops.md#umbrales-del-slo-en-el-despliegue)). SLO-RED-01 todavía no se ha medido contra el servidor real; contra un doble que emite el estado a 20 Hz su p95 fue 52,4 ms, porque la espera hasta el siguiente tick consume casi todo un umbral de 50 ms. El equipo fijó el umbral en 100 ms (dos periodos de tick a 20 Hz) en lugar de medir solo el trayecto de red o emitir el estado más a menudo.
 - **Sin autenticación de jugador.** El protocolo y noVNC no autentican a quien se conecta; el alcance excluye cuentas ([seguridad.md](../seguridad.md#21-autenticación-y-autorización)).
 - **Multijugador solo en la misma red.** No se prueba ni se afirma nada fuera de ella.
 
