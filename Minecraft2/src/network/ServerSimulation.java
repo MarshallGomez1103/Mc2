@@ -32,6 +32,7 @@ final class ServerSimulation {
     private final Map<Integer, String> names = new LinkedHashMap<>();
     private final Map<domain.Position, Map<String,Object>> blockChanges = new LinkedHashMap<>();
     private final int target;
+    private boolean initialized;
     private final SplittableRandom random = new SplittableRandom(20260925L);
 
     ServerSimulation(ServerConfig config) throws IOException {
@@ -55,7 +56,6 @@ final class ServerSimulation {
         GameSettings settings = new GameSettings();
         if (target > 0) settings.setDifficulty(Difficulty.VERY_HARD);
         session = new GameSession(world, settings);
-        session.leave(world.primaryPlayerId());
         world.addObserver(change -> {
             var pos = change.block().getPosition();
             blockChanges.put(pos, Map.of("x", pos.x(), "y", pos.y(), "z", pos.z(), "type",
@@ -63,6 +63,12 @@ final class ServerSimulation {
         });
     }
 
+    void initialize() {
+        if (!initialized) {
+            session.leave(world.primaryPlayerId());
+            initialized = true;
+        }
+    }
     int join(String name, int skin) {
         int id = session.join(skin);
         names.put(id, name);

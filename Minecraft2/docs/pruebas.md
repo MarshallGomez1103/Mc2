@@ -109,3 +109,20 @@ Incremento inicial `57be0e1` y mejora de relleno `7de8745`, sobre `main` `572b65
 - Evidencia rojo → verde: `1fe08c3`, `40aa59c`, `57be0e1`. Las pruebas rojas fallan por clases aún inexistentes; el último incremento compila y ejecuta la suite completa. Se conservó también el fallo inicial de limpieza de un log temporal en Windows y su corrección. La suite completa se repitió con `7de8745` y mantuvo los mismos conteos y cero fallos.
 
 Alcance: una conexión de jugador a la vez. Las pruebas no acreditan todavía cliente gráfico remoto, varios jugadores, SLO de tres clientes ni despliegue/CD en Actions. Esas evidencias se incorporan al completar las siguientes fases y la integración con los compañeros.
+
+
+## Corte 3 — cliente y multijugador de Jasub (fase C, 2026-11-16)
+
+Integra el núcleo de Thomas de `main` `2df9c14`. La verificación completa con JDK 17, `mvn -B -ntp clean verify`, pasó con **271 pruebas unitarias y 160 de integración**, cero fallos, errores u omitidas, y el gate de cobertura ≥70 % activo. El código funcional del incremento está en `f545114`; la revisión posterior mueve la baja inicial al hilo del tick y añade diagnósticos de cierre. La suite completa se repitió después de ambos cambios y mantuvo los mismos conteos, sin fallos. No se reutilizan los conteos históricos de B como resultados de C.
+
+- `ClientProtocolTest` y `TerrainCodecTest`: snapshots inmutables, mensajes inválidos, límites y paleta/RLE del terreno.
+- `NetworkInputBufferTest` y `RemotePlayerRendererTest`: acciones entre frames, selección del jugador local y las tres variantes de skin, sin GPU.
+- `NetworkClientIT`: TCP real, cierre/cancelación, error de saludo y una acción confirmada por GameServer.
+- `MultiplayerServerIT`: tres clientes simultáneos con identidad/skin y ack separados, desconexión/reingreso sin jugador fantasma, terreno real y eliminación de un bloque observada en ambos clientes.
+- `GameServerIT`: se conserva arranque del JAR headless, salud, métricas, carga real de 80 zombis y persistencia/cierre. Una segunda conexión válida ahora se admite; los mensajes inválidos siguen aislados.
+
+Los XML de Surefire/Failsafe y JaCoCo se conservan antes de limpiar target; el workflow vigente los publica en Actions. El PR existente es [#6](https://github.com/MarshallGomez1103/Mc2/pull/6); hay que comprobar los checks de su SHA actual. No se modifican POM ni workflows.
+
+Se construyeron las dos imágenes de Ethian con el código integrado y se comprobaron dos clientes gráficos mediante su front/noVNC. [Procedimiento, capturas y límites](evidencias/fase-c/README.md). Una captura registra tres conexiones (dos gráficas y una de prueba), y otra la visión del segundo cliente gráfico. Se conserva también una desconexión previa de causa no establecida; la repetición prolongada no la reprodujo. No son resultados de tres personas jugando ni del CD de Actions.
+
+La carga local de C con el consumidor real de Ethian y calentamiento pasó para tres clientes de prueba y 80 zombis. [CSV, parámetros, veredicto y límites](evidencias/fase-c/README.md#carga-local-complementaria-de-tres-clientes). Las compilaciones y los clientes gráficos estaban detenidos durante la medición. Esto no sustituye despliegue y SLO final de Actions.

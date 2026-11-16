@@ -1,0 +1,3 @@
+finished_utc=2026-11-16T20:52:13.486074800Z
+thresholds=repetitions:3 clients:3 zombies:80 tick_p95_ms:16.67 rtt_p95_ms:100.00
+verdict=CUMPLE

@@ -97,6 +97,7 @@ public final class GameServer implements AutoCloseable {
         long start = System.nanoTime();
         boolean success = false;
         try {
+            simulation.initialize();
             var departed = players.entrySet().iterator();
             while (departed.hasNext()) {
                 var entry = departed.next();
@@ -206,7 +207,8 @@ public final class GameServer implements AutoCloseable {
                     received = input.seq();
                     if (!inputs.offer(input)) throw new IOException("Input queue full");
                 }
-            } catch (IOException ignored) {
+            } catch (IOException failure) {
+                System.err.println("Peer " + playerId + " read closed: " + failure.getClass().getSimpleName() + " " + failure.getMessage());
                 // Invalid, idle, disconnected or overloaded peer: close only this connection.
             } finally { close(); }
         }
@@ -222,7 +224,11 @@ public final class GameServer implements AutoCloseable {
             catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
             finally { close(); }
         }
-        void send(String message) { if (!closed.get() && !output.offer(message)) close(); }
+        void send(String message) {
+            if (!closed.get() && !output.offer(message)) {
+                System.err.println("Peer " + playerId + " output queue full"); close();
+            }
+        }
         void close() {
             if (!closed.compareAndSet(false, true)) return;
             try { socket.close(); } catch (IOException ignored) { }

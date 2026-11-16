@@ -109,3 +109,6 @@ El consumidor actual espera población hasta `MC2_LOAD_WARMUP_SECONDS`, pero ret
 `GameServer` procesa admisiones, bajas, entradas y snapshots en su hilo de simulación. `ServerSimulation` llama a `join(skinId)`, `leave(id)` y `advanceAll(delta, inputs)`. No hay lecturas concurrentes del GameSession ni se confía en un playerId enviado por el cliente. Cada conexión recibe el mismo tick/mundo y su propio ack. Las conexiones se cuentan por clientes, no por cuerpos retenidos.
 
 La inicialización gráfica aplica los chunks recibidos a una copia de presentación; los cambios posteriores llegan ordenados en estados TCP. No hay una segunda simulación del mundo compartido. Los estados conservan el límite de 1 MiB y la cola de terreno está limitada a 128 actualizaciones; al excederla se informa un fallo de conexión en lugar de perder cambios silenciosamente.
+
+
+La [evidencia de C](evidencias/fase-c/README.md#carga-local-complementaria-de-tres-clientes) registra una carga posterior de tres clientes de prueba con 80 zombis y calentamiento de 30 segundos por repetición: los tres gates locales pasaron, con frentes gráficos detenidos. Ese resultado amplía el alcance histórico de B; no acredita el CD final ni carga gráfica simultánea.
