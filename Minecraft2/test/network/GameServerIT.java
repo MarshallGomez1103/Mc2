@@ -102,9 +102,15 @@ class GameServerIT {
         ProcessBuilder builder = new ProcessBuilder(javaExecutable, "-Djava.awt.headless=true", "-Dmc2.server=true", "-jar", jar.toString());
         builder.environment().putAll(Map.of("MC2_SERVER_PORT", "" + game, "MC2_HEALTH_PORT", "" + health,
                 "MC2_TICK_HZ", "20", "MC2_LOAD_ZOMBIES", "0", "MC2_WORLD_DIR", temporary.toString()));
-        Path log = temporary.resolve("server-process.log");
-        builder.redirectErrorStream(true).redirectOutput(log.toFile());
+        var log = new java.io.ByteArrayOutputStream();
+        builder.redirectErrorStream(true);
         Process process = builder.start();
+        Thread capture = new Thread(() -> {
+            try (var stdout = process.getInputStream()) { stdout.transferTo(log); }
+            catch (java.io.IOException closed) { /* process cleanup closes the pipe */ }
+        }, "server-test-output");
+        capture.setDaemon(true);
+        capture.start();
         try {
             HttpResponse<String> response = null;
             long end = System.nanoTime() + Duration.ofSeconds(15).toNanos();
@@ -112,21 +118,28 @@ class GameServerIT {
                 try { response = get("http://127.0.0.1:" + health + "/health"); }
                 catch (java.io.IOException notReady) { }
                 if (response != null && response.statusCode() == 200) break;
-                assertTrue(process.isAlive(), () -> read(log));
+                assertTrue(process.isAlive(), () -> log.toString(StandardCharsets.UTF_8));
                 Thread.sleep(50);
             } while (System.nanoTime() < end);
-            assertNotNull(response, () -> read(log));
-            assertEquals(200, response.statusCode(), () -> read(log));
+            assertNotNull(response, () -> log.toString(StandardCharsets.UTF_8));
+            assertEquals(200, response.statusCode(), () -> log.toString(StandardCharsets.UTF_8));
             try (Peer peer = new Peer(game)) {
                 peer.send("{\"type\":\"hello\",\"name\":\"process\",\"skinId\":1}");
                 assertEquals("welcome", peer.next().get("type"));
                 peer.send("{\"type\":\"input\",\"seq\":1}");
                 assertEquals(1L, peer.state(1).get("ack"));
             }
-            assertFalse(read(log).contains("GLFW"));
+            assertFalse(log.toString(StandardCharsets.UTF_8).contains("GLFW"));
         } finally {
             process.destroy();
-            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) process.destroyForcibly().waitFor();
+            if (!process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                assertTrue(process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS), "Server process did not terminate");
+            }
+            process.getOutputStream().close();
+            capture.join(2_000);
+            process.getInputStream().close();
+            process.getErrorStream().close();
         }
     }
     private GameServer server(int target) throws Exception {
@@ -140,7 +153,6 @@ class GameServerIT {
                 HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(2)).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
     }
-    private static String read(Path p) { try { return Files.readString(p); } catch (Exception e) { return e.toString(); } }
     private static Map<?, ?> player(Map<?, ?> state) { return (Map<?, ?>) ((List<?>)state.get("players")).get(0); }
     private static double number(Object value) { return ((Number)value).doubleValue(); }
     private static final class Peer implements AutoCloseable {
