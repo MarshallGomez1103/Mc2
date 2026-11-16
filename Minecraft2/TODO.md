@@ -79,9 +79,9 @@ Rama: `c3/jasub`. Criterios que alimenta: Arquitectura verificada (15), DevSecOp
 
 ### Red, servidor headless y skins
 
-- [ ] **C3-00.7** Protocolo v1 y adaptador de red (TCP con líneas JSON, `ServerSocket` de la biblioteca estándar, sin dependencias nuevas). Pruebas a crear: `ProtocolCodecTest` (rojo primero), `GameServerIT`. Archivos: paquete nuevo del adaptador de red y cliente (nombre a fijar en CP0). Evidencia: `cd Minecraft2 && mvn -B test -Dtest=ProtocolCodecTest` y `mvn -B verify -DskipUnitTests=true -Dit.test=GameServerIT`. Depende de: contrato común.
-- [ ] **C3-00.8** Arranque headless del servidor con `/health` y `/metrics` (`com.sun.net.httpserver`) y las métricas del contrato; configuración por las variables `MC2_*`. Evidencia: `curl` a `/health` y `/metrics` con las cinco métricas del contrato; `GameServerIT` cubre el arranque. Depende de: `GameSession` de una sola sesión (persona 1, CP1); cambios de `pom.xml` por la persona 1.
-- [ ] **C3-00.9** Protocolo con varios jugadores y tres skins: `hello` y `state` con `skinId`, `RemotePlayerRenderer` en presentación. Pruebas a crear: `RemotePlayerRendererTest`. Evidencia: dos o tres clientes se ven en la red local con skins distintas. Depende de: C3-00.5 (persona 1).
+- [x] **C3-00.7** Protocolo v1 y adaptador de red (TCP con líneas JSON, `ServerSocket` de la biblioteca estándar, sin dependencias nuevas). Pruebas a crear: `ProtocolCodecTest` (rojo primero), `GameServerIT`. Archivos: paquete nuevo del adaptador de red y cliente (nombre a fijar en CP0). Evidencia: `cd Minecraft2 && mvn -B test -Dtest=ProtocolCodecTest` y `mvn -B verify -DskipUnitTests=true -Dit.test=GameServerIT`. Depende de: contrato común.
+- [x] **C3-00.8** Arranque headless del servidor con `/health` y `/metrics` (`com.sun.net.httpserver`) y las métricas del contrato; configuración por las variables `MC2_*`. Evidencia: `curl` a `/health` y `/metrics` con las cinco métricas del contrato; `GameServerIT` cubre el arranque. Depende de: `GameSession` de una sola sesión (persona 1, CP1); cambios de `pom.xml` por la persona 1.
+- [x] **C3-00.9** Protocolo con varios jugadores y tres skins: `hello` y `state` con `skinId`, `RemotePlayerRenderer` en presentación. Pruebas a crear: `RemotePlayerRendererTest`. Evidencia: dos o tres clientes se ven en la red local con skins distintas. Depende de: C3-00.5 (persona 1).
 - [ ] **C3-04.5 (humo)** Ampliar `GameFlowSmokeIT` hasta el servidor (humo de caja negra por el protocolo). Archivos: `Minecraft2/test/presentation/GameFlowSmokeIT.java`. Evidencia: ejecución de Failsafe en Actions.
 
 ### Arquitectura y trazabilidad
@@ -99,6 +99,9 @@ Rama: `c3/jasub`. Criterios que alimenta: Arquitectura verificada (15), DevSecOp
 - [ ] **C3-10.7** `Minecraft2/docs/pruebas.md`: comandos, clasificación Surefire/Failsafe, reportes y relación con los checks reales.
 - [ ] Entregar las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación.
 - [ ] Revisar el control antes de cada commit y de la entrega: requisito literal, archivos completos, rutas personales, marcadores sin resolver, enlaces, cifras con fecha y commit, pruebas omitidas informadas por separado.
+
+
+Evidencia de red/multijugador de C (16/11/2026): código funcional `f545114`, [PR #6](https://github.com/MarshallGomez1103/Mc2/pull/6), suite completa 271 unitarias + 160 integración, sin fallos/errores/omitidas. [Dos clientes gráficos y tres variantes de skin](docs/evidencias/fase-c/README.md), con límites e incidencia de desconexión conservada. No acredita CD final ni tres personas jugando; arquitectura y seguridad siguientes siguen pendientes.
 
 ## Persona 3 — Ethian
 
