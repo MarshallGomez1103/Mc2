@@ -2,7 +2,7 @@
 
 Este documento recoge el modelo de amenazas del sistema, los cuatro controles de seguridad del pipeline con sus umbrales, el registro de hallazgos y la evidencia de que los controles detienen un cambio inseguro. Lo lee quien revisa la seguridad del proyecto o decide si un riesgo se acepta. La justificación de las herramientas y de los umbrales está en el [ADR-003](adr/ADR-003-seguridad.md); el pipeline, en [devops.md](devops.md).
 
-> **Estado del documento: parcial.** Los cuatro controles de la sección 3 ya corren en el pipeline y su primera ejecución no reportó hallazgos, de modo que no hay ninguno registrado; el resto sigue como esqueleto. Cada elemento marcado «Previsto — responsable: Persona N» se completa con ejecuciones reales y el marcador se retira antes de la entrega. Las amenazas de la sección 2 son **candidatas por evaluar**: no son vulnerabilidades confirmadas.
+> **Estado del documento: parcial.** Los cuatro controles de la sección 3 ya corren en el pipeline y su primera ejecución no reportó hallazgos, de modo que no hay ninguno registrado. La sección 5 recoge dos demostraciones de bloqueo (cobertura del dominio y secretos); los controles de dependencias, análisis estático e imagen aún no tienen una demostración. El resto sigue como esqueleto. Cada elemento marcado «Previsto — responsable: Persona N» se completa con ejecuciones reales y el marcador se retira antes de la entrega. Las amenazas de la sección 2 son **candidatas por evaluar**: no son vulnerabilidades confirmadas.
 
 Responsable: Persona 2, con Persona 1 (cableado de los controles en el workflow).
 
@@ -44,9 +44,9 @@ Cada fila nombra un componente o flujo del sistema. «Candidata por evaluar» si
 
 Los cuatro controles corren en el pipeline [`ci.yml`](../../.github/workflows/ci.yml) como quality gates. Los umbrales mínimos son los del enunciado (sección 4.2); cada grupo puede endurecerlos, nunca relajarlos. Las herramientas son las propuestas del [ADR-003](adr/ADR-003-seguridad.md), que sigue en estado propuesto: la primera ejecución sobre el repositorio real (sección 3.2) las pone a prueba, pero no sustituye la demostración de que cada gate bloquea un cambio inseguro.
 
-> **Estado de esta sección.** Los cuatro jobs existen y se ejecutaron por primera vez en el pull request #1 ([ejecución](https://github.com/MarshallGomez1103/Mc2/actions/runs/43487176016), commit `b9f06d3`, 2026-11-13): los cinco jobs terminaron en verde y los cuatro controles no reportaron hallazgos. Siguen como Previsto la demostración de que cada gate falla ante un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) y que el ruleset de `main` exija estos checks: Previsto — responsable: Persona 1 (ruleset) y Persona 2 (demostraciones).
+> **Estado de esta sección.** Los cuatro jobs existen y se ejecutaron por primera vez en el pull request #1 ([ejecución](https://github.com/MarshallGomez1103/Mc2/actions/runs/43487176016), commit `b9f06d3`, 2026-11-13): los cinco jobs terminaron en verde y los cuatro controles no reportaron hallazgos. El ruleset de `main` exige estos cinco checks ([devops](devops.md#4-flujo-de-ramas-pull-request-y-protección-de-main)). De la demostración de que cada gate falla ante un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) constan la de secretos y la de cobertura; siguen Previsto las de SAST, SCA e imagen: Previsto — responsable: Persona 2.
 
-El workflow se dispara con `pull_request` hacia `main`, con `push` a `main` y con `workflow_dispatch`. Los jobs se llaman `build-pruebas`, `sast`, `sca`, `secretos` e `imagen`; el id de cada job es el nombre de su check y no se renombra sin actualizar el ruleset de `main` que lo referencie. Que ese ruleset exista y marque los checks como obligatorios no está evidenciado todavía: Previsto — responsable: Persona 1.
+El workflow se dispara con `pull_request` hacia `main`, con `push` a `main` y con `workflow_dispatch`. Los jobs se llaman `build-pruebas`, `sast`, `sca`, `secretos` e `imagen`; el id de cada job es el nombre de su check y no se renombra sin actualizar el ruleset de `main` que lo referencie. El ruleset `proteger-main` existe y marca los cinco checks como obligatorios ([devops](devops.md#4-flujo-de-ramas-pull-request-y-protección-de-main)).
 
 | Control (job) | Qué detecta | Umbral mínimo (enunciado) | Umbral adoptado | Herramienta | Cómo detiene el pipeline |
 | --- | --- | --- | --- | --- | --- |
@@ -126,12 +126,13 @@ La suma de comprobación detecta un archivo corrupto o cambiado respecto de la p
 
 ### 3.6 Demostración: la credencial es siempre falsa
 
-Para demostrar que el gate de secretos detiene un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) se usa una credencial **inventada**, sin relación con ningún sistema real. Nunca se usa un secreto real, ni siquiera uno ya revocado, porque lo que entra en un pull request queda en el historial público. Reglas de la demostración, todas Previsto — responsable: Persona 2:
+Para demostrar que el gate de secretos detiene un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) se usa una credencial **inventada**, sin relación con ningún sistema real. Nunca se usa un secreto real, ni siquiera uno ya revocado, porque lo que entra en un pull request queda en el historial público, y el valor de la credencial falsa no se reproduce en los documentos. Reglas que se aplicaron en la demostración:
 
-- Antes de abrir el pull request se comprueba en local, con Gitleaks 8.30.1, que la credencial falsa es detectada: las reglas de Gitleaks ignoran valores con apariencia de ejemplo, de modo que no basta con escribir cualquier cadena.
-- El pull request se cierra sin fusionar y **la rama de la demostración se borra del remoto**. El job `secretos` descarga todas las ramas y escanea todas las referencias descargadas: mientras la rama exista, el check `secretos` falla también en `main`.
-- Como la credencial falsa deja de estar accesible desde `main` al borrar la rama, no hace falta una excepción de Gitleaks. Si se prefiriera conservar la rama como evidencia, habría que decidir primero cómo evitar que bloquee `main`; el enlace al pull request y la captura del check rojo bastan como evidencia.
-- Las demostraciones de los otros tres gates (un umbral más estricto o una dependencia o imagen con una vulnerabilidad conocida) también quedan Previsto: la ejecución del pull request #1 solo prueba que los controles pasan con el código actual, no que fallen ante un problema.
+- Antes de abrir el pull request se comprobó en local, con Gitleaks 8.30.1, que la credencial falsa es detectada: las reglas de Gitleaks ignoran valores con apariencia de ejemplo, de modo que no basta con escribir cualquier cadena.
+- El pull request se cerró sin fusionar y **la rama de la demostración se eliminó del remoto** de inmediato. El job `secretos` descarga todas las ramas y escanea todas las referencias descargadas: mientras la rama exista, el check `secretos` falla también en `main`.
+- Como la credencial falsa deja de estar accesible desde `main` al borrar la rama, no hace falta una excepción de Gitleaks. El enlace al pull request y a la ejecución con el check rojo sirven de evidencia.
+- Contaminación entre ramas: la demostración de cobertura se ejecutó mientras la rama de la credencial falsa seguía en el remoto, y por eso `secretos` también falló en esa ejecución (sección 5). El efecto confirma la regla anterior; las demostraciones se hacen una a una o borrando la rama antes de abrir la siguiente.
+- Las demostraciones de los otros gates (una dependencia vulnerable para SCA, un hallazgo alto para SAST y una vulnerabilidad crítica en la imagen) siguen pendientes: Previsto — responsable: Persona 2. La ejecución del pull request #1 solo prueba que esos controles pasan con el código actual, no que fallen ante un problema.
 
 ## 4. Registro de hallazgos
 
@@ -140,15 +141,20 @@ Cada hallazgo se registra con una de tres decisiones: **corregido** (con enlace 
 | ID | Herramienta | Hallazgo | Decisión (corregido, falso positivo o riesgo aceptado) | Justificación o commit |
 | --- | --- | --- | --- | --- |
 
-La tabla está vacía a propósito: se llena solo con los hallazgos de ejecuciones reales de los controles. Previsto — responsable: Persona 2.
+La tabla está vacía a propósito: se llena solo con los hallazgos de ejecuciones reales de los controles. Previsto — responsable: Persona 2. La credencial falsa de la demostración de la [sección 5](#5-evidencia-pull-request-bloqueado) se introdujo a propósito en un pull request que no se fusionó: no es un hallazgo del sistema y no se registra aquí.
 
 ## 5. Evidencia: pull request bloqueado
 
 Al menos un pull request introduce a propósito un problema de seguridad (por ejemplo, una llave falsa en un archivo de configuración o una dependencia con una vulnerabilidad conocida), el pipeline lo bloquea y se cierra sin fusionar.
 
-| Enlace al pull request | Qué introduce | Check que lo bloquea | Estado |
-| --- | --- | --- | --- |
-| Previsto — responsable: Persona 2 | Previsto — responsable: Persona 2 | Previsto — responsable: Persona 2 | Cerrado sin fusionar: Previsto — responsable: Persona 2 |
+| Enlace al pull request | Qué introduce | Check que lo bloquea | Ejecución | Resultado | Estado |
+| --- | --- | --- | --- | --- | --- |
+| [Pull request #5](https://github.com/MarshallGomez1103/Mc2/pull/5) | Una credencial falsa en un archivo de configuración de demostración. | `secretos` | [43736948906](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736948906) | `secretos` falla con «Secrets gate FAILED (gitleaks rc=1)» y un hallazgo; los otros cuatro checks pasan. | Cerrado sin fusionar; rama eliminada |
+| [Pull request #4](https://github.com/MarshallGomez1103/Mc2/pull/4) | El umbral de cobertura de líneas del dominio subido a 0,99 en `Minecraft2/pom.xml`. | `build-pruebas` (e `imagen`, cuyo `docker build` repite las pruebas) | [43736947725](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736947725) | Fallan con «lines covered ratio is 0.92, but expected minimum is 0.99» (regla `unit-domain-check` de JaCoCo). | Cerrado sin fusionar; rama eliminada |
+
+Contaminación entre ramas: en la ejecución 43736947725 el check `secretos` también falló, pero solo porque la rama de la demostración del pull request #5 existía a la vez en el remoto y el control escanea todas las ramas. Ese fallo no es evidencia de la cobertura ni de un problema del pull request #4, que no introduce ninguna credencial (solo modifica `Minecraft2/pom.xml`).
+
+La demostración de secretos es de seguridad; la de cobertura es de calidad y se cita aquí porque prueba que el pipeline detiene el cambio. Sin demostrar: una dependencia vulnerable para `sca`, un hallazgo alto para `sast` y una vulnerabilidad crítica en la imagen para `imagen` (en la ejecución 43736947725 la imagen falló por la cobertura, no por una vulnerabilidad). Previsto — responsable: Persona 2.
 
 ## 6. Riesgos aceptados
 
