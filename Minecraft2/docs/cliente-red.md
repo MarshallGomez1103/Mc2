@@ -1,33 +1,35 @@
-# Cliente de red — preparación de fase C
+# Cliente remoto y mundo compartido
 
-Estado al 16 de noviembre de 2026: adaptador y renderer preparados; todavía no están conectados al arranque gráfico. No constituye multijugador terminado.
+El cliente LibGDX representa la partida del servidor autoritativo. El modo local anterior se conserva cuando no se selecciona un destino de red.
+
+## Conectar
+
+Con el servidor ya iniciado, desde Minecraft2 y con JDK 17:
+
+```sh
+java -Dmc2.client=true -jar target/minecraft2-0.1.0-SNAPSHOT.jar
+```
+
+El destino por defecto de esa bandera es 127.0.0.1:7777. `MC2_SERVER_HOST` no vacío también activa el modo remoto. Se leen `MC2_SERVER_PORT`, `MC2_PLAYER_NAME` y `MC2_SKIN_ID`; la skin se resuelve mediante `SkinSelection.fromEnvironment` de Thomas (0–2, fallback 0). El contenedor front de Ethian ya proporciona estas variables y abre este mismo modo.
+
+WASD mueve, ratón mira, espacio salta, shift corre, clic izquierdo/derecho actúa, 1–7 selecciona material y Q alterna arma. R solicita reaparición cuando el servidor informa muerte. ESC libera/captura cursor: pausa únicamente las intenciones de este cliente, la partida compartida continúa. Cerrar la ventana cierra el socket y el servidor retira al jugador por EOF. Los fallos de conexión se muestran en pantalla; para reconectar se reinicia el cliente.
 
 ## Responsabilidades
 
-`network.NetworkClient` abre una conexión por instancia. El constructor valida la configuración y lanza un lector; resolver el nombre, conectar y esperar mensajes ocurre fuera del hilo gráfico. Tras `welcome`, un escritor independiente consume una cola de hasta 128 intenciones. `send(PlayerFrameInput)` devuelve inmediatamente si pudo aceptar la entrada; una cola llena produce un error y desconexión explícitos. No se descartan silenciosamente acciones discretas. Cada instancia empieza su secuencia en uno.
+`NetworkClient` realiza conexión, DNS y E/S fuera del hilo gráfico. Envía intenciones mediante una cola de 128 mensajes, mantiene secuencia por instancia y valida ticks/ack recibidos. La cola llena desconecta explícitamente. `ClientProtocol` produce snapshots inmutables; admite estados de hasta 1 MiB, mientras las entradas siguen limitadas a 4 KiB. Un timeout de conexión de 3 s no incluye el tiempo de DNS; lectura de estados tiene timeout de 5 s. El cierre del socket no garantiza enviar bye.
 
-`network.ClientProtocol` codifica `hello` e `input` de acuerdo con el servidor actual y convierte `welcome` y `state` en records inmutables. Valida tipos, números finitos, identidad única, skins y tamaños. El límite de mensajes del servidor es 1 MiB; el de las intenciones sigue siendo 4 KiB. Los snapshots incluyen tick, ack, jugadores y zombis; todavía no transportan terreno ni cambios de bloques.
+`VoxelGame` delega su modo remoto a `RemoteVoxelGame`; este recoge controles con `GameInput`, los acumula con `NetworkInputBuffer` hasta el siguiente envío al ritmo de tickHz y dibuja estados recibidos. Conserva acciones puntuales y deltas entre frames. No crea GameSession ni ejecuta física o IA compartida. `RemoteWorldReplica` solo materializa los chunks y aplica los cambios de bloques del servidor, en el hilo gráfico. Los cambios de chunks aún no recibidos quedan incluidos en su transmisión inicial posterior.
 
-El cliente exige ticks crecientes, ack que no retrocede ni supera las entradas enviadas, y presencia del jugador admitido. `latestState()` publica únicamente el último snapshot completo mediante una referencia volatile. No se comparte un `GameSession`, `World` o `Player` mutable con el hilo de red. `status()` y `error()` permiten mostrar conexión, fallo y cierre en pantalla. Un servidor que deja de enviar datos provoca timeout de lectura a los cinco segundos; conectar tiene timeout de tres segundos, aparte de la resolución DNS. `close()` cierra el socket sin esperar al lector y el servidor procesa la desconexión por EOF; no se garantiza enviar `bye` en ese cierre.
+`RemotePlayerRenderer` representa otros jugadores por identidad, con tres variantes humanoides diferenciadas por color; excluye al jugador local y retira a quien deja de aparecer. Los zombis remotos se representan con cuerpos verdes desde sus posiciones/salud recibidas. El modo remoto tiene HUD de conexión, salud, jugadores y tick; sus visuales de zombis y arma son más simples que los del modo local (no reproduce sus animaciones ni el modelo de pistola). Las acciones y el combate se resuelven en el servidor. No se presenta equivalencia visual completa con el modo local.
 
-`presentation.game.RemotePlayerRenderer` crea tres modelos humanoides de seis partes, diferenciados por color según skinId 0, 1 o 2. Recibe vistas de red, excluye al jugador local y retira las instancias ausentes del siguiente snapshot. Construcción, render y dispose deben ocurrir en el hilo gráfico. Las pruebas sin GPU comprueban selección y colores; no acreditan la apariencia OpenGL.
+La inicialización envía un chunk por tick, hasta completar el mundo real. La pantalla informa progreso y espera ese mundo antes de habilitar controles; no genera otro terreno a partir de una semilla. Una cola independiente de 128 actualizaciones conserva chunks y cambios aunque el último snapshot de actores sea reemplazado. Recursos gráficos y la copia visual se usan y destruyen solamente en el hilo gráfico.
 
-## Integración que falta con Thomas
-
-1. Incorporar el PR #3 después de su fusión, respetando el orden del equipo. Usar `join`, `leave`, `advanceAll` y snapshots solamente desde el hilo de simulación. Cada conexión conserva identidad y ack propios.
-2. Definir y probar el transporte del mundo inicial y las modificaciones de bloques; no generar un mundo local independiente que pueda divergir.
-3. Entregar a Thomas el cambio concreto de su cableado `VoxelGame` una vez fijada esa representación. En modo remoto, recoger intenciones y enviarlas al ritmo del servidor, conservando acciones puntuales y deltas entre envíos; no invocar `session.advance` para otra partida compartida. El adaptador no regula por sí mismo la frecuencia de `send`.
-4. Dibujar cámara local, zombis, terreno y jugadores remotos desde los estados recibidos. Conectar `MC2_SERVER_HOST`, `MC2_SERVER_PORT`, `MC2_PLAYER_NAME` y `MC2_SKIN_ID` en el arranque autorizado.
-5. Probar aislamiento, reconexiones, dos o tres clientes y noVNC con el código integrado. Ninguna de esas comprobaciones se sustituye por las pruebas actuales del adaptador.
-
-## Pruebas
-
-`ClientProtocolTest` comprueba codificación de intenciones, snapshots inmutables y rechazo de mensajes inválidos y sobredimensionados. `NetworkClientIT` prueba TCP con un peer controlado (saludo, secuencia, ack, cierre y cancelación), un saludo inválido y un intercambio real con `GameServer`. `RemotePlayerRendererTest` prueba la lógica independiente de GPU.
-
-Desde `Minecraft2`, con Maven usando JDK 17:
+## Verificación
 
 ```sh
 mvn -B -ntp clean verify
 ```
 
-Los reportes se generan en Surefire y Failsafe; los resultados de esta preparación y sus límites se registran fuera del repositorio en `FASE_C_ESTADO.md` y `evidencias/fase-c/`. No atribuir estas pruebas a tres jugadores ni al despliegue final.
+`ClientProtocolTest`, `TerrainCodecTest`, `NetworkInputBufferTest` y `RemotePlayerRendererTest` comprueban lógica sin GPU. `NetworkClientIT` prueba transporte TCP y el servidor real. `MultiplayerServerIT` comprueba tres clientes, identidades y ack independientes, bajas/reingreso y terreno/minería compartidos. `GameServerIT` comprueba además proceso JAR headless, salud, métricas, persistencia y población real. La comprobación OpenGL/noVNC se registra separadamente de las pruebas sin GPU y del rendimiento.
+
+La red TCP no tiene autenticación fuerte ni TLS. El nombre es un dato de presentación. El servidor ata las acciones a la conexión; no acepta un id de jugador elegido por el cliente. Ver el [contrato del servidor](servidor.md).

@@ -42,6 +42,31 @@ class MultiplayerServerIT {
             }
         }
     }
+    @Test void clientsReceiveSameTerrainAndAuthoritativeBlockRemoval() throws Exception {
+        var world=new domain.world.World("server",42,java.time.Instant.EPOCH);
+        var chunk=new domain.world.Chunk(0,0);var factory=new patterns.factory.BlockFactory();
+        for(int x=0;x<16;x++)for(int z=0;z<16;z++)chunk.addBlock(factory.create(domain.block.BlockType.DIRT,new domain.Position(x,1,z)));
+        var target=new domain.Position(8,3,10);chunk.addBlock(factory.create(domain.block.BlockType.STONE,target));world.addChunk(chunk);
+        world.getPlayer().setX(8.5);world.getPlayer().setY(2);world.getPlayer().setZ(8.5);
+        java.nio.file.Files.writeString(directory.resolve("server.json"),persistence.WorldJsonCodec.write(world));
+        try(GameServer server=new GameServer(new ServerConfig(0,0,20,0,directory));
+            NetworkClient a=new NetworkClient("127.0.0.1",server.gamePort(),"a",0);
+            NetworkClient b=new NetworkClient("127.0.0.1",server.gamePort(),"b",1)) {
+            await(()->ready(a,2)&&ready(b,2));
+            var ra=new presentation.game.RemoteWorldReplica(a.welcome().world());
+            var rb=new presentation.game.RemoteWorldReplica(b.welcome().world());
+            await(()->{drain(a,ra);drain(b,rb);return ra.ready()&&rb.ready();});
+            assertEquals(domain.block.BlockType.STONE,ra.world().findChunk(0,0).orElseThrow().getBlock(target).orElseThrow().getType());
+            assertEquals(ra.world().findChunk(0,0).orElseThrow().getBlocks().size(),rb.world().findChunk(0,0).orElseThrow().getBlocks().size());
+            assertTrue(a.send(new PlayerFrameInput(PlayerFrameInput.NEUTRAL.movement(),false,0,0,true,false,false,null)));
+            await(()->{drain(a,ra);drain(b,rb);return a.latestState().ack()==1 &&
+                    ra.world().findChunk(0,0).orElseThrow().getBlock(target).isEmpty()&&rb.world().findChunk(0,0).orElseThrow().getBlock(target).isEmpty();});
+            assertEquals(0,b.latestState().ack());
+        }
+    }
+    private static void drain(NetworkClient client,presentation.game.RemoteWorldReplica replica) {
+        ClientProtocol.State next;while((next=client.pollTerrain())!=null)replica.apply(next);
+    }
     private static ClientProtocol.PlayerView own(NetworkClient c) { return player(c,c.welcome().playerId()); }
     private static ClientProtocol.PlayerView player(NetworkClient c,long id) { return c.latestState().players().stream().filter(p->p.playerId()==id).findFirst().orElseThrow(); }
     private static boolean ready(NetworkClient c,int size) { return c.latestState()!=null && c.latestState().players().size()==size; }

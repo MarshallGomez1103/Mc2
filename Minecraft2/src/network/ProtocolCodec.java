@@ -18,10 +18,10 @@ import java.util.Set;
 public final class ProtocolCodec {
     public static final int MAX_LINE_BYTES = 4096;
     private static final Set<String> INPUT_FIELDS = Set.of("type", "seq", "forward", "backward", "left", "right",
-            "sprint", "jump", "deltaYaw", "deltaPitch", "primary", "secondary", "togglePistol", "selectedType");
+            "sprint", "jump", "deltaYaw", "deltaPitch", "primary", "secondary", "togglePistol", "selectedType", "respawn");
     public sealed interface Message permits Hello, Input, Bye { }
     public record Hello(String name, int skinId) implements Message { }
-    public record Input(long seq, PlayerFrameInput frame) implements Message { }
+    public record Input(long seq, PlayerFrameInput frame, boolean respawn) implements Message { }
     public record Bye() implements Message { }
     private ProtocolCodec() { }
 
@@ -77,7 +77,7 @@ public final class ProtocolCodec {
         return new Input(seq, new PlayerFrameInput(new MovementInput(flag(map, "forward"), flag(map, "backward"),
                 flag(map, "left"), flag(map, "right"), flag(map, "sprint")), flag(map, "jump"),
                 angle(map, "deltaYaw", 360), angle(map, "deltaPitch", 180), flag(map, "primary"),
-                flag(map, "secondary"), flag(map, "togglePistol"), selected));
+                flag(map, "secondary"), flag(map, "togglePistol"), selected), flag(map, "respawn"));
     }
 
     private static void fields(Map<?, ?> map, Set<String> allowed) throws IOException {

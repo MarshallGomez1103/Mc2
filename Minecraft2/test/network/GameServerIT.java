@@ -46,13 +46,14 @@ class GameServerIT {
             peer.send("{\"type\":\"bye\"}");
         }
     }
-    @Test void invalidPeerAndBusyPeerDoNotTakeOverOrStopTheServer() throws Exception {
+    @Test void invalidPeerDoesNotTakeOverOrStopTheServer() throws Exception {
         try (GameServer server = server(0); Peer owner = new Peer(server.gamePort())) {
             owner.send("{\"type\":\"hello\",\"name\":\"owner\",\"skinId\":0}");
             assertEquals("welcome", owner.next().get("type"));
             try (Peer busy = new Peer(server.gamePort())) {
                 busy.send("{\"type\":\"hello\",\"name\":\"busy\",\"skinId\":0}");
-                assertNull(busy.in.readLine());
+                assertEquals("welcome", busy.next().get("type"));
+                busy.send("{\"type\":\"bye\"}");
             }
             try (Peer invalid = new Peer(server.gamePort())) {
                 invalid.send("{\"type\":\"input\",\"seq\":1}");

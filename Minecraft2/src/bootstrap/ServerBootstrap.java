@@ -14,7 +14,7 @@ public final class ServerBootstrap {
             Thread hook = new Thread(server::close, "mc2-shutdown");
             Runtime.getRuntime().addShutdownHook(hook);
             System.out.println("MC2 server: game=" + server.gamePort() + " health=" + server.healthPort()
-                    + " tickHz=" + config.tickHz() + " capacity=1");
+                    + " tickHz=" + config.tickHz() + " capacity=8");
             try { new CountDownLatch(1).await(); }
             catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); }
             finally {

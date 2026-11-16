@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class NetworkClient implements AutoCloseable {
     public enum Status { CONNECTING, CONNECTED, CLOSED, FAILED }
     private final ArrayBlockingQueue<String> outbound = new ArrayBlockingQueue<>(128);
+    private final ArrayBlockingQueue<ClientProtocol.State> terrain = new ArrayBlockingQueue<>(128);
     private final AtomicBoolean stopped = new AtomicBoolean();
     private final Socket socket = new Socket();
     private volatile Status status = Status.CONNECTING;
@@ -49,6 +50,8 @@ public final class NetworkClient implements AutoCloseable {
                 if (!(ClientProtocol.decode(line) instanceof ClientProtocol.State snapshot)) throw new IOException("Expected state");
                 if (snapshot.tick() <= tick || snapshot.ack() < ack || snapshot.ack() > sentSequence()) throw new IOException("Invalid tick or acknowledgement");
                 if (snapshot.players().stream().noneMatch(p -> p.playerId() == admitted.playerId())) throw new IOException("Missing local player");
+                if ((!snapshot.chunks().isEmpty() || !snapshot.blocks().isEmpty()) && !terrain.offer(snapshot))
+                    throw new IOException("Terrain queue full");
                 tick = snapshot.tick(); ack = snapshot.ack(); latest = snapshot;
             }
         } catch (IOException | RuntimeException e) { fail(e); }
@@ -69,11 +72,12 @@ public final class NetworkClient implements AutoCloseable {
         output.write(message); output.write('\n'); output.flush();
     }
     /** Nonblocking; overflow disconnects explicitly rather than silently losing discrete actions. */
-    public synchronized boolean send(PlayerFrameInput input) {
+    public synchronized boolean send(PlayerFrameInput input) { return send(input, false); }
+    public synchronized boolean send(PlayerFrameInput input, boolean respawn) {
         Objects.requireNonNull(input);
         if (status != Status.CONNECTED || stopped.get()) return false;
         try {
-            String message = ClientProtocol.input(sequence + 1, input);
+            String message = ClientProtocol.input(sequence + 1, input, respawn);
             if (!outbound.offer(message)) { fail(new IOException("Input queue full")); return false; }
             sequence++; return true;
         } catch (IOException e) { fail(e); return false; }
@@ -83,6 +87,7 @@ public final class NetworkClient implements AutoCloseable {
     public String error() { return error; }
     public ClientProtocol.Welcome welcome() { return welcome; }
     public ClientProtocol.State latestState() { return latest; }
+    public ClientProtocol.State pollTerrain() { return terrain.poll(); }
     private synchronized void fail(Exception failure) {
         if (stopped.compareAndSet(false, true)) {
             error = failure.getMessage(); status = Status.FAILED; stopSocket();
@@ -91,6 +96,6 @@ public final class NetworkClient implements AutoCloseable {
     private void stopSocket() { try { socket.close(); } catch (IOException ignored) { } }
     /** Closing the transport also covers window disposal and connection loss on the server. */
     @Override public synchronized void close() {
-        stopped.set(true); status = Status.CLOSED; outbound.clear(); stopSocket();
+        stopped.set(true); status = Status.CLOSED; outbound.clear(); terrain.clear(); stopSocket();
     }
 }

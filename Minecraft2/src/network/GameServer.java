@@ -40,7 +40,7 @@ public final class GameServer implements AutoCloseable {
     private final Thread acceptor;
     private volatile long lastTick;
     private volatile boolean fatal;
-    private Connection player; // tick thread only
+    private final Map<Integer, Connection> players = new java.util.LinkedHashMap<>(); // tick only
     private long tick;
 
     public GameServer(ServerConfig config) throws IOException {
@@ -97,25 +97,43 @@ public final class GameServer implements AutoCloseable {
         long start = System.nanoTime();
         boolean success = false;
         try {
-            if (player != null && player.closed.get()) player = null;
+            var departed = players.entrySet().iterator();
+            while (departed.hasNext()) {
+                var entry = departed.next();
+                if (entry.getValue().closed.get()) { simulation.leave(entry.getKey()); departed.remove(); }
+            }
             for (Connection connection : connections) {
                 if (connection.hello != null && !connection.admitted && !connection.closed.get()) {
-                    if (player != null) { connection.close(); continue; }
-                    player = connection;
+                    connection.playerId = simulation.join(connection.hello.name(), connection.hello.skinId());
+                    players.put(connection.playerId, connection);
                     connection.admitted = true;
-                    connection.send(ProtocolCodec.encode(Map.of("type", "welcome", "playerId", 0,
-                            "tickHz", config.tickHz(), "protocolVersion", 1)));
+                    connection.send(ProtocolCodec.encode(Map.of("type", "welcome", "playerId", connection.playerId,
+                            "tickHz", config.tickHz(), "protocolVersion", 1, "world", simulation.worldInfo())));
                 }
             }
-            ProtocolCodec.Input input = player == null ? null : player.inputs.poll();
-            boolean applicable = config.loadZombies() > 0 || simulation.running();
-            simulation.advance(1d / config.tickHz(), input == null ? PlayerFrameInput.NEUTRAL : input.frame(), player != null);
-            // An ignored action in a dead session must not be reported as applied.
-            if (input != null && applicable) player.ack = input.seq();
+            Map<Integer, PlayerFrameInput> inputs = new java.util.LinkedHashMap<>();
+            Map<Integer, ProtocolCodec.Input> applied = new java.util.LinkedHashMap<>();
+            players.forEach((id, connection) -> {
+                var input = connection.inputs.poll();
+                if (input != null) {
+                    if (input.respawn()) simulation.respawn(id);
+                    if (simulation.canApply(id)) { inputs.put(id, input.frame()); applied.put(id, input); }
+                }
+            });
+            simulation.advance(1d / config.tickHz(), inputs);
+            applied.forEach((id, input) -> players.get(id).ack = input.seq());
             tick++;
-            if (player != null && !player.closed.get()) {
-                player.send(ProtocolCodec.encode(simulation.state(tick, player.ack, player.hello.name(), player.hello.skinId())));
-            }
+            Map<String,Object> common = simulation.state(tick);
+            var changes = simulation.drainBlockChanges();
+            players.forEach((id, connection) -> {
+                Map<String,Object> state = new java.util.LinkedHashMap<>(common);
+                state.put("ack", connection.ack);
+                state.put("blocks", changes);
+                if (connection.nextChunk < simulation.chunkCount()) {
+                    state.put("chunks", java.util.List.of(simulation.chunk(connection.nextChunk++)));
+                }
+                connection.send(ProtocolCodec.encode(state));
+            });
             success = true;
             lastTick = System.nanoTime();
         } catch (RuntimeException failure) {
@@ -124,7 +142,7 @@ public final class GameServer implements AutoCloseable {
             connections.forEach(Connection::close);
         } finally {
             metrics.record(System.nanoTime() - start, success, simulation.activeZombies(), config.loadZombies(),
-                    player != null && !player.closed.get() ? 1 : 0);
+                    (int) players.values().stream().filter(p -> !p.closed.get()).count());
         }
     }
     private static void respond(HttpExchange exchange, int status, String contentType, String body) throws IOException {
@@ -168,6 +186,8 @@ public final class GameServer implements AutoCloseable {
         final ArrayBlockingQueue<String> output = new ArrayBlockingQueue<>(4);
         volatile ProtocolCodec.Hello hello;
         volatile boolean admitted;
+        int playerId; // tick only
+        int nextChunk; // tick only
         long ack; // tick only
         Connection(Socket socket) { this.socket = socket; }
         void read() {
