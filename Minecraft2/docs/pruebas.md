@@ -96,3 +96,16 @@ La validación corresponde al commit que se entrega. Si cambian fuentes, POM, sc
 7. Verificar el commit remoto publicado y sus enlaces. La solicitud de revisión identifica ese commit, la tabla de trazabilidad, el ADR, los diagramas y los reportes de pruebas/carga. Conservar el comprobante de envío; las coevaluaciones anteriores no se presentan como recuperadas.
 
 La verificación no se da por terminada mientras falten resultados o existan contradicciones entre código, documentación y evidencia.
+
+## Corte 3 — servidor inicial de Jasub (fase B, 2026-11-16)
+
+Incremento inicial `57be0e1` y mejora de relleno `7de8745`, sobre `main` `572b65b`. Ver [servidor y protocolo](servidor.md) para arranque, contrato, límites y explicación del modo de carga.
+
+- Nuevas unitarias Surefire: `network.ProtocolCodecTest` (6), `network.ServerConfigTest` (2) y `network.ServerMetricsTest` (1).
+- Nueva integración Failsafe: `network.GameServerIT` (5), con sockets/HTTP reales, población viva de 80 zombis, cierre y reinicio, y un proceso JAR con `-Dmc2.server=true` sin gráficos. Su nombre `*IT` ya está cubierto por el POM vigente, sin modificarlo.
+- `mvn -B -ntp clean verify`, JDK 17.0.8 en Windows: **227 unitarias y 153 integración**, 0 fallos, errores u omitidas. JaCoCo de líneas de dominio: 912/984 = **92,68 %**, gate ≥70 % aprobado. No se suman estos conteos a los históricos del Corte 2.
+- Los reportes están en `target/surefire-reports`, `target/failsafe-reports` y `target/site/jacoco-domain-unit`; se conservó copia durable fuera de target junto a los logs de esta fase. Al publicar el PR deben conservarse los artefactos y enlaces de Actions del SHA correspondiente.
+- Un comando enfocado como `mvn -B -ntp test '-Dtest=ProtocolCodecTest' '-Djacoco.skip=true'` omite cobertura deliberadamente porque ejecuta solo pruebas del protocolo; no es el comando de aceptación. La verificación completa anterior conserva el gate obligatorio.
+- Evidencia rojo → verde: `1fe08c3`, `40aa59c`, `57be0e1`. Las pruebas rojas fallan por clases aún inexistentes; el último incremento compila y ejecuta la suite completa. Se conservó también el fallo inicial de limpieza de un log temporal en Windows y su corrección. La suite completa se repitió con `7de8745` y mantuvo los mismos conteos y cero fallos.
+
+Alcance: una conexión de jugador a la vez. Las pruebas no acreditan todavía cliente gráfico remoto, varios jugadores, SLO de tres clientes ni despliegue/CD en Actions. Esas evidencias se incorporan al completar las siguientes fases y la integración con los compañeros.
