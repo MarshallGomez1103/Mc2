@@ -78,7 +78,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.2.5</version>
+                <version>3.6.1</version>
                 <configuration>
                     <argLine>@{integrationCoverageArgLine}</argLine>
                     <includes><include>${integration.test.patterns}</include></includes>
