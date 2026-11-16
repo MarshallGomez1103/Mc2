@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -34,7 +35,9 @@ public final class World implements Subject<BlockChange> {
     private final String name;
     private final long seed;
     private final Instant createdAt;
-    private final Player player;
+    /** Players by id in join order; never empty. The first entry is the primary player. */
+    private final Map<Integer, Player> players = new LinkedHashMap<>();
+    private int nextPlayerId;
     private final List<Chunk> chunks = new ArrayList<>();
     /** Índice para consultas frecuentes de colisión, mallas y navegación. */
     private final Map<ChunkKey, Chunk> chunksByCoordinate = new HashMap<>();
@@ -54,7 +57,7 @@ public final class World implements Subject<BlockChange> {
         this.name = name;
         this.seed = seed;
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt no puede ser null");
-        this.player = Objects.requireNonNull(player, "player no puede ser null");
+        addPlayer(Objects.requireNonNull(player, "player no puede ser null"));
     }
 
     /** Constructor de conveniencia para mundos nuevos: el identificador coincide con el nombre. */
@@ -78,8 +81,45 @@ public final class World implements Subject<BlockChange> {
         return createdAt;
     }
 
+    /** The primary player: the first one in join order (the only one in single player). */
     public Player getPlayer() {
-        return player;
+        return players.values().iterator().next();
+    }
+
+    public int primaryPlayerId() {
+        return players.keySet().iterator().next();
+    }
+
+    /** Adds a player and returns its id; ids grow monotonically and are never reused. */
+    public int addPlayer(Player player) {
+        Objects.requireNonNull(player, "player must not be null");
+        if (players.values().stream().anyMatch(existing -> existing == player)) {
+            throw new IllegalArgumentException("That player is already in the world");
+        }
+        int id = nextPlayerId++;
+        players.put(id, player);
+        return id;
+    }
+
+    /** Removes a player; false for an unknown id. The last player cannot be removed. */
+    public boolean removePlayer(int id) {
+        if (!players.containsKey(id)) {
+            return false;
+        }
+        if (players.size() == 1) {
+            throw new IllegalStateException("The world must keep at least one player");
+        }
+        players.remove(id);
+        return true;
+    }
+
+    public Optional<Player> player(int id) {
+        return Optional.ofNullable(players.get(id));
+    }
+
+    /** Live read-only view in join order; read it on the tick thread only. */
+    public Map<Integer, Player> players() {
+        return Collections.unmodifiableMap(players);
     }
 
     public List<Chunk> getChunks() {

@@ -4,6 +4,7 @@ import application.GameSession;
 import application.GameSettings;
 import domain.enemy.Difficulty;
 import application.PlayerInteractionService;
+import application.SkinSelection;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -125,6 +126,7 @@ public final class VoxelGame extends ApplicationAdapter implements Observer<Bloc
         textureAtlas = new BlockTextureAtlas();
         meshBuilder = new ChunkMeshBuilder(world, textureAtlas, texturesEnabled);
         session = new GameSession(world, gameSettings, interactionService);
+        world.getPlayer().setSkinId(SkinSelection.fromEnvironment(System.getenv()));
         zombieRenderer = new ZombieRenderer(gameSettings.enemyTexturesEnabled());
         pistolRenderer = new PistolRenderer();
         input = new GameInput();

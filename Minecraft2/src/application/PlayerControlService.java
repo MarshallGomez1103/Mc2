@@ -14,6 +14,7 @@ import java.util.Objects;
 public final class PlayerControlService {
     public static final double MAX_DELTA_SECONDS = 0.05;
     private final World world;
+    private final Player player;
     private final PlayerMovementService movementService = new PlayerMovementService();
     private final PlayerPhysics physics = new PlayerPhysics();
     private final CollisionResolver collisionResolver = new CollisionResolver();
@@ -28,7 +29,15 @@ public final class PlayerControlService {
 
     public PlayerControlService(World world, PlayerInteractionService interactionService,
                                 EnemyUpdateService enemyService, PistolService pistol) {
+        this(Objects.requireNonNull(world, "world no puede ser null"), world.getPlayer(),
+                interactionService, enemyService, pistol);
+    }
+
+    /** Controls one specific player; each player of a session has its own service and stamina. */
+    public PlayerControlService(World world, Player player, PlayerInteractionService interactionService,
+                                EnemyUpdateService enemyService, PistolService pistol) {
         this.world = Objects.requireNonNull(world, "world no puede ser null");
+        this.player = Objects.requireNonNull(player, "player must not be null");
         this.interactionService = Objects.requireNonNull(interactionService);
         this.enemyService = Objects.requireNonNull(enemyService);
         this.pistol = Objects.requireNonNull(pistol);
@@ -39,7 +48,6 @@ public final class PlayerControlService {
     public void update(double rawDeltaSeconds, PlayerFrameInput input) {
         double delta = checkedDelta(rawDeltaSeconds);
         Objects.requireNonNull(input, "input no puede ser null");
-        Player player = world.getPlayer();
         movementService.look(player, input.deltaYaw(), input.deltaPitch());
         updateMovement(player, world, input.movement(), input.jumpRequested(), delta);
         if (input.togglePistol()) pistol.toggleEquipped();

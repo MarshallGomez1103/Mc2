@@ -50,7 +50,6 @@ public final class EnemyUpdateService {
     public static final double DROP_PREPARATION_SECONDS = 5.0;
     public static final double DROP_ENTRY_INTERVAL_SECONDS = 1.0;
 
-    private final World world;
     private final ZombieParameters parameters;
     private final NavigationGrid grid;
     private final ZombieStateMachine stateMachine;
@@ -76,7 +75,7 @@ public final class EnemyUpdateService {
     /** Injectable landing RNG for deterministic fall/crawler regression tests. */
     public EnemyUpdateService(World world, ZombieParameters parameters, AStarPathfinder pathfinder,
                               DoubleSupplier landingRandom) {
-        this.world = Objects.requireNonNull(world, "world no puede ser null");
+        Objects.requireNonNull(world, "world no puede ser null");
         this.parameters = Objects.requireNonNull(parameters, "parameters no puede ser null");
         this.pathfinder = Objects.requireNonNull(pathfinder, "pathfinder no puede ser null");
         this.grid = new NavigationGrid(world);
@@ -132,14 +131,23 @@ public final class EnemyUpdateService {
     /** Un fotograma de IA. Con enemigos desactivados o jugador muerto nada se mueve ni ataca. */
     public void update(PlayerLife life, double deltaSeconds) {
         Objects.requireNonNull(life, "life no puede ser null");
-        if (life.isDead() || deltaSeconds <= 0) return;
+        update(List.of(life), deltaSeconds);
+    }
+
+    /**
+     * One AI frame for several players, in join order. Every zombie targets the nearest living
+     * player (ties go to the earliest). Nothing moves when no player is alive.
+     */
+    public void update(List<PlayerLife> targets, double deltaSeconds) {
+        if (targets.isEmpty() || targets.stream().allMatch(PlayerLife::isDead) || deltaSeconds <= 0) return;
         zombies.forEach(zombie -> zombie.advanceFlash(deltaSeconds));
         if (!enabled) return;
-        Player player = world.getPlayer();
         Iterator<Zombie> iterator = zombies.iterator();
         while (iterator.hasNext()) {
             Zombie zombie = iterator.next();
             double previousY = zombie.getY();
+            PlayerLife life = targetFor(zombie, targets);
+            Player player = life.player();
             ZombiePerception perception = new ZombiePerception(zombie.getHealth(),
                     perceptionDistance(zombie, player), !life.isDead());
             zombie.setState(stateMachine.next(zombie.getState(), perception));
@@ -167,6 +175,22 @@ public final class EnemyUpdateService {
         separation.resolve(zombies, grid);
         dropGates.values().forEach(gate -> gate.remaining = Math.max(0, gate.remaining - deltaSeconds));
         dropGates.values().removeIf(gate -> gate.remaining <= 0);
+    }
+
+    /** Nearest living player; if all died mid-frame, the first one (the zombie then idles). */
+    // ponytail: no target stickiness, so a zombie may flip between equidistant players; keep the last target if it shows.
+    private PlayerLife targetFor(Zombie zombie, List<PlayerLife> targets) {
+        PlayerLife best = null;
+        double bestDistance = Double.MAX_VALUE;
+        for (PlayerLife candidate : targets) {
+            if (candidate.isDead()) continue;
+            double distance = perceptionDistance(zombie, candidate.player());
+            if (best == null || distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+        return best != null ? best : targets.get(0);
     }
 
     private void resolveFallingContact(Zombie falling, double previousY) {
@@ -276,13 +300,14 @@ public final class EnemyUpdateService {
     }
 
     private void attack(Zombie zombie, Navigation nav, PlayerLife life, double deltaSeconds) {
-        if (!hasClearMeleeReach(zombie, world.getPlayer())) {
+        Player player = life.player();
+        if (!hasClearMeleeReach(zombie, player)) {
             // Close distance through a wall still requires a walkable route around it.
-            chase(zombie, nav, world.getPlayer(), deltaSeconds);
+            chase(zombie, nav, player, deltaSeconds);
             return;
         }
         movement.advancePhysics(zombie, zombie.isCrawler() ? crawlerGrid : grid, deltaSeconds);
-        if (!zombie.isAlive() || !hasClearMeleeReach(zombie, world.getPlayer())) return;
+        if (!zombie.isAlive() || !hasClearMeleeReach(zombie, player)) return;
         nav.clear();
         if (nav.attackCooldownRemaining <= 1e-9) {
             life.takeDamage(ATTACK_DAMAGE, zombie.isKamikaze() ? PlayerLife.DeathCause.KAMIKAZE : PlayerLife.DeathCause.ENEMY);
