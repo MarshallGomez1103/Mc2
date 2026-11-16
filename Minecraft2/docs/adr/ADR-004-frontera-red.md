@@ -5,7 +5,7 @@
 | Estado | Implementado mediante reglas de fuentes y pruebas; la evidencia de ejecución se registra en pruebas.md. |
 | Fecha | 2026-11-16 |
 | Responsable | Jasub, Persona 2 |
-| Base | Núcleo y servidor/cliente integrados en main mediante PR #3 y #6; base de D `fa52cbb`. |
+| Base | Núcleo y servidor/cliente integrados en main mediante PR #3 y #6; base funcional de D `fa52cbb`, rebasada sobre la documentación integrada `e618961`. |
 | Decisiones relacionadas | [ADR-001](ADR-001-estilo-recuperacion.md), §§5–6; [ADR-002](ADR-002-despliegue.md), §§3 y 6. |
 
 ## Contexto

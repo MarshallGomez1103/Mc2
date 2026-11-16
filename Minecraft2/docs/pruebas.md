@@ -2,7 +2,7 @@
 
 ## Corte 3 — verificación actual de D (2026-11-16)
 
-Base integrada `fa52cbb` (PR #6 fusionado). D amplía las reglas de [ADR-001](adr/ADR-001-estilo-recuperacion.md) mediante [ADR-004](adr/ADR-004-frontera-red.md) y el humo público del JAR. Los apartados inferiores conservan resultados históricos de C2/B/C; no se deben usar como conteos de la cabecera actual.
+Base funcional `fa52cbb` (PR #6 fusionado), rebasada sobre `e618961` para conservar la documentación de #14. D amplía las reglas de [ADR-001](adr/ADR-001-estilo-recuperacion.md) mediante [ADR-004](adr/ADR-004-frontera-red.md) y el humo público del JAR. Los apartados inferiores conservan resultados históricos de C2/B/C; no se deben usar como conteos de la cabecera actual.
 
 ### Comandos y selección real
 
@@ -32,7 +32,7 @@ Se comprobó el XML de Surefire con 22 casos de arquitectura y el de Failsafe co
 
 ### Resultado local completo
 
-JDK 17.0.8.7, Windows, `mvn -B -ntp clean verify`, finalizado 2026-11-16 17:50:52 UTC−05:00: **279 unitarias y 161 integración**, cero fallos, errores u omitidas. Dominio: 935/1006 líneas = **92,94 %**, gate ≥70 % activo. No se suman coberturas de unitarias e integración.
+JDK 17.0.8.7, Windows, `mvn -B -ntp clean verify`, repetido después del rebase y finalizado 2026-11-16 18:14:36 UTC−05:00: **279 unitarias y 161 integración**, cero fallos, errores u omitidas. Dominio: 935/1006 líneas = **92,94 %**, gate ≥70 % activo. No se suman coberturas de unitarias e integración.
 
 El humo imprime `D_JAR_SMOKE sha256=…` en su salida y el XML, vinculando la ejecución al JAR recién construido. Crea el mundo mediante la consola pública y arranca otro proceso con `-Dmc2.server=true -Djava.awt.headless=true`; obtiene sus puertos efímeros del banner, espera salud real y conecta dos pares TCP. Verifica acción aplicada, ack independiente, bajas, métrica de conectados y reingreso sin jugador fantasma. Nunca instancia GameServer/GameSession dentro del JVM de prueba. La captura del hijo usa un pipe y se cierra antes de borrar temporales de Windows. La parada del proceso no se presenta como prueba universal de guardado ante terminación forzada.
 
@@ -44,7 +44,7 @@ Después se eliminaron las clases de infracción y se ejecutó `clean verify` co
 
 ### Gate en Actions y límites
 
-El job `build-pruebas` de [.github/workflows/ci.yml](../../.github/workflows/ci.yml) ejecuta `mvn verify` con bash y pipefail. Un fallo de Surefire o de Failsafe llega al exit code del job. Comprueba explícitamente que arquitectura tenga XML/casos y que JaCoCo ejecutó el gate. Publica Surefire/Failsafe/site como artefacto `reportes-pruebas`, incluso si falla una prueba. Los resultados específicos de Actions de D y sus ensayos aislados se registran en la evidencia de esta fase cuando terminen; los resultados locales anteriores no se atribuyen a una ejecución remota.
+El job `build-pruebas` de [.github/workflows/ci.yml](../../.github/workflows/ci.yml) ejecuta `mvn verify` con bash y pipefail. Un fallo de Surefire o de Failsafe llega al exit code del job. Comprueba explícitamente que arquitectura tenga XML/casos y que JaCoCo ejecutó el gate. Publica Surefire/Failsafe/site como artefacto `reportes-pruebas`, incluso si falla una prueba. [Actions correcto](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976250231), commit `d4ad1d1`: cinco checks aprobados, 279 unitarias +161 integración, sin fallos/errores/omitidas. Los XML descargados confirman arquitectura 22 y humo 4. [Ensayo de arquitectura](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976266242): 279 unitarias, dos fallos exactos en las fronteras prohibidas. [Ensayo de integración](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976623068): 279 unitarias aprobadas y 162 integración con un único fallo deliberado en IntegrationGateProbeIT; el humo real conserva cuatro casos aprobados. Ambos ensayos bloquean build-pruebas. Fuentes incorrectas fuera del PR; metadatos, logs y ZIP comprobados en [evidencia D](evidencias/fase-d/README.md).
 
 Las reglas escanean fuentes y no todo el bytecode/reflexión; las dependencias JSON/almacenamiento del adaptador y WorldStorage en persistence se declaran en ADR-004. La cobertura del proceso hijo JAR no se añade automáticamente al JaCoCo del JVM de Failsafe. El humo no abre GPU, no prueba noVNC ni sustituye humo/carga después de desplegar en main. Los resultados gráficos y carga calentada de C conservan sus condiciones y su incidente de desconexión no explicado. Los ensayos de arquitectura/integración de D no sustituyen el PR negativo de seguridad de la fase E.
 
