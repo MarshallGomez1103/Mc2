@@ -33,7 +33,7 @@ class LoadSloGateTest {
         assertEquals(3, CONTRACT.repetitions());
         assertEquals(80, CONTRACT.zombies());
         assertEquals(16.67, CONTRACT.tickP95MaxMs());
-        assertEquals(50.0, CONTRACT.rttP95MaxMs());
+        assertEquals(100.0, CONTRACT.rttP95MaxMs());
         assertEquals(0, CONTRACT.maxTickFailures());
         assertEquals(0, CONTRACT.maxDeficitTicks());
         assertEquals(0, CONTRACT.maxNetworkErrors());
@@ -90,12 +90,12 @@ class LoadSloGateTest {
     }
 
     @Test void tickP95ExactlyAtBudgetPasses() {
-        var atBudget = new LoadSloGate.Repetition(1, 3, 80, 16.67, 1_200, 50.0, 600, 0, 0, 0);
+        var atBudget = new LoadSloGate.Repetition(1, 3, 80, 16.67, 1_200, 100.0, 600, 0, 0, 0);
         assertEquals(0, LoadSloGate.evaluate(CONTRACT, List.of(atBudget, compliant(2), compliant(3))).exitCode());
     }
 
     @Test void roundTripP95AboveBudgetFails() {
-        var slowNetwork = new LoadSloGate.Repetition(3, 3, 80, 2.0, 1_200, 50.01, 600, 0, 0, 0);
+        var slowNetwork = new LoadSloGate.Repetition(3, 3, 80, 2.0, 1_200, 100.01, 600, 0, 0, 0);
         var verdict = LoadSloGate.evaluate(CONTRACT, List.of(compliant(1), compliant(2), slowNetwork));
         assertNotEquals(0, verdict.exitCode());
         assertTrue(verdict.violations().stream().anyMatch(v -> v.contains("SLO-RED-01")), verdict.violations()::toString);
@@ -118,7 +118,7 @@ class LoadSloGateTest {
 
     @Test void everyViolationIsReportedNotOnlyTheFirst() {
         // Arrange: una repetición rompe cuatro umbrales a la vez.
-        var broken = new LoadSloGate.Repetition(1, 3, 10, 40.0, 1_200, 90.0, 600, 2, 0, 0);
+        var broken = new LoadSloGate.Repetition(1, 3, 10, 40.0, 1_200, 110.0, 600, 2, 0, 0);
         // Act
         var verdict = LoadSloGate.evaluate(CONTRACT, List.of(broken, compliant(2), compliant(3)));
         // Assert
