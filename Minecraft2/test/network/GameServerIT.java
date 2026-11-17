@@ -198,6 +198,20 @@ class GameServerIT {
             } finally { for (Peer peer : peers) peer.close(); }
         }
     }
+    @Test void httpSecurityHeadersAlsoProtectUnknownPaths() throws Exception {
+        try (GameServer server = server(0)) {
+            for (String path : List.of("/health", "/metrics", "/", "/robots.txt", "/sitemap.xml")) {
+                var response = http(server, path);
+                assertEquals(path.equals("/health") || path.equals("/metrics") ? 200 : 404, response.statusCode());
+                assertEquals("default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+                        response.headers().firstValue("Content-Security-Policy").orElseThrow());
+                assertEquals("same-origin", response.headers().firstValue("Cross-Origin-Resource-Policy").orElseThrow());
+                assertEquals("no-store", response.headers().firstValue("Cache-Control").orElseThrow());
+                assertEquals("DENY", response.headers().firstValue("X-Frame-Options").orElseThrow());
+                assertTrue(response.headers().firstValue("Permissions-Policy").isPresent());
+            }
+        }
+    }
     private GameServer server(int target) throws Exception {
         return new GameServer(new ServerConfig(0, 0, 20, target, temporary));
     }
