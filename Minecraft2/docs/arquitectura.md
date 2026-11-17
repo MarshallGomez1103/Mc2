@@ -147,7 +147,7 @@ flowchart LR
 
 | Nodo o contenedor | Responsabilidad | Imagen y tecnología | Puertos publicados en el anfitrión | Datos |
 | --- | --- | --- | --- | --- |
-| `mc2-server` | Sesión autoritativa del juego con tick fijo, varios jugadores, `/health` y `/metrics`. | `ghcr.io/marshallgomez1103/mc2-server:<SHA o vX.Y.Z>`, base `eclipse-temurin:17.0.20.1_1-jre-noble`, usuario `app` (uid 10001). | `7777` en todas las interfaces (multijugador en la red local); `127.0.0.1:8080`. | Volumen `mc2-worlds` en `/data/worlds`. |
+| `mc2-server` | Sesión autoritativa del juego con tick fijo, varios jugadores, `/health` y `/metrics`. | `ghcr.io/marshallgomez1103/mc2-server:<SHA o vX.Y.Z>`, base `eclipse-temurin:17.0.21_9-jre-noble`, usuario `app` (uid 10001). | `7777` en todas las interfaces (multijugador en la red local); `127.0.0.1:8080`. | Volumen `mc2-worlds` en `/data/worlds`. |
 | `mc2-front` | Cliente LibGDX en un escritorio virtual, visible en el navegador. | `ghcr.io/marshallgomez1103/mc2-front:<SHA o vX.Y.Z>`, misma base, Xvfb, x11vnc, noVNC y Mesa; usuario `app`. | `127.0.0.1:6080`. El VNC (5900) no sale del contenedor. | Volumen `mc2-front-data` en `/data`. |
 | Cliente de escritorio | El mismo JAR fuera de Docker, para jugar desde otro equipo de la red. | JAR de GitHub Releases con su suma SHA-256. | — | Local del jugador. |
 | Runner del job `desplegar` | Descarga las imágenes y ejecuta `scripts/deploy.sh`, la carga y, si falla, `scripts/rollback.sh`. | Runner de GitHub Actions: el de la variable `MC2_DEPLOY_RUNNER` (equipo del grupo) o, sin ella, un runner hospedado efímero. | — | Estado de despliegue en `~/.mc2-deploy` (última versión buena e historial). |
