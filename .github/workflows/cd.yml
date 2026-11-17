@@ -163,6 +163,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Credenciales en un directorio del job: en un runner autohospedado no se toca el almacén de
+          # credenciales del equipo y el runner las borra al terminar el job.
+          export DOCKER_CONFIG="$RUNNER_TEMP/docker-config"
+          mkdir -p "$DOCKER_CONFIG"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
           echo "MC2_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - name: Versión estable anterior (destino de una reversión)
@@ -227,6 +232,11 @@ jobs:
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Credenciales en un directorio del job: en un runner autohospedado no se toca el almacén de
+          # credenciales del equipo y el runner las borra al terminar el job.
+          export DOCKER_CONFIG="$RUNNER_TEMP/docker-config"
+          mkdir -p "$DOCKER_CONFIG"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
           echo "MC2_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
       - name: Revertir y verificar
