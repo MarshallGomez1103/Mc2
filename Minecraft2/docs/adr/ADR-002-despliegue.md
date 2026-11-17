@@ -2,13 +2,13 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | **Propuesto; acordado de palabra con el profesor, confirmación escrita pendiente.** El alcance de la sección 5 debe confirmarse por escrito antes de depender de él. |
-| Fecha | Previsto — responsable: Persona 1: fecha de aprobación |
+| Estado | **Aceptado por el equipo e implementado.** El alcance de la sección 5 se acordó de palabra con el profesor; no hay una confirmación escrita registrada. SLO-RED-01 (p95 ≤ 100 ms) lo fijó el equipo. |
+| Fecha | 2026-11-16 (implementación integrada en `main` y primera medición contra el servidor real) |
 | Responsable | Persona 3, con Persona 1 |
 | Corrección | C3-00 del [plan del Corte 3](../../README.md#corte-3) |
 | Decisión anterior que revisa | [ADR-001](ADR-001-estilo-recuperacion.md), sección 6 «Cuándo revisar esta decisión» |
 
-> Este ADR es un esqueleto con la decisión propuesta. Las afirmaciones sobre rendimiento, costo y esfuerzo que no tienen una medición se marcan como tales. Los elementos «Previsto — responsable: Persona N» se completan con la evidencia real y el marcador se retira antes de la entrega.
+> Las afirmaciones sobre rendimiento, costo y esfuerzo que no tienen una medición se marcan como tales. La evidencia de ejecución está en la sección 7 y en [devops.md](../devops.md).
 
 ## 1. Contexto
 
@@ -114,8 +114,8 @@ Todo el alcance depende de la confirmación del profesor. Si el profesor decide 
 ### Sacrificios y riesgos aceptados
 
 - **Cambio de dominio.** `World` admite varios `Player` y los servicios de aplicación reciben el jugador de forma explícita (hoy `GameSession`, `EnemyUpdateService`, `PistolService` y `PlayerControlService` consultan el único jugador del mundo). Esto convive con el enunciado («no se piden funcionalidades de negocio nuevas»): se mantiene mínimo, sin cuentas ni chat, y se documenta aquí como un cambio de arquitectura permitido por el enunciado.
-- **Paquete nuevo de red.** Aparece una frontera nueva (`network`) que las reglas de arquitectura deben proteger. Previsto — responsable: Persona 2.
-- **Revisión de ADR-001.** El [ADR-001](ADR-001-estilo-recuperacion.md#cuándo-revisar-esta-decisión) previó reevaluar la opción de puertos y adaptadores si aparecía entrada de red o multijugador. Si `WorldStorage` se traslada a `application` como puerto de salida es una decisión abierta que este ADR no resuelve. Previsto — responsable: Persona 1.
+- **Paquete nuevo de red.** Aparece una frontera nueva (`network`) que las reglas de arquitectura deben proteger. La Persona 2 la protege con reglas nuevas de `ArchitectureBoundaryTest` (el paquete `network` no puede depender de presentación, arranque ni gráficos, y el núcleo no puede depender de `network`), registradas en el ADR-004.
+- **Revisión de ADR-001.** El [ADR-001](ADR-001-estilo-recuperacion.md#cuándo-revisar-esta-decisión) previó reevaluar la opción de puertos y adaptadores si aparecía entrada de red o multijugador. Si `WorldStorage` se traslada a `application` como puerto de salida es una decisión abierta que este ADR no resuelve; el ADR-004 la deja como posible evolución y conserva las capas con reglas ampliadas.
 - **Costo del OpenGL por software.** El front dibuja con renderizado por software en un contenedor sin GPU. La prueba de viabilidad (sección 7) confirmó que el cliente arranca y se juega desde el navegador; el costo es CPU del anfitrión (llvmpipe usa todos los núcleos) y la cifra de 50 FPS es de un solo equipo, un mundo pequeño y radio 1, no una medición de carga. Si en el equipo del despliegue resulta lenta, el humo y la carga no dependen del front (opción B).
 - **Runner autohospedado.** Agrega un componente que debe asegurarse (amenaza A8) y que depende de la disponibilidad de un equipo del grupo.
 - **SLO doble.** Se mantienen dos mediciones. SLO-CARGA-01 se mide ahora contra el servidor desplegado leyendo el histograma `mc2_tick_duration_seconds` de `/metrics`; el umbral no cambia, cambia el lugar de la medición ([devops.md](../devops.md#umbrales-del-slo-en-el-despliegue)). Contra el servidor real (entorno efímero del pull request #2, [ejecución 43996138039](https://github.com/MarshallGomez1103/Mc2/actions/runs/43996138039)) SLO-RED-01 dio un p95 de 52,2 a 53,4 ms y SLO-CARGA-01 un p95 del tick de 3,7 a 12,5 ms, ambos dentro del umbral. Contra un doble que emite el estado a 20 Hz, el p95 de SLO-RED-01 fue 52,4 ms, porque la espera hasta el siguiente tick consume casi todo un umbral de 50 ms. El equipo fijó el umbral en 100 ms (dos periodos de tick a 20 Hz) en lugar de medir solo el trayecto de red o emitir el estado más a menudo.
@@ -132,4 +132,4 @@ Se reevaluará si el profesor confirma otra modalidad, si el front gráfico con 
 - Vista de despliegue: [arquitectura §8](../arquitectura.md#8-vista-de-despliegue).
 - Pipeline y reversión: [devops.md](../devops.md). Amenazas del despliegue: [seguridad.md](../seguridad.md).
 - Viabilidad del front (OpenGL por software en el contenedor), 15-11-2026, commit 4d09fd8 de la rama c3/ethian: la imagen `mc2-front` arranca saludable, sin root (uid 10001) y con sistema de archivos de solo lectura; el registro del cliente informa `GL_RENDERER: llvmpipe (LLVM 20.1.2, 256 bits)` y `GL_VERSION: 4.5 (Compatibility Profile) Mesa 25.2.8`; desde `http://localhost:6080/vnc.html` se creó un mundo pequeño y se jugó con teclado y ratón a 50 FPS según el HUD ([captura](../evidencias/c3-front-novnc.jpg)). Equipo: Intel Core i5-10300H (8 hilos), 15,8 GB de RAM, Windows 11 con Docker Desktop 29.9.2 (motor Linux en WSL 2). Hallazgo durante la prueba: con `tmpfs` sin `exec` LibGDX no puede cargar sus bibliotecas nativas desde `/tmp`; Compose monta `/tmp` con `exec` y el healthcheck del front exige que el proceso del juego esté vivo.
-- Confirmación del profesor: Previsto — responsable: Persona 1.
+- Confirmación del profesor: el alcance se acordó de palabra; a la fecha de entrega no hay una confirmación escrita registrada. SLO-RED-01 lo definió el equipo el 16-11-2026.
