@@ -81,7 +81,7 @@ La rúbrica sugiere los documentos bajo `docs/` en la raíz del repositorio. Est
 | Artefacto de la rúbrica | Ruta real | Responsable | Estado |
 | --- | --- | --- | --- |
 | README (badge, URL, Compose, pipeline, trazabilidad) | [README.md](README.md) (raíz) | Thomas | Existe; el badge del pipeline está en la cabecera; la URL del despliegue está `previsto` |
-| Dockerfile | [Minecraft2/Dockerfile](Minecraft2/Dockerfile) (servidor) y `Minecraft2/Dockerfile.front` | Ethian | Existen los dos: el del servidor (modo consola) y el del front (noVNC) |
+| Dockerfile | [Minecraft2/Dockerfile](Minecraft2/Dockerfile) (servidor) y `Minecraft2/Dockerfile.front` | Ethian | Existen los dos: el del servidor (headless) y el del front (noVNC) |
 | .dockerignore | [Minecraft2/.dockerignore](Minecraft2/.dockerignore) | Ethian | Existe |
 | docker-compose.yml | `docker-compose.yml` (raíz, contexto `./Minecraft2`) | Ethian | Existe |
 | .env.example | `.env.example` (raíz) | Ethian | Existe |
