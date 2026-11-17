@@ -1,7 +1,7 @@
 # Imagen de mc2-server: el JAR en modo servidor headless (protocolo v1 en 7777/TCP, /health y /metrics en 8080).
 # Construcción desde la raíz del repositorio: docker build -f Minecraft2/Dockerfile Minecraft2
 # Bases fijadas por versión y resumen (digest); Dependabot propone las actualizaciones.
-FROM maven:3.9.16-eclipse-temurin-17-noble@sha256:1a352420f7aba21f5ad08df31bab55f74c013fb491f1ae8ab1dd7ff9ed698584 AS build
+FROM maven:3.9-eclipse-temurin-26-noble@sha256:b2c1ad85954592f9928e84327c65201f308ad9b5d8ed7d5b823717c97bf23fbb AS build
 WORKDIR /build
 
 COPY pom.xml .
