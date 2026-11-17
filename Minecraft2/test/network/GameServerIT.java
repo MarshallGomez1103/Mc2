@@ -143,6 +143,61 @@ class GameServerIT {
             process.getErrorStream().close();
         }
     }
+    @Test void malformedMessagesCannotForgeLogEntries() throws Exception {
+        var captured = new java.io.ByteArrayOutputStream();
+        var previous = System.err;
+        try (var log = new java.io.PrintStream(captured, true, StandardCharsets.UTF_8)) {
+            System.setErr(log);
+            try (GameServer server = server(0); Peer peer = new Peer(server.gamePort())) {
+                // A duplicate, decoded field name currently flows into JsonParser's diagnostic.
+                String field = "\\nFORGED_EVENT /private/worlds";
+                peer.send("{\"" + field + "\":0,\"" + field + "\":1}");
+                assertNull(peer.in.readLine());
+                assertEquals(200, http(server, "/health").statusCode());
+            }
+        } finally { System.setErr(previous); }
+        String logged = captured.toString(StandardCharsets.UTF_8);
+        assertTrue(logged.contains("read closed"), "The rejection must still be observable");
+        assertFalse(logged.contains("FORGED_EVENT"), "Untrusted parser messages must not enter logs");
+        assertFalse(logged.contains("private"), "Do not log attacker-controlled paths");
+    }
+    @Test void oversizedMalformedAndForgedIdentityPeersDoNotAffectAnOwner() throws Exception {
+        try (GameServer server = server(0); Peer owner = new Peer(server.gamePort())) {
+            owner.send("{\"type\":\"hello\",\"name\":\"PRIVATE_PLAYER\",\"skinId\":0}");
+            assertEquals("welcome", owner.next().get("type"));
+            int seq = 0;
+            for (String attack : List.of("x".repeat(4097),
+                    "{\"type\":\"hello\",\"name\":\"intruder\",\"skinId\":0,\"playerId\":0}",
+                    "[".repeat(100) + "0" + "]".repeat(100))) {
+                try (Peer attacker = new Peer(server.gamePort())) {
+                    attacker.send(attack);
+                    try { assertNull(attacker.in.readLine()); }
+                    catch (java.net.SocketException reset) { /* unread abusive bytes may cause TCP reset */ }
+                }
+                owner.send("{\"type\":\"input\",\"seq\":" + (++seq) + "}");
+                assertEquals((long) seq, owner.state(seq).get("ack"));
+            }
+            var metrics = http(server, "/metrics");
+            assertFalse(metrics.body().contains("PRIVATE_PLAYER"));
+            assertTrue(metrics.body().contains("mc2_tick_failures_total 0\n"));
+            assertEquals("nosniff", metrics.headers().firstValue("X-Content-Type-Options").orElseThrow());
+            assertEquals(404, http(server, "/metrics/extra").statusCode());
+        }
+    }
+    @Test void eightAdmittedPeersRejectANinthWithoutStoppingHealth() throws Exception {
+        var peers = new java.util.ArrayList<Peer>();
+        try (GameServer server = server(0)) {
+            try {
+                for (int i = 0; i < 8; i++) {
+                    Peer peer = new Peer(server.gamePort()); peers.add(peer);
+                    peer.send("{\"type\":\"hello\",\"name\":\"peer" + i + "\",\"skinId\":0}");
+                    assertEquals("welcome", peer.next().get("type"));
+                }
+                try (Peer excess = new Peer(server.gamePort())) { assertNull(excess.in.readLine()); }
+                assertEquals(200, http(server, "/health").statusCode());
+            } finally { for (Peer peer : peers) peer.close(); }
+        }
+    }
     private GameServer server(int target) throws Exception {
         return new GameServer(new ServerConfig(0, 0, 20, target, temporary));
     }
