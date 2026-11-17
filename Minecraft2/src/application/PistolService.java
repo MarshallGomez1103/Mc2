@@ -23,6 +23,7 @@ public final class PistolService {
     public static final double SHOT_COOLDOWN = .28;
     private static final double PICKUP_RADIUS = 1.25;
     private final World world;
+    private final Player owner;
     private final NavigationGrid grid;
     private final ZombieTargeting targeting;
     private final SplittableRandom random;
@@ -34,9 +35,15 @@ public final class PistolService {
     private double shotFlash;
     private double retrySpawn;
 
-    public PistolService(World world) { this(world, world.getSeed() ^ 0x504953544f4cL); }
-    public PistolService(World world, long seed) {
+    public PistolService(World world) { this(world, world.getPlayer()); }
+    public PistolService(World world, long seed) { this(world, world.getPlayer(), seed); }
+    /** Every pistol uses the same seed, so each player's pickup is the one a single player gets. */
+    public PistolService(World world, Player owner) {
+        this(world, owner, world.getSeed() ^ 0x504953544f4cL);
+    }
+    public PistolService(World world, Player owner, long seed) {
         this.world = Objects.requireNonNull(world);
+        this.owner = Objects.requireNonNull(owner, "owner must not be null");
         grid = new NavigationGrid(world);
         targeting = new ZombieTargeting(world);
         random = new SplittableRandom(seed);
@@ -54,9 +61,8 @@ public final class PistolService {
             if (!appeared) retrySpawn = 5;
         }
         if (pickup != null) {
-            Player player = world.getPlayer();
-            if (Math.hypot(player.getX() - (pickup.x() + .5), player.getZ() - (pickup.z() + .5)) <= PICKUP_RADIUS
-                    && Math.abs(player.getY() - pickup.y()) <= 1.2) {
+            if (Math.hypot(owner.getX() - (pickup.x() + .5), owner.getZ() - (pickup.z() + .5)) <= PICKUP_RADIUS
+                    && Math.abs(owner.getY() - pickup.y()) <= 1.2) {
                 owned = true;
                 equipped = true;
                 pickup = null;
@@ -65,8 +71,7 @@ public final class PistolService {
     }
 
     private Optional<Position> chooseSpawn() {
-        Player player = world.getPlayer();
-        Optional<NavigationNode> start = grid.nodeUnder(player.getX(), player.getY(), player.getZ());
+        Optional<NavigationNode> start = grid.nodeUnder(owner.getX(), owner.getY(), owner.getZ());
         if (start.isEmpty() || world.getChunks().isEmpty()) return Optional.empty();
         AStarPathfinder paths = new AStarPathfinder(2_000);
         int searches = 0;
@@ -80,10 +85,10 @@ public final class PistolService {
             } else {
                 double angle = random.nextDouble() * Math.PI * 2;
                 double radius = 5 + random.nextDouble() * 20;
-                x = (int) Math.floor(player.getX() + Math.cos(angle) * radius);
-                z = (int) Math.floor(player.getZ() + Math.sin(angle) * radius);
+                x = (int) Math.floor(owner.getX() + Math.cos(angle) * radius);
+                z = (int) Math.floor(owner.getZ() + Math.sin(angle) * radius);
             }
-            double distance = Math.hypot(x + .5 - player.getX(), z + .5 - player.getZ());
+            double distance = Math.hypot(x + .5 - owner.getX(), z + .5 - owner.getZ());
             if (distance < 3 || distance > 32) continue;
             Optional<NavigationNode> node = groundAt(x, z);
             if (node.isEmpty()) continue;

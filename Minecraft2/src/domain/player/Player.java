@@ -21,6 +21,7 @@ public final class Player {
     public static final double GRAVITY = -20.0;
     public static final double JUMP_SPEED = 8.0;
     public static final double MOVE_SPEED = 4.3;
+    public static final int MAX_SKIN_ID = 2;
 
     private static final float MIN_PITCH = -89f;
     private static final float MAX_PITCH = 89f;
@@ -32,6 +33,7 @@ public final class Player {
     private float pitch;
     private double velocityY;
     private boolean onGround;
+    private int skinId;
 
     public Player(double x, double y, double z) {
         this.x = x;
@@ -41,6 +43,18 @@ public final class Player {
         this.pitch = 0f;
         this.velocityY = 0d;
         this.onGround = false;
+    }
+
+    public int getSkinId() {
+        return skinId;
+    }
+
+    /** Skin index 0..MAX_SKIN_ID. Not persisted: the launcher or the network hello sets it. */
+    public void setSkinId(int skinId) {
+        if (skinId < 0 || skinId > MAX_SKIN_ID) {
+            throw new IllegalArgumentException("skinId must be between 0 and " + MAX_SKIN_ID);
+        }
+        this.skinId = skinId;
     }
 
     public double getX() {

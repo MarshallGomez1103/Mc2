@@ -17,6 +17,14 @@ public final class Minecraft2Application {
     }
 
     public static void main(String[] args) {
+        if (Boolean.getBoolean("mc2.server")) {
+            ServerBootstrap.run();
+            return;
+        }
+        if (ClientBootstrap.requested(System.getenv()) && !Boolean.getBoolean("mc2.console")) {
+            ClientBootstrap.run();
+            return;
+        }
         BlockFactory blockFactory = new BlockFactory();
         Path directory = WorldDirectory.resolve();
         GpuPreference.prepare(directory, args);

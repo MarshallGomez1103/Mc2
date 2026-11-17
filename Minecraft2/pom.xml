@@ -16,6 +16,8 @@
         <gdx.version>1.12.1</gdx.version>
         <main.class>bootstrap.Minecraft2Application</main.class>
         <jacoco.version>0.8.15</jacoco.version>
+        <!-- Minimum line coverage of domain/** measured on unit tests only (jacoco-unit.exec); integration data is not added. -->
+        <jacoco.domain.line.minimum>0.70</jacoco.domain.line.minimum>
         <skipUnitTests>false</skipUnitTests>
         <unitCoverageArgLine></unitCoverageArgLine>
         <integrationCoverageArgLine></integrationCoverageArgLine>
@@ -109,6 +111,27 @@
                             <dataFile>${project.build.directory}/jacoco-unit.exec</dataFile>
                             <outputDirectory>${project.build.directory}/site/jacoco-domain-unit</outputDirectory>
                             <includes><include>domain/**</include></includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>unit-domain-check</id>
+                        <phase>test</phase>
+                        <goals><goal>check</goal></goals>
+                        <configuration>
+                            <dataFile>${project.build.directory}/jacoco-unit.exec</dataFile>
+                            <includes><include>domain/**</include></includes>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.domain.line.minimum}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
                         </configuration>
                     </execution>
                     <execution>
