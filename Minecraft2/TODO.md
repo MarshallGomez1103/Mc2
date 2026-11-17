@@ -91,12 +91,12 @@ Rama: `c3/jasub`. Criterios que alimenta: Arquitectura verificada (15), DevSecOp
 
 ### Seguridad y DAST
 
-- [ ] **C3-05.1 a C3-05.3** STRIDE sobre el diagrama de contenedores actualizado a lo desplegado: al menos cinco amenazas específicas (por ejemplo, el flujo de `input` del cliente al servidor, el puerto 7777, `JsonWorldStorage` y los nombres de mundo, la cadena de imagen y JAR) con categoría, componente o flujo, mitigación y verificación; autenticación y autorización explicadas según existan usuarios. Archivos: `Minecraft2/docs/seguridad.md` (previsto).
-- [ ] **C3-05.4 (justificación)** `Minecraft2/docs/adr/ADR-003-seguridad.md` (previsto): herramientas y umbrales (SAST sin hallazgos altos o críticos sin tratar; SCA sin altas o críticas con corrección; cero secretos incluido el historial; imagen sin críticas con corrección). Revisión: persona 1.
-- [ ] **C3-05.6** Registro de cada hallazgo en `seguridad.md` con una de tres decisiones (corregido con commit, falso positivo con justificación, riesgo aceptado con justificación y trabajo necesario).
-- [ ] **C3-05.7** Pull request negativo con una credencial ficticia: check fallido conservado, cerrado sin fusionar y enlazado en `seguridad.md`. Nunca un secreto real.
+- [x] **C3-05.1 a C3-05.3** STRIDE sobre el diagrama de contenedores actualizado a lo desplegado: al menos cinco amenazas específicas (por ejemplo, el flujo de `input` del cliente al servidor, el puerto 7777, `JsonWorldStorage` y los nombres de mundo, la cadena de imagen y JAR) con categoría, componente o flujo, mitigación y verificación; autenticación y autorización explicadas según existan usuarios. Archivos: `Minecraft2/docs/seguridad.md` (previsto).
+- [x] **C3-05.4 (justificación)** `Minecraft2/docs/adr/ADR-003-seguridad.md` (previsto): herramientas y umbrales (SAST sin hallazgos altos o críticos sin tratar; SCA sin altas o críticas con corrección; cero secretos incluido el historial; imagen sin críticas con corrección). Revisión: persona 1.
+- [x] **C3-05.6** Registro de cada hallazgo en `seguridad.md` con una de tres decisiones (corregido con commit, falso positivo con justificación, riesgo aceptado con justificación y trabajo necesario).
+- [x] **C3-05.7** Pull request negativo con una credencial ficticia: check fallido conservado, cerrado sin fusionar y enlazado en `seguridad.md`. Nunca un secreto real.
 - [ ] **C3-09** Paso de OWASP ZAP baseline contra `/health` y el front noVNC del entorno desplegado, entregado como fragmento para `cd.yml` (persona 3); hallazgos tratados con las mismas tres decisiones. Evidencia: reporte como artefacto de Actions. Depende de: CD en verde.
-- [ ] **C3-10.7** `Minecraft2/docs/pruebas.md`: comandos, clasificación Surefire/Failsafe, reportes y relación con los checks reales.
+- [x] **C3-10.7** `Minecraft2/docs/pruebas.md`: comandos, clasificación Surefire/Failsafe, reportes y relación con los checks reales.
 - [ ] Entregar las coevaluaciones asignadas de todos los grupos distintos al propio, al terminar cada presentación.
 - [ ] Revisar el control antes de cada commit y de la entrega: requisito literal, archivos completos, rutas personales, marcadores sin resolver, enlaces, cifras con fecha y commit, pruebas omitidas informadas por separado.
 

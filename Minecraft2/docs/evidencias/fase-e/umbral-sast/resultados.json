@@ -1,0 +1,27 @@
+[
+  {
+    "case": "medio",
+    "exit": 0,
+    "expected": 0
+  },
+  {
+    "case": "alto",
+    "exit": 1,
+    "expected": 1
+  },
+  {
+    "case": "critico",
+    "exit": 1,
+    "expected": 1
+  },
+  {
+    "case": "sin-runs",
+    "exit": 1,
+    "expected": 1
+  },
+  {
+    "case": "vacio",
+    "exit": 0,
+    "expected": 0
+  }
+]

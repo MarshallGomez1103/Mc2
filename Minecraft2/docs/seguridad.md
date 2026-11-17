@@ -1,97 +1,75 @@
 # Seguridad de Minecraft2
 
-Este documento recoge el modelo de amenazas del sistema, los cuatro controles de seguridad del pipeline con sus umbrales, el registro de hallazgos y la evidencia de que los controles detienen un cambio inseguro. Lo lee quien revisa la seguridad del proyecto o decide si un riesgo se acepta. La justificación de las herramientas y de los umbrales está en el [ADR-003](adr/ADR-003-seguridad.md); el pipeline, en [devops.md](devops.md).
+Actualización de Persona 2, 16/11/2026. Base revisada `522bd4c`, sobre main `e618961`; fase E continúa en el PR #15, todavía sin fusionar. Responsables: Jasub (modelo, mitigaciones y registro), Thomas (scripts/workflow y revisión), Ethian (contenedores/CD/runner). [ADR-003](adr/ADR-003-seguridad.md) explica decisiones y alternativas.
 
-> **Estado del documento: parcial.** Los cuatro controles de la sección 3 ya corren en el pipeline y su primera ejecución no reportó hallazgos, de modo que no hay ninguno registrado. La sección 5 recoge dos demostraciones de bloqueo (cobertura del dominio y secretos); los controles de dependencias, análisis estático e imagen aún no tienen una demostración. El resto sigue como esqueleto. Cada elemento marcado «Previsto — responsable: Persona N» se completa con ejecuciones reales y el marcador se retira antes de la entrega. Las amenazas de la sección 2 son **candidatas por evaluar**: no son vulnerabilidades confirmadas.
+**Estado:** servidor y cliente implementados, amenazas contrastadas con código y pruebas. Los cuatro gates ya funcionan. Hay riesgos residuales y vulnerabilidades no críticas en la imagen: «cinco checks verdes» no significa «cero hallazgos». La evidencia negativa de secretos ya existe en el PR #5 cerrado sin merge y se revalida en esta fase; no se publica otra llave ficticia. La revisión cruzada de este documento/ADR y la validación del despliegue siguen a cargo del equipo. No se presentan como realizadas.
 
-Responsable: Persona 2, con Persona 1 (cableado de los controles en el workflow).
+## 1. Componentes y fronteras de confianza
 
-## 1. Componentes y flujos analizados
+Se parte de [contenedores de C2](diagramas/recuperacion-c2/02-contenedores.md) y de [ADR-002](adr/ADR-002-despliegue.md), actualizados a la implementación B/C/D. El binario actual tiene dos modos: cliente gráfico y servidor headless, no una API web de negocio.
 
-El modelo parte del diagrama de contenedores del Corte 2 ([contenedores](diagramas/recuperacion-c2/02-contenedores.md)), un proceso de escritorio con almacenamiento local en JSON, y lo extiende con los componentes que introduce el Corte 3 según [ADR-002](adr/ADR-002-despliegue.md). Lo que el Corte 3 añade se marca como previsto hasta que exista en el código; este análisis se actualiza con lo realmente desplegado.
+```text
+Jugador/navegador -> noVNC (front de Ethian, PR #2 pendiente)
+                         -> cliente LibGDX
+Jugador/cliente TCP ------> network.GameServer :7777
+                              | conexión -> identidad asignada
+                              | input validado -> cola acotada
+                              v
+                         hilo de simulación -> GameSession -> dominio
+                              |                                  |
+                              +-- state/ack por conexión         +-> JsonWorldStorage -> worlds/server.json
+Operador/monitor ----------> HTTP :8080 /health y /metrics (lectura)
+Código/PR -> CI hospedado -> gates -> main -> CD/GHCR/runner (integración de P3 pendiente)
+```
 
-| Componente o flujo | Descripción | Existe hoy |
-| --- | --- | --- |
-| Almacenamiento de mundos (`JsonWorldStorage`) | Lee y escribe los mundos como JSON v1 en un directorio local. | Sí: [`JsonWorldStorage`](../src/persistence/JsonWorldStorage.java) |
-| `mc2-server` | Servidor headless: protocolo TCP de líneas JSON en el puerto 7777; HTTP `/health` y `/metrics` en el 8080. | No. Previsto — responsable: Persona 2 |
-| `mc2-front` | Cliente LibGDX con Xvfb y noVNC, accesible desde el navegador en el puerto 6080. | No. Previsto — responsable: Persona 3 |
-| Flujo front → servidor (TCP 7777) | Entrada del jugador hacia el servidor y estado de vuelta. | No. Previsto — responsable: Persona 2 |
-| Flujo navegador → noVNC (6080) | Pantalla y entrada del jugador a través del navegador. | No. Previsto — responsable: Persona 3 |
-| Cadena de entrega | Repositorio, GitHub Actions, GitHub Container Registry, Releases y runner autohospedado. | No. Previsto — responsable: Persona 3 |
+TCP/HTTP enlazan todas las interfaces mediante InetSocketAddress(port): su acceso debe restringirse mediante red/firewall/publicación de puertos, no mediante MC2_SERVER_HOST (destino del cliente). No se ha comprobado una regla de firewall del equipo en E. El cliente y los sockets son entradas no confiables. Los JSON locales y MC2_WORLD_DIR los administra el operador, no el jugador. GitHub y el equipo del runner son otra frontera, con identidades distintas de las del juego.
 
-## 2. Modelo de amenazas (STRIDE)
+| Superficie | Estado real y límite |
+| --- | --- |
+| TCP7777 / HTTP8080 | Implementados en main; puertos configurables. HTTP solo GET exacto a health/metrics; no tiene carga/guardado administrativo ni autenticación. |
+| Estado compartido | IDs, nombres, skins y mundo de los jugadores se difunden como parte de la partida; no son identidades autenticadas. |
+| JSON local | Solo mundo `server` elegido en ServerSimulation; sin nombre de archivo recibido por TCP. Validación de ID en JsonWorldStorage. No hay límite general de bytes del archivo ni rechazo de symlinks: R-FILE. |
+| Front noVNC, Compose y CD | Propuesta de Ethian en PR #2; no inferir que está desplegada por haber probado contenedores en C. Contraseña, interfaces y TLS del entorno final requieren verificación en F/G. |
+| CI | ci.yml ejecuta PR/main/manual en GitHub-hosted; contents:read, sin secretos del despliegue, checkout sin persistir credenciales. Dependabot semanal ya existe. |
 
-Cada fila nombra un componente o flujo del sistema. «Candidata por evaluar» significa que la amenaza es plausible por el diseño, pero aún no se ha confirmado ni descartado con una prueba o un control en ejecución. Las mitigaciones que ya existen en el código se indican con su fuente; las demás son Previsto.
+## 2. Modelo de amenazas STRIDE
 
-| ID | Amenaza | STRIDE | Componente o flujo | Mitigación | Cómo se verifica |
+Una mitigación de código no demuestra por sí sola que la red del despliegue esté restringida. Los riesgos residuales remiten a decisiones de la sección4.
+
+| ID | Amenaza específica | STRIDE | Componente/flujo | Mitigación real y residual | Cómo se verifica |
 | --- | --- | --- | --- | --- | --- |
-| A1 | Candidata: un archivo de mundo JSON alterado a mano (estructura inválida, valores fuera de rango o desmesurados) altera el estado del juego o bloquea la carga. | Manipulación | `JsonWorldStorage`, `JsonParser`, `WorldJsonCodec` | Existe: el parser rechaza documentos inválidos y el almacenamiento lanza `InvalidWorldFileException` sin sustituir el mundo activo. Previsto — responsable: Persona 2: límites de tamaño y de valores al cargar en el servidor. | Pruebas existentes: [`JsonParserTest`](../test/persistence/JsonParserTest.java), [`InvalidWorldFileTest`](../test/persistence/InvalidWorldFileTest.java) y el escenario de JSON inválido de [`GameFlowSmokeIT`](../test/presentation/GameFlowSmokeIT.java). Pruebas de los límites nuevos: Previsto — responsable: Persona 2. |
-| A2 | Candidata: un nombre o identificador de mundo con separadores de ruta (`../`) lee o escribe archivos fuera del directorio de mundos. | Manipulación y divulgación de información | `JsonWorldStorage.worldFile`, ruta de mundos del servidor (`MC2_WORLD_DIR`) | Existe: el identificador solo admite letras, números, guion y guion bajo (`[a-zA-Z0-9_-]+`) y se rechaza cualquier otro. Previsto — responsable: Persona 2: aplicar la misma validación a cualquier identificador que llegue por la red. | Prueba existente: `rechazaIdentificadoresInvalidos` en [`JsonWorldStorageTest`](../test/persistence/JsonWorldStorageTest.java). Prueba con el identificador recibido por TCP: Previsto — responsable: Persona 2. |
-| A3 | Candidata: muchas conexiones al puerto 7777 o líneas muy largas agotan la memoria o los hilos de `mc2-server`. | Denegación de servicio | `mc2-server`, flujo front → servidor (TCP 7777) | Previsto — responsable: Persona 2: límite de conexiones simultáneas, longitud máxima de línea y tiempo máximo de lectura; límites de CPU y memoria en el Compose (Persona 3). Contexto ya documentado: los mundos son finitos y viven en memoria ([arquitectura §7](arquitectura.md#7-límites-y-tercer-corte)). | Prueba de integración del servidor con línea sobredimensionada y conexiones en exceso, y la carga del SLO en el despliegue. Previsto — responsable: Persona 2. |
-| A4 | Candidata: un cliente se hace pasar por otro jugador (declara su identificador o nombre) o abre varias conexiones para controlar más de un jugador. | Suplantación | Handshake y mensajes del protocolo TCP v1 | El juego no tiene cuentas (ver sección 2.1). Previsto — responsable: Persona 2: el servidor asigna el identificador del jugador al conectarse y no acepta el que declare el cliente; una conexión controla un solo jugador. | Prueba de integración del protocolo con un identificador falso. Previsto — responsable: Persona 2. |
-| A5 | Candidata: un mensaje malformado o con valores no finitos (por ejemplo, ángulos o deltas inválidos) rompe el tick del servidor o mueve a un jugador de forma no permitida. | Manipulación | Mensajes de entrada del protocolo TCP v1, `GameSession` | Existe en el dominio: `GameSession` descarta deltas no finitos, negativos o cero y rechaza `AIR` como material ([arquitectura §4](arquitectura.md#4-arquitectura-inicial-y-evolucionada)). Previsto — responsable: Persona 2: el analizador del protocolo valida cada campo antes de construir `PlayerFrameInput` y responde con un código de error estable. | Pruebas existentes: [`GameSessionTest`](../test/application/GameSessionTest.java) y [`PlayerFrameInputTest`](../test/application/PlayerFrameInputTest.java). Pruebas del analizador: Previsto — responsable: Persona 2. |
-| A6 | Candidata: un error o un log revela rutas del equipo anfitrión, trazas o datos de otros jugadores. | Divulgación de información | Respuestas de error del protocolo, logs de `mc2-server`, `/metrics` y `/health` | Previsto — responsable: Persona 2: errores con código estable y sin rutas; `/metrics` expone solo contadores y duraciones agregados, sin nombres de jugador. | Prueba que provoca un error y comprueba que el mensaje no contiene rutas; revisión del contenido de `/metrics`. Previsto — responsable: Persona 2. |
-| A7 | Candidata: se despliega una imagen o un JAR que no construyó el pipeline (subido a mano al registro o alterado en Releases) o con una dependencia comprometida. | Manipulación | Imagen en GHCR, JAR del cliente en Releases, cadena de entrega | Previsto — responsable: Persona 3: la imagen solo se construye y se publica desde `cd.yml` en `main`; se despliega por etiqueta de SHA o versión, nunca `latest`; bases de versión fija (el [`Dockerfile`](../Dockerfile) actual ya fija las versiones de sus dos imágenes base); acciones fijadas por SHA; SCA e imagen escaneadas; Dependabot. | Job de escaneo de la imagen, el SCA y la revisión de los permisos de `cd.yml`. Previsto — responsable: Persona 2 y Persona 3. |
-| A8 | Candidata: código de un pull request se ejecuta en el equipo del runner autohospedado y accede a secretos o al sistema anfitrión. | Elevación de privilegios | Runner autohospedado, `cd.yml` | Previsto — responsable: Persona 3: el runner autohospedado atiende solo el job de despliegue de `main` o de tags, con un Environment de GitHub; los pull requests corren en runners hospedados; `cd.yml` no se dispara con `pull_request`; permisos mínimos por job; aprobación obligatoria para workflows de colaboradores externos. | Revisión de `cd.yml` (`runs-on` del runner autohospedado solo en el job de despliegue y ningún disparador `pull_request`). Previsto — responsable: Persona 3. |
-| A9 | Candidata: cualquier persona de la red alcanza el puerto 6080 y controla el cliente de otro jugador, o accede al contenedor desde fuera de la red del equipo. | Suplantación y elevación de privilegios | Flujo navegador → noVNC (6080), `mc2-front` | Existe: el [`Dockerfile`](../Dockerfile) actual ejecuta el proceso con la cuenta `app`, sin privilegios de root. Previsto — responsable: Persona 3: decidir qué interfaz publica el puerto 6080 (red local, no pública) y si noVNC exige contraseña; no se agregan cuentas al juego. | `docker compose exec mc2-front id` (cuenta distinta de root) y `docker compose ps` con los puertos publicados. Previsto — responsable: Persona 3. |
+| A1 | Conectarse usando el nombre de otro jugador, observar o suplantar la sesión desde la LAN. | Suplantación | hello TCP7777, cliente/noVNC | El servidor asigna ID y skin0–2 validada. El nombre no autentica; TCP no tiene TLS ni credencial: R-AUTH. Restringir puertos es condición operativa pendiente, no propiedad garantizada por Java. | ProtocolCodecTest; GameServerIT/MultiplayerServerIT. Verificar controles de exposición con Ethian en F/G. |
+| A2 | Enviar playerId ajeno o repetir una acción para mover otro jugador o duplicar efectos. | Elevación de privilegios / manipulación | input -> Connection -> GameSession | Esquema rechaza playerId y campos desconocidos; conexión determina el ID, seq creciente por conexión, ack solo después de aplicar, un hilo muta el mundo. No hay roles administrativos del juego. | ProtocolCodecTest; GameServerIT helloThenInputAppliesExactlyOnceAndAckDoesNotRegress y prueba de identidad falsa; MultiplayerServerIT acks aislados. |
+| A3 | Ocho pares lentos o líneas enormes agotan lectores/memoria y bloquean nuevos jugadores. | Denegación de servicio | Socket7777, colas input/output | Máx8 conexiones/lectores/escritores; línea4096 bytes, input32, output4, HTTP2 trabajadores/cola16. Timeout socket5s handshake y30s posterior. Son tiempos de inactividad por lectura, no plazos absolutos: goteo lento y reconexión siguen como R-DOS. | ProtocolCodecTest límites UTF8; GameServerIT octavo/noveno y línea4097; métricas tick_failures=0 y dueño sigue respondiendo. No es ensayo de DoS distribuido ni prueba de todas las colas. |
+| A4 | Ángulos infinitos, tipos falsos, JSON duplicado/profundo o materiales inválidos alteran el tick. | Manipulación | ProtocolCodec/JsonParser -> PlayerFrameInput | Long para seq1..2^53−1, booleanos estrictos, ángulos finitos/acotados, AIR rechazado, parser profundidad64 y duplicados inválidos. El fallo cierra al par sin modificar otra sesión. | ProtocolCodecTest; JsonParserTest; GameServerIT entradas abusivas y salud posterior. |
+| A5 | Un nombre de campo JSON con salto de línea falsifica un evento del log. | Repudio / manipulación | error del parser -> GameServer.Connection.read | Hallazgo E-LOG confirmado con prueba roja. Se elimina failure.getMessage de la salida del lector; queda evento fijo, ID interno y clase de excepción. No hay auditoría criptográfica ni atribución personal: R-AUDIT. | GameServerIT malformedMessagesCannotForgeLogEntries falla antes y pasa después; log/XML conservados. Commit de corrección en sección4. |
+| A6 | Leer rutas arbitrarias por nombre de mundo o alterar JSON local para forzar consumo excesivo. | Divulgación / manipulación / DoS | JsonWorldStorage y volumen worlds | Red no permite seleccionar rutas; ID local restringido a [a-zA-Z0-9_-]+ y errores TCP se cierran sin devolver trazas. Archivo local confiado al operador; tamaño/symlinks pendientes R-FILE. | JsonWorldStorageTest rechazaIdentificadoresInvalidos, InvalidWorldFileTest y humo JAR; revisión ServerSimulation usa nombre constante server. No se afirma un endpoint de archivos por red. |
+| A7 | Métricas o errores HTTP/TCP revelan nombres, rutas o detalles internos. | Divulgación | health/metrics/logs y state | HTTP devuelve salud y agregados, nosniff/no-store; rutas extra404 y métodos distintosGET405. Sin nombres en métricas; error TCP cierra sin traceback. State sí publica nombres/estado del mundo por diseño; R-AUTH cubre acceso no autorizado. | GameServerIT privacidad de métricas y cabeceras; revisión ServerMetrics/respond. ZAP posterior solo analiza HTTP. |
+| A8 | Dependencia o base vulnerable llega al JAR/imagen; credencial en historial o acción móvil altera la entrega. | Manipulación / divulgación | Maven, Dockerfile, CI y Git | Gates CodeQL+umbral, Trivy SCA/imagen y Gitleaks historial completo. Acciones por SHA; herramientas con checksums. Imagen con versiones, no digest; riesgos reales en tabla R-IMG y confianza en mismo origen de checksums. | Reportes completos de Actions; PR5 bloqueado; fixtures SARIF prueban salida no cero con alto/crítico. No se afirma ensayo vulnerable real para SCA/imagen. |
+| A9 | Código de PR accede a la máquina del runner o a secretos de publicación. | Elevación de privilegios | CI -> runner/CD/GHCR | CI corre en GitHub-hosted, contents:read y sin pull_request_target. Para CD exigir main/tags confiables, Environment y permisos mínimos; revisar definición final P3: R-RUNNER. | Revisión ci.yml actual; PR2/registro runner y políticas del Environment pendientes F/G. No se certifica CD antes de integrarlo. |
 
 ### 2.1 Autenticación y autorización
 
-- **Jugadores.** El juego no tiene cuentas ni roles: el Corte 2 es una aplicación de un solo jugador local y el alcance del Corte 3 excluye funcionalidades de negocio nuevas. Por eso no hay autenticación ni autorización de jugador que verificar, y no se inventa un inicio de sesión. La consecuencia, aceptada por alcance, es que el protocolo TCP (7777) y noVNC (6080) no autentican a quien se conecta; la mitigación es limitar su exposición a la red del equipo y que el servidor asigne los identificadores (A4, A9). Decisión registrada en el [ADR-002](adr/ADR-002-despliegue.md). Previsto — responsable: Persona 2: confirmar el texto cuando el protocolo esté implementado.
-- **Identidades que sí existen.** Cuentas de GitHub de los integrantes (aprobación de pull requests y protección de `main`), el token del workflow que publica en GitHub Container Registry, el registro del runner autohospedado y los Environments con sus secretos. Su autorización es: quién puede fusionar a `main`, qué job puede escribir paquetes y qué job puede usar el runner.
+**Autenticación de jugador:** no implementada; name/skinId son presentación. Un ID asignado por el servidor identifica una conexión, no prueba quién es la persona. TCP y HTTP no cifran; noVNC del entorno final no se certifica aquí. Se conserva el alcance académico de juego en red restringida de ADR002 y se registra R-AUTH, sin describirlo como seguro para Internet. Añadir cuentas/TLS/proxy o VPN autenticada requiere diseño y coordinación; no se inventa un login.
+
+**Autorización que sí existe:** cada Connection controla exclusivamente el jugador que GameSession.join le asignó; no se acepta un ID del cliente ni una operación administrativa de archivos. join/leave/advanceAll y snapshots corren bajo el hilo autoritativo. No existen roles de jugador ni administración remota del servidor. GitHub sí tiene identidades y autorización separada (revisar PR, fusionar main, publicar paquetes, usar Environment/runner). La aprobación cruzada debe hacerla otro integrante; Jasub no se autoaprueba.
 
 ## 3. Controles y umbrales
 
-Los cuatro controles corren en el pipeline [`ci.yml`](../../.github/workflows/ci.yml) como quality gates. Los umbrales mínimos son los del enunciado (sección 4.2); cada grupo puede endurecerlos, nunca relajarlos. Las herramientas son las propuestas del [ADR-003](adr/ADR-003-seguridad.md), que sigue en estado propuesto: la primera ejecución sobre el repositorio real (sección 3.2) las pone a prueba, pero no sustituye la demostración de que cada gate bloquea un cambio inseguro.
+Los mínimos no se relajan y el verde no equivale a ausencia de todas las vulnerabilidades.
 
-> **Estado de esta sección.** Los cuatro jobs existen y se ejecutaron por primera vez en el pull request #1 ([ejecución](https://github.com/MarshallGomez1103/Mc2/actions/runs/43487176016), commit `b9f06d3`, 2026-11-13): los cinco jobs terminaron en verde y los cuatro controles no reportaron hallazgos. El ruleset de `main` exige estos cinco checks ([devops](devops.md#4-flujo-de-ramas-pull-request-y-protección-de-main)). De la demostración de que cada gate falla ante un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) constan la de secretos y la de cobertura; siguen Previsto las de SAST, SCA e imagen: Previsto — responsable: Persona 2.
-
-El workflow se dispara con `pull_request` hacia `main`, con `push` a `main` y con `workflow_dispatch`. Los jobs se llaman `build-pruebas`, `sast`, `sca`, `secretos` e `imagen`; el id de cada job es el nombre de su check y no se renombra sin actualizar el ruleset de `main` que lo referencie. El ruleset `proteger-main` existe y marca los cinco checks como obligatorios ([devops](devops.md#4-flujo-de-ramas-pull-request-y-protección-de-main)).
-
-| Control (job) | Qué detecta | Umbral mínimo (enunciado) | Umbral adoptado | Herramienta | Cómo detiene el pipeline |
-| --- | --- | --- | --- | --- | --- |
-| Análisis estático (`sast`) | Vulnerabilidades en el código propio. | Ningún hallazgo alto o crítico sin tratar. | Ningún resultado con `security-severity` de 7.0 o más (bandas alta y crítica de GitHub) sin una excepción registrada. | CodeQL para Java mediante `github/codeql-action` v4.39.3 (CLI 2.27.4 incluida en la acción), con compilación manual de `Minecraft2/`. | CodeQL solo escribe el SARIF; [`scripts/umbral-sast.sh`](../../scripts/umbral-sast.sh) lo lee y termina con error si queda un resultado de 7.0 o más sin excepción. |
-| Análisis de dependencias (`sca`) | Librerías con vulnerabilidades conocidas. | Ninguna vulnerabilidad alta o crítica con corrección disponible. | Igual al mínimo: `HIGH` y `CRITICAL` con corrección disponible (`--ignore-unfixed`). | Trivy 0.76.2 en modo sistema de archivos (`trivy fs`) sobre `Minecraft2/`. | [`scripts/sca.sh`](../../scripts/sca.sh): código de salida 1 de Trivy (`--exit-code 1`); además falla si Trivy no analizó ningún `pom.xml`. |
-| Detección de secretos (`secretos`) | Contraseñas, tokens y llaves en el código y en el historial. | Cero secretos, incluido el historial. | Igual al mínimo: cero hallazgos en todas las referencias descargadas (`--log-opts=--all`, checkout con `fetch-depth: 0`). | Gitleaks 8.30.1 (`gitleaks git`). | [`scripts/secretos.sh`](../../scripts/secretos.sh): código de salida 1 de Gitleaks (`--exit-code 1`); además se niega a ejecutarse sobre un clon superficial o sin commits. |
-| Escaneo de la imagen (`imagen`) | Vulnerabilidades del sistema operativo y de las librerías dentro del contenedor. | Ninguna vulnerabilidad crítica con corrección disponible. | Igual al mínimo: `CRITICAL` con corrección disponible (`--ignore-unfixed`). | Trivy 0.76.2 sobre el archivo `docker save` de la imagen construida con el [`Dockerfile`](../Dockerfile). | [`scripts/escaneo-imagen.sh`](../../scripts/escaneo-imagen.sh): código de salida 1 de Trivy (`--exit-code 1`). |
-
-El job `build-pruebas` no es un control de seguridad, pero comparte el workflow: ejecuta `mvn -B -ntp verify` (pruebas unitarias, de integración y de arquitectura, y el umbral de cobertura de líneas del dominio) y falla si la comprobación de JaCoCo no se ejecutó, porque esa comprobación se omite en silencio cuando falta el archivo de datos de las pruebas unitarias. Su detalle está en [devops.md](devops.md).
-
-Reglas:
-
-- Los umbrales no se relajan. Deshabilitar una regla o bajar un umbral sin justificarlo cuenta como un control no implementado; toda excepción se registra en la [sección 4](#4-registro-de-hallazgos) con su justificación.
-- Cuando una herramienta solo reporta (por ejemplo, CodeQL, que aquí no publica en la pestaña Security), un paso adicional interpreta el resultado y falla si se supera el umbral. Publicar alertas no sustituye el gate.
-- Ningún job usa `continue-on-error`: un control que no puede fallar no es un control.
-- Los controles de dependencias, secretos e imagen son scripts del repositorio (`scripts/`) que descargan su herramienta fijada. Los de dependencias y secretos se niegan a correr fuera de GitHub Actions o de un contenedor, para no instalar nada en el equipo de un integrante.
-
-### 3.1 Qué bloquea cada control y qué no
-
-| Job | Bloquea cuando | No bloquea (límite conocido) |
+| Job | Herramienta fijada en la base revisada | Umbral y salida que bloquea |
 | --- | --- | --- |
-| `sast` | Hay al menos un resultado de CodeQL con `security-severity` de 7.0 o más sin excepción registrada; el SARIF falta, no se puede leer o no trae ninguna ejecución; o CodeQL no extrajo ningún archivo Java. | Los resultados de severidad menor a 7.0. Los resultados cuya regla no declara `security-severity` cuentan como 0. Solo se analiza `Minecraft2/src/`: los archivos de `Minecraft2/test/` no se compilan para CodeQL. Se usa la suite de consultas por defecto de la acción, sin `security-extended`. |
-| `sca` | Una dependencia de `Minecraft2/pom.xml`, directa o transitiva, tiene una vulnerabilidad `HIGH` o `CRITICAL` con versión corregida; Trivy falla; o el reporte no contiene ningún resultado de tipo `pom`. | Las vulnerabilidades sin corrección publicada. Solo se analiza `pom.xml`: no se revisan el JAR final ni otros ecosistemas. Trivy consulta su base de vulnerabilidades en cada ejecución, de modo que una vulnerabilidad publicada después de un job en verde solo aparece en la ejecución siguiente. |
-| `secretos` | Gitleaks encuentra una coincidencia en cualquier commit de las referencias descargadas, o el checkout es superficial o sin commits. | Lo que no sea un secreto (datos personales, volcados de datos), y los secretos que las reglas por defecto de Gitleaks no reconozcan: no hay `.gitleaks.toml` propio. Las referencias que existan solo en un clon local. |
-| `imagen` | La imagen construida contiene una vulnerabilidad `CRITICAL` con corrección disponible. | Las críticas sin corrección en la imagen base, y las de gravedad `HIGH` o inferior. Se analiza la imagen final (sistema operativo y JAR de la aplicación) con el escáner de vulnerabilidades: no revisa secretos ni configuración. La imagen que se escanea es la construida en CI; aún no existe una imagen publicada. |
+| sast | CodeQL acción SHA33d7b85… (v4.39.3) con build manual Java; SARIF como artefacto, upload:never | scripts/umbral-sast.sh: security-severity >=7.0 sin tratamiento registrado => exit1. SARIF faltante/inválido/sin runs => fallo; workflow exige extracción Java no vacía. |
+| sca | Trivy0.76.2 fs; precarga Maven y reporte completo | HIGH/CRITICAL con corrección, --ignore-unfixed --exit-code1. Falla si no analizó ningún pom; dependencias transitivas según resolución Maven. |
+| secretos | Gitleaks8.30.1 git, --log-opts=--all y --redact | Cero hallazgos; exit1, rechaza clon superficial/sin commits. fetch-depth0. Incluye referencias descargadas, no objetos inalcanzables de GitHub. |
+| imagen | Trivy0.76.2 sobre docker save de Minecraft2/Dockerfile | CRITICAL con corrección => exit1; reporte completo incluye LOW/MEDIUM/HIGH que deben registrarse. El job también puede fallar al compilar/probar; eso no demuestra una CVE. |
 
-Los cuatro jobs corren solo ante pull requests, `push` a `main` y ejecución manual: no hay una ejecución programada, de modo que una imagen o una dependencia no se reescanean mientras no haya cambios.
+### 3.2 Evidencia actual y alcance
 
-El umbral de `sast` usa la puntuación `security-severity` que CodeQL escribe en el SARIF; el script busca los metadatos de las reglas en `tool.driver.rules` y en `tool.extensions[].rules`. La primera ejecución no produjo ningún resultado, de modo que esa lectura todavía no se ha comprobado con un hallazgo real: Previsto — responsable: Persona 1 (la comprobación se hace con la demostración de la sección 5 o con una consulta de CodeQL que dispare a propósito).
+Base D522bd4c, [Actions43978487608](https://github.com/MarshallGomez1103/Mc2/actions/runs/43978487608), intento2: cinco checks verdes. SARIF con cero resultados de vulnerabilidad; SCA con cero vulnerabilidades reportadas; imagen **59 hallazgos (2 HIGH,53 MEDIUM,4 LOW), cero CRITICAL**. Se registran individualmente debajo. Secretos sin hallazgos según log; el artefacto de secretos se publica solo si falla. No se interpreta su ausencia como única prueba de éxito: se revisan job/log. Primer intento de SCA falló antes del escáner por HTTP429 de Maven Central; reintento aprobado, sin alterar gates. E ejecuta otra CI y añade sus resultados en [evidencia de la fase](evidencias/fase-e/README.md).
 
-### 3.2 Primera ejecución y estado del historial
-
-Resultados de la [ejecución](https://github.com/MarshallGomez1103/Mc2/actions/runs/43487176016) del pull request #1 (commit `b9f06d3`, evento `pull_request`). El pipeline completo duró alrededor de 2 minutos, muy por debajo de los 10 minutos que fija [devops.md](devops.md).
-
-| Job | Duración | Observado |
-| --- | --- | --- |
-| `build-pruebas` | 39 s | 218 pruebas unitarias y 148 de integración sin fallos; `All coverage checks have been met`; `ArchitectureBoundaryTest`: 14 pruebas. |
-| `sast` | 1 min 57 s | CodeQL extrajo 90 archivos Java (los de `Minecraft2/src/`; la acción informa «90 out of 164», los 74 restantes son pruebas); el umbral informó 0 hallazgos altos o críticos y 0 sin tratar. |
-| `sca` | 28 s | Trivy 0.76.2 analizó un `pom.xml`; mensaje final `SCA gate PASSED: no HIGH/CRITICAL vulnerability with a fix available`. |
-| `secretos` | 6 s | 61 commits alcanzables desde todas las referencias descargadas; Gitleaks 8.30.1: `no leaks found`. |
-| `imagen` | 1 min 42 s | Imagen `mc2-server:ci` construida (la construcción ejecuta las pruebas unitarias del proyecto); Trivy analizó Ubuntu 24.04 (136 paquetes) y `app/app.jar`: 0 vulnerabilidades críticas con corrección. |
-
-Todos los jobs terminaron en verde sin necesitar excepciones. Los hallazgos registrados de esta ejecución son **cero**, por lo que la [sección 4](#4-registro-de-hallazgos) sigue vacía.
-
-Antes de esta ejecución, el escaneo de secretos se probó en local con Gitleaks sobre el historial completo, con cero coincidencias; el job de GitHub confirma el resultado sobre las referencias que el checkout descarga. Gitleaks no está diseñado para señalar datos personales: los nombres y las direcciones de correo de los autores de los commits están en el historial, y el reporte del job (que solo se publica si falla) los incluye. La decisión sobre esa exposición, que no implica rotar credenciales, no se ha tomado: Previsto — responsable: Persona 2. Reescribir el historial no se plantea sin una decisión explícita del equipo, tal como establece el [ADR-003](adr/ADR-003-seguridad.md).
+El escaneo corresponde al Dockerfile actual, no certifica Dockerfile.server/front del PR2 ni el equipo del runner. Las bases de CVE cambian; una ejecución pasada no certifica futuras imágenes. El código del control es revisable en scripts/ y ci.yml; no se modifican esos archivos de Thomas en E.
 
 ### 3.3 Excepciones del análisis estático
 
@@ -100,7 +78,7 @@ Una excepción del SAST se registra en dos lugares y el script exige los dos:
 1. Una línea `<id de la regla> <ruta del archivo>` en `.github/codeql/excepciones-sast.txt`, con la ruta tal como aparece en el SARIF (relativa a la raíz del repositorio, por ejemplo `Minecraft2/src/...`). El archivo no existe: hoy no hay excepciones.
 2. Una mención de la regla y de la ruta en este documento; la fila del [registro de hallazgos](#4-registro-de-hallazgos) debe incluirlas, con la decisión (falso positivo o riesgo aceptado) y su justificación.
 
-Si falta cualquiera de los dos, el hallazgo bloquea. Límites del mecanismo: la excepción vale para el par regla-archivo, no para una línea concreta, y silencia los hallazgos futuros de esa regla en ese archivo, por lo que cada registro debe decir qué código se revisó; y el script solo comprueba que la regla y la ruta aparezcan como texto en este documento, no que estén en la tabla de la sección 4, así que el contenido del registro sigue dependiendo de la revisión. Para Gitleaks y Trivy no hay excepciones: Gitleaks lee un `.gitleaksignore` y los scripts de Trivy un `.trivyignore` en la raíz solo si existen, y hoy no existe ninguno. Cualquier excepción de esos escáneres se crea en el mismo cambio que su fila del registro.
+Si falta cualquiera de los dos, el hallazgo bloquea. Límites del mecanismo: la excepción vale para el par regla-archivo, no para una línea concreta, y silencia los hallazgos futuros de esa regla en ese archivo, por lo que cada registro debe decir qué código se revisó; y el script solo comprueba que la regla y la ruta aparezcan como texto en este documento, no que estén en la tabla de la sección 4, así que el contenido del registro sigue dependiendo de la revisión. Para Gitleaks y Trivy no hay excepciones: Gitleaks lee un `.gitleaksignore` y los scripts de Trivy un `.trivyignore` en la raíz solo si existen, y no existen en la base revisada. Cualquier excepción de esos escáneres se crea en el mismo cambio que su fila del registro.
 
 ### 3.4 Versiones de las herramientas y verificación de las descargas
 
@@ -111,7 +89,7 @@ Si falta cualquiera de los dos, el hallazgo bloquea. Límites del mecanismo: la 
 | Acciones de GitHub | `actions/checkout` v7.0.1, `actions/setup-java` v6.2.0, `actions/upload-artifact` v7.0.2, `github/codeql-action` v4.39.3 | Cada `uses:` apunta a un SHA completo de commit; la etiqueta queda como comentario. |
 | Imágenes base del `Dockerfile` | `maven:3.9.16-eclipse-temurin-17-noble` y `eclipse-temurin:17.0.20.1_1-jre-noble` | Versión fija en el [`Dockerfile`](../Dockerfile). Sin resumen (digest) fijado: Previsto — responsable: Persona 3. |
 
-La suma de comprobación detecta un archivo corrupto o cambiado respecto de la publicación, pero el archivo de sumas viene de la misma publicación que la herramienta, por lo que no prueba el origen de la versión; la verificación de firma con las firmas sigstore que publica Trivy no se ha hecho: Previsto — responsable: Persona 1. El runner es `ubuntu-latest`, sin versión fija. Las versiones se actualizan a mano, cambiando versión y hash en el mismo commit; la automatización con Dependabot queda Previsto — responsable: Persona 1.
+La suma de comprobación detecta un archivo corrupto o cambiado respecto de la publicación, pero el archivo de sumas viene de la misma publicación que la herramienta, por lo que no prueba el origen de la versión; la verificación de firma con las firmas sigstore que publica Trivy no se ha hecho: Previsto — responsable: Persona 1. El runner es `ubuntu-latest`, sin versión fija. Las versiones se actualizan a mano, cambiando versión y hash en el mismo commit; Dependabot ya configura actualizaciones semanales de Maven, acciones y Docker.
 
 ### 3.5 Reglas de seguridad del propio workflow
 
@@ -124,47 +102,98 @@ La suma de comprobación detecta un archivo corrupto o cambiado respecto de la p
 - **Reportes.** Los reportes de pruebas, SARIF, SCA e imagen se publican como artefactos durante 14 días, también si el job falla. El reporte de Gitleaks incluye autor y correo de cada commit señalado; se publica solo si el job falla y se conserva 7 días. Con `--redact` el valor del secreto no aparece, pero los metadatos del commit sí.
 - **Alcance del control.** Los jobs corren en runners hospedados por GitHub. El runner autohospedado del Corte 3 no ejecuta ningún job de este workflow (A8).
 
-### 3.6 Demostración: la credencial es siempre falsa
 
-Para demostrar que el gate de secretos detiene un cambio inseguro ([sección 5](#5-evidencia-pull-request-bloqueado)) se usa una credencial **inventada**, sin relación con ningún sistema real. Nunca se usa un secreto real, ni siquiera uno ya revocado, porque lo que entra en un pull request queda en el historial público, y el valor de la credencial falsa no se reproduce en los documentos. Reglas que se aplicaron en la demostración:
+## 4. Registro de hallazgos y decisiones
 
-- Antes de abrir el pull request se comprobó en local, con Gitleaks 8.30.1, que la credencial falsa es detectada: las reglas de Gitleaks ignoran valores con apariencia de ejemplo, de modo que no basta con escribir cualquier cadena.
-- El pull request se cerró sin fusionar y **la rama de la demostración se eliminó del remoto** de inmediato. El job `secretos` descarga todas las ramas y escanea todas las referencias descargadas: mientras la rama exista, el check `secretos` falla también en `main`.
-- Como la credencial falsa deja de estar accesible desde `main` al borrar la rama, no hace falta una excepción de Gitleaks. El enlace al pull request y a la ejecución con el check rojo sirven de evidencia.
-- Contaminación entre ramas: la demostración de cobertura se ejecutó mientras la rama de la credencial falsa seguía en el remoto, y por eso `secretos` también falló en esa ejecución (sección 5). El efecto confirma la regla anterior; las demostraciones se hacen una a una o borrando la rama antes de abrir la siguiente.
-- Las demostraciones de los otros gates (una dependencia vulnerable para SCA, un hallazgo alto para SAST y una vulnerabilidad crítica en la imagen) siguen pendientes: Previsto — responsable: Persona 2. La ejecución del pull request #1 solo prueba que esos controles pasan con el código actual, no que fallen ante un problema.
+Responsable del registro: Jasub. Las decisiones residuales son para el prototipo académico y requieren revisión cruzada; no equivalen a aprobación de seguridad para producción. No se agrega ninguna excepción de CodeQL/Gitleaks/Trivy ni se baja un umbral.
 
-## 4. Registro de hallazgos
+| ID | Origen/hallazgo | Decisión | Justificación, cambio o trabajo necesario |
+| --- | --- | --- | --- |
+| E-LOG | Revisión/prueba: campo JSON duplicado con salto de línea entra en failure.getMessage y falsifica líneas del log del servidor. | Corregido | [acbff1c](https://github.com/MarshallGomez1103/Mc2/commit/acbff1ccb72d35735d246e28b562df2bbfecf665). Se conserva evento fijo/ID/clase; se elimina el texto no confiable. Rojo antes, verify verde después. |
+| R-AUTH | Sin autenticación/cifrado TCP/HTTP; nombre suplantable y estado visible; noVNC sin validación final. | Riesgo aceptado en alcance restringido | Partida académica sin cuentas; no admite exposición pública. Ethian debe confirmar interfaces/firewall/proxy/acceso autenticado; para producción autenticación y TLS/VPN. Si no se restringe la red, la condición de aceptación no se cumple. |
+| R-DOS | Timeout por inactividad reiniciable, goteo lento y reconexiones pueden ocupar8 plazas; logs no tienen rate limit. | Riesgo aceptado en alcance restringido | Colas/hilos/tamaño acotados protegen memoria, no garantizan disponibilidad ante atacantes. Añadir plazo absoluto de frame, cuota por origen y rate limit; firewall/VPN operativos antes de exposición. |
+| R-FILE | JSON local sin máximo general de bytes ni rechazo explícito de symlink. | Riesgo aceptado para datos del operador | La red solo abre server y no recibe rutas. Un usuario con escritura en el volumen sigue pudiendo alterar datos. Restringir permisos/backup; coordinar límite de archivo y apertura sin seguir enlaces con propietario de persistencia. |
+| R-AUDIT | No hay identidad personal autenticada ni auditoría inviolable de cada acción. | Riesgo aceptado en alcance académico | Log fijo mejora integridad de formato, no atribución. Centralizar logs con retención y autenticación de jugadores si se exige auditoría. |
+| R-RUNNER | Acceso a host/Environment y aislamiento de noVNC/CD no verificados en main. | Riesgo aceptado solo como pendiente de integración | No declarar entorno apto para producción. P3 debe demostrar runner solo para despliegue de código confiable, permisos y puertos; revisión en F/G. |
 
-Cada hallazgo se registra con una de tres decisiones: **corregido** (con enlace al commit), **falso positivo** (con la justificación técnica) o **riesgo aceptado** (con la justificación y lo que haría falta para corregirlo).
+### 4.1 Hallazgos de imagen, uno por paquete/CVE
 
-| ID | Herramienta | Hallazgo | Decisión (corregido, falso positivo o riesgo aceptado) | Justificación o commit |
-| --- | --- | --- | --- | --- |
+Fuente: artefacto reporte-imagen de Actions43978487608, SHA522bd4c. Identificadores y versiones se transcriben del reporte del escáner; no se atribuye explotación demostrada. **R-IMG:** aceptación temporal por estar debajo del umbral obligatorio de imagen (CRITICAL con corrección), sin ignorar resultados. El proceso Java se ejecuta como app, no ejecuta apt ni herramientas de administración como parte del juego; esto reduce exposición, no prueba inexplotabilidad. Ethian debe actualizar las bases/paquetes con corrección disponible y volver a escanear las imágenes finales; sin corrección, seguir avisos y renovar base cuando exista. Revisión cruzada pendiente. No aplica el umbral SCA HIGH al SO de la imagen: son controles diferentes. Un futuro CRITICAL con corrección bloquea sin excepción.
 
-La tabla está vacía a propósito: se llena solo con los hallazgos de ejecuciones reales de los controles. Previsto — responsable: Persona 2. La credencial falsa de la demostración de la [sección 5](#5-evidencia-pull-request-bloqueado) se introdujo a propósito en un pull request que no se fusionó: no es un hallazgo del sistema y no se registra aquí.
+| ID | CVE | Paquete | Instalada | Corrección reportada | Severidad | Decisión |
+| --- | --- | --- | --- | --- | --- | --- |
+| IMG-01 | CVE-2026-109518 | apt | 2.8.3 | 2.8.4ubuntu0.1 | HIGH | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-02 | CVE-2026-76642 | bsdutils | 1:2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-03 | CVE-2026-102473 | dash | 0.5.12-6ubuntu5 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-04 | CVE-2026-102474 | dash | 0.5.12-6ubuntu5 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-05 | CVE-2026-109518 | libapt-pkg6.0t64 | 2.8.3 | 2.8.4ubuntu0.1 | HIGH | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-06 | CVE-2026-76642 | libblkid1 | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-07 | CVE-2026-18374 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-08 | CVE-2026-84243 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-09 | CVE-2026-8674 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-10 | CVE-2026-86805 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-11 | CVE-2026-95818 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-12 | CVE-2026-97399 | libc-bin | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-13 | CVE-2026-18374 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-14 | CVE-2026-84243 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-15 | CVE-2026-8674 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-16 | CVE-2026-86805 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-17 | CVE-2026-95818 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-18 | CVE-2026-97399 | libc6 | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-19 | CVE-2025-66382 | libexpat1 | 2.6.1-2ubuntu0.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-20 | CVE-2026-102633 | libexpat1 | 2.6.1-2ubuntu0.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-21 | CVE-2026-67693 | libgnutls30t64 | 3.8.3-1.1ubuntu3.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-22 | CVE-2026-88647 | libgnutls30t64 | 3.8.3-1.1ubuntu3.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-23 | CVE-2026-88648 | libgnutls30t64 | 3.8.3-1.1ubuntu3.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-24 | CVE-2026-95184 | libgnutls30t64 | 3.8.3-1.1ubuntu3.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-25 | CVE-2026-95210 | libgnutls30t64 | 3.8.3-1.1ubuntu3.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-26 | CVE-2026-107778 | libgssapi-krb5-2 | 1.20.1-6ubuntu2.10 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-27 | CVE-2026-107778 | libk5crypto3 | 1.20.1-6ubuntu2.10 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-28 | CVE-2026-107778 | libkrb5-3 | 1.20.1-6ubuntu2.10 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-29 | CVE-2026-107778 | libkrb5support0 | 1.20.1-6ubuntu2.10 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-30 | CVE-2026-76642 | libmount1 | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-31 | CVE-2026-103111 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-32 | CVE-2026-86145 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-33 | CVE-2026-89156 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-34 | CVE-2026-89157 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-35 | CVE-2026-89158 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-36 | CVE-2026-89160 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-37 | CVE-2026-89161 | libpcre2-8-0 | 10.42-4ubuntu2.1 | 10.42-4ubuntu2.2 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-38 | CVE-2026-107161 | libsasl2-2 | 2.1.28+dfsg1-5ubuntu3.1 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-39 | CVE-2026-107161 | libsasl2-modules-db | 2.1.28+dfsg1-5ubuntu3.1 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-40 | CVE-2026-76642 | libsmartcols1 | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-41 | CVE-2026-121876 | libsystemd0 | 255.4-1ubuntu8.18 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-42 | CVE-2026-40228 | libsystemd0 | 255.4-1ubuntu8.18 | No disponible | LOW | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-43 | CVE-2026-121876 | libudev1 | 255.4-1ubuntu8.18 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-44 | CVE-2026-40228 | libudev1 | 255.4-1ubuntu8.18 | No disponible | LOW | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-45 | CVE-2026-76642 | libuuid1 | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-46 | CVE-2026-18374 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-47 | CVE-2026-84243 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-48 | CVE-2026-8674 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-49 | CVE-2026-86805 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-50 | CVE-2026-95818 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-51 | CVE-2026-97399 | locales | 2.39-0ubuntu8.9 | 2.39-0ubuntu8.12 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-52 | CVE-2024-56433 | login | 1:4.13+dfsg1-4ubuntu3.2 | No disponible | LOW | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-53 | CVE-2026-76642 | mount | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-54 | CVE-2024-56433 | passwd | 1:4.13+dfsg1-4ubuntu3.2 | No disponible | LOW | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-55 | CVE-2026-82560 | perl-base | 5.38.2-3.2ubuntu0.6 | 5.38.2-3.2ubuntu0.7 | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-56 | CVE-2026-18477 | tar | 1.35+dfsg-3ubuntu0.4 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-57 | CVE-2026-18508 | tar | 1.35+dfsg-3ubuntu0.4 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-58 | CVE-2026-76642 | util-linux | 2.39.3-9ubuntu6.6 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
+| IMG-59 | CVE-2021-31879 | wget | 1.21.4-1ubuntu4.5 | No disponible | MEDIUM | Riesgo aceptado temporal R-IMG; actualizar/seguir base (P3) |
 
 ## 5. Evidencia: pull request bloqueado
 
-Al menos un pull request introduce a propósito un problema de seguridad (por ejemplo, una llave falsa en un archivo de configuración o una dependencia con una vulnerabilidad conocida), el pipeline lo bloquea y se cierra sin fusionar.
+La evidencia requerida ya la preparó el equipo: [PR5](https://github.com/MarshallGomez1103/Mc2/pull/5), commit9130728, [Actions43736948906](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736948906). Revalidado en E: cerrado, merged=false, secretos falla y los otros cuatro jobs pasan. Introdujo exclusivamente una credencial inventada en configuración; no se reproduce su valor. Se preservan metadatos, reporte redactado y logs. No es un secreto de un servicio real ni se registra como vulnerabilidad de main.
 
-| Enlace al pull request | Qué introduce | Check que lo bloquea | Ejecución | Resultado | Estado |
-| --- | --- | --- | --- | --- | --- |
-| [Pull request #5](https://github.com/MarshallGomez1103/Mc2/pull/5) | Una credencial falsa en un archivo de configuración de demostración. | `secretos` | [43736948906](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736948906) | `secretos` falla con «Secrets gate FAILED (gitleaks rc=1)» y un hallazgo; los otros cuatro checks pasan. | Cerrado sin fusionar; rama eliminada |
-| [Pull request #4](https://github.com/MarshallGomez1103/Mc2/pull/4) | El umbral de cobertura de líneas del dominio subido a 0,99 en `Minecraft2/pom.xml`. | `build-pruebas` (e `imagen`, cuyo `docker build` repite las pruebas) | [43736947725](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736947725) | Fallan con «lines covered ratio is 0.92, but expected minimum is 0.99» (regla `unit-domain-check` de JaCoCo). | Cerrado sin fusionar; rama eliminada |
+La rama se eliminó después del ensayo para no contaminar el escaneo --all de otras ramas; el PR/run conserva evidencia. No se crea otro PR ni se añade una excepción de Gitleaks. Una credencial real exigiría rotación; borrar un archivo no limpia el historial. El histórico [PR4](https://github.com/MarshallGomez1103/Mc2/pull/4) demostró cobertura, no un gate de vulnerabilidades de imagen; su fallo simultáneo de secretos provino de la rama5 todavía presente. Se conserva esa distinción.
 
-Contaminación entre ramas: en la ejecución 43736947725 el check `secretos` también falló, pero solo porque la rama de la demostración del pull request #5 existía a la vez en el remoto y el control escanea todas las ramas. Ese fallo no es evidencia de la cobertura ni de un problema del pull request #4, que no introduce ninguna credencial (solo modifica `Minecraft2/pom.xml`).
+Además E ejecutó el script real umbral-sast.sh con cinco reportes SARIF sintéticos:6.9 pasa;7.0 y9.5 fallan;sin runs falla;reporte válido sin resultados pasa. Es evidencia local del umbral y del tratamiento de un reporte, no un hallazgo real de CodeQL ni un PR SAST vulnerable. SCA/imagen se verifican por sus comandos bloqueantes, reportes y ejecución positiva; **no se afirma una demostración negativa real de esos dos escáneres**. La rúbrica pide al menos un PR inseguro bloqueado: lo satisface #5.
 
-La demostración de secretos es de seguridad; la de cobertura es de calidad y se cita aquí porque prueba que el pipeline detiene el cambio. Sin demostrar: una dependencia vulnerable para `sca`, un hallazgo alto para `sast` y una vulnerabilidad crítica en la imagen para `imagen` (en la ejecución 43736947725 la imagen falló por la cobertura, no por una vulnerabilidad). Previsto — responsable: Persona 2.
+## 6. Riesgos aceptados y seguimiento
 
-## 6. Riesgos aceptados
+R-AUTH/R-DOS/R-FILE/R-AUDIT/R-RUNNER y los59 registros R-IMG están decididos con alcance y trabajo pendiente en sección4; no se usan para silenciar un gate obligatorio. Deben trasladarse a recomendaciones de producción de implementacion.md por su responsable (Thomas) al integrar. La revisión cruzada de PR15/ADR003 debe hacerla Thomas o Ethian; no se afirma aprobación obtenida. No se aprobó/fusionó PR ajeno desde esta fase.
 
-Un riesgo se acepta solo con decisión registrada en la sección 4. Hasta tener ejecuciones reales no hay ninguno decidido. Candidatos que deben evaluarse y, si se aceptan, documentarse con lo que haría falta para corregirlos: ausencia de autenticación en el puerto 7777 y en noVNC (sección 2.1), disponibilidad y exposición del runner autohospedado (A8) y rendimiento del front con OpenGL por software. Previsto — responsable: Persona 2.
+## 7. Análisis dinámico (fase F, no iniciado)
 
-| Riesgo | Hallazgo o amenaza | Justificación | Qué haría falta para corregirlo |
-| --- | --- | --- | --- |
-
-Los riesgos aceptados que sigan abiertos se repiten en las recomendaciones para producción de la [guía de implementación](implementacion.md#9-recomendaciones-para-producción).
-
-## 7. Análisis dinámico (bonificación)
-
-OWASP ZAP (baseline) contra el entorno desplegado, con objetivos HTTP reales: la interfaz noVNC (6080) y `/health` (8080). Sus hallazgos se tratan igual que los de la sección 4. Previsto — responsable: Persona 2.
+ZAP baseline sobre objetivos HTTP del despliegue real, no sobre el protocolo TCP7777. Ethian debe confirmar URL/puertos y runner. No se registra ejecución ni hallazgo ZAP en E. Carga/CD/noVNC finales permanecen bajo integración y aceptación F/G.

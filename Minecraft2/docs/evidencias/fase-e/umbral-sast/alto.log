@@ -1,0 +1,4 @@
+==> Hallazgos de SAST con severidad >= 7.0
+  [PENDIENTE] 7 fixture/security Fixture.java:1 synthetic report
+==> 1 hallazgo(s) altos o críticos, 1 sin tratar
+QUALITY GATE DE SAST FALLIDO: corrija los hallazgos o regístrelos en Minecraft2/docs/seguridad.md

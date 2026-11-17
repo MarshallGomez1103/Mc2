@@ -1,5 +1,14 @@
 # Pruebas y verificación de Minecraft2
 
+## Corte 3 — seguridad E (2026-11-16)
+
+`mvn -B -ntp clean verify`, Java17.0.8.7 Windows, final16/11/2026 21:02:05 UTC−05:00: **279 unitarias +164 integración**, cero fallos/errores/omitidas; dominio935/1006 (92,94 %), gate>=70 % activo. Se conservan los resultados D/B/C como históricos. GameServerIT pasa de5 a8 casos; arquitectura22 y humo JAR4 siguen activos, sin cambios de selección POM.
+
+Prueba roja antes de corregir E-LOG: un cliente con campo JSON duplicado y salto de línea podía inyectar texto en el log mediante el mensaje de la excepción. [Corrección acbff1c](https://github.com/MarshallGomez1103/Mc2/commit/acbff1ccb72d35735d246e28b562df2bbfecf665) conserva cierre/ID/clase sin contenido controlado por el cliente. Los otros casos nuevos verifican recuperación del dueño después de ataques, privacidad de métricas y rechazo del noveno conectado. No son pruebas de DoS distribuido, cuota por origen ni plazo absoluto de lectura.
+
+[Seguridad/STRIDE y registro](seguridad.md), [ADR003](adr/ADR-003-seguridad.md) y [evidencia E](evidencias/fase-e/README.md) enlazan escaneos, cinco fixtures del script SARIF y el PR5 negativo ya existente. No se modifica ni se sustituye el workflow de Thomas. Los comandos completos/enfocados del apartado D siguiente siguen aplicando; para enfocar GameServerIT se usa `mvn -B -ntp verify "-DskipUnitTests=true" "-Dit.test=GameServerIT" "-Djacoco.skip=true"` (parcial, no aceptación global).
+
+
 ## Corte 3 — verificación actual de D (2026-11-16)
 
 Base funcional `fa52cbb` (PR #6 fusionado), rebasada sobre `e618961` para conservar la documentación de #14. D amplía las reglas de [ADR-001](adr/ADR-001-estilo-recuperacion.md) mediante [ADR-004](adr/ADR-004-frontera-red.md) y el humo público del JAR. Los apartados inferiores conservan resultados históricos de C2/B/C; no se deben usar como conteos de la cabecera actual.
