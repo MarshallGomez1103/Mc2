@@ -78,6 +78,16 @@ jobs:
           path: ${{ runner.temp }}/carga/
           if-no-files-found: warn
           retention-days: 14
+      - name: DAST con OWASP ZAP baseline (/health y noVNC)
+        run: scripts/zap-baseline.sh "$RUNNER_TEMP/zap"
+      - name: Publicar reportes de ZAP
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-pr-${{ env.MC2_SHA }}
+          path: ${{ runner.temp }}/zap/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Apagar el entorno
         if: always()
         run: docker compose down -v
@@ -206,6 +216,16 @@ jobs:
         env:
           MC2_LOAD_ZOMBIES: '0'
         run: scripts/deploy.sh "$ETIQUETA"
+      - name: DAST con OWASP ZAP baseline (/health y noVNC)
+        run: scripts/zap-baseline.sh "$RUNNER_TEMP/zap"
+      - name: Publicar reportes de ZAP
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-${{ env.ETIQUETA }}
+          path: ${{ runner.temp }}/zap/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Revertir a la versión anterior
         if: failure() && steps.anterior.outputs.anterior != ''
         env:
