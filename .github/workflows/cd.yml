@@ -65,6 +65,26 @@ jobs:
           docker compose up --build --wait --wait-timeout 300 || { docker compose logs --no-color --tail 100; exit 1; }
       - name: Prueba de humo (la misma que el despliegue)
         run: scripts/deploy.sh --humo
+      - name: ZAP baseline HTTP y tratamiento bloqueante
+        env:
+          MC2_ZAP_OUT: ${{ runner.temp }}/zap-${{ env.MC2_SHA }}
+        run: |
+          mkdir -p "$MC2_ZAP_OUT"
+          python3 -m unittest discover -s Minecraft2/security/zap -v 2>&1 | tee "$MC2_ZAP_OUT/tests.log"
+          imagen=$(python3 -c "import runpy; print(runpy.run_path('Minecraft2/security/zap/scan.py')['IMAGE'])")
+          docker pull "$imagen" 2>&1 | tee "$MC2_ZAP_OUT/image-pull.log"
+          python3 Minecraft2/security/zap/scan.py \
+            --project mc2 --revision "$MC2_SHA" --out "$MC2_ZAP_OUT" \
+            2>&1 | tee "$MC2_ZAP_OUT/runner.log"
+
+      - name: Publicar reportes ZAP incluso ante fallo
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, igual que cd.yml actual
+        with:
+          name: zap-${{ env.MC2_SHA }}
+          path: ${{ runner.temp }}/zap-${{ env.MC2_SHA }}/
+          if-no-files-found: warn
+          retention-days: 30
       - name: Carga corta con el SLO (3 × 30 s)
         env:
           MC2_LOAD_ZOMBIES: '80'
