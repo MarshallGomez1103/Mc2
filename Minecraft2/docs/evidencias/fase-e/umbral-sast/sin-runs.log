@@ -1,2 +1,2 @@
-jq: error (at /home/jasubx/Desktop/projectDAS3/evidencias/fase-e/03-sast-umbral/sin-runs.sarif:0): SARIF without runs
+jq: error (at evidencias/fase-e/03-sast-umbral/sin-runs.sarif:0): SARIF without runs
 SAST gate failed: could not parse SARIF
