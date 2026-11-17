@@ -26,6 +26,7 @@ class NetworkLoadClientIT {
         env.put("MC2_LOAD_ZOMBIES", "80");
         env.put("MC2_LOAD_SECONDS", "2");
         env.put("MC2_LOAD_WARMUP_SECONDS", "2");
+        env.put("MC2_LOAD_CLIENT_WARMUP_SECONDS", "2");
         env.put("MC2_LOAD_OUT", out.toString());
         return env;
     }

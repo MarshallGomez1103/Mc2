@@ -25,6 +25,7 @@ export MC2_LOAD_CLIENTS="${MC2_LOAD_CLIENTS:-3}"
 export MC2_LOAD_REPETITIONS="${MC2_LOAD_REPETITIONS:-3}"
 export MC2_LOAD_SECONDS="${MC2_LOAD_SECONDS:-$default_seconds}"
 export MC2_LOAD_WARMUP_SECONDS="${MC2_LOAD_WARMUP_SECONDS:-60}"
+export MC2_LOAD_CLIENT_WARMUP_SECONDS="${MC2_LOAD_CLIENT_WARMUP_SECONDS:-30}"
 
 case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*) sep=';' ;;
@@ -46,7 +47,7 @@ mkdir -p "$MC2_LOAD_OUT"
   echo "commit=$(git rev-parse HEAD 2>/dev/null || echo "${GITHUB_SHA:-desconocido}")"
   echo "image_tag=${MC2_IMAGE_TAG:-sin-definir}"
   echo "target=${MC2_SERVER_HOST}:${MC2_SERVER_PORT} metrics=${MC2_SERVER_HOST}:${MC2_HEALTH_PORT}"
-  echo "clients=${MC2_LOAD_CLIENTS} zombies=${MC2_LOAD_ZOMBIES} repetitions=${MC2_LOAD_REPETITIONS} seconds=${MC2_LOAD_SECONDS} warmup=${MC2_LOAD_WARMUP_SECONDS}"
+  echo "clients=${MC2_LOAD_CLIENTS} zombies=${MC2_LOAD_ZOMBIES} repetitions=${MC2_LOAD_REPETITIONS} seconds=${MC2_LOAD_SECONDS} population_wait=${MC2_LOAD_WARMUP_SECONDS} client_warmup=${MC2_LOAD_CLIENT_WARMUP_SECONDS}"
   echo "tick_p95_ms_max=${MC2_SLO_TICK_P95_MS:-16.67} rtt_p95_ms_max=${MC2_SLO_RTT_P95_MS:-100}"
   echo "java=$(java -version 2>&1 | head -1)"
   echo "runner=${RUNNER_NAME:-local} os=$(uname -sr)"

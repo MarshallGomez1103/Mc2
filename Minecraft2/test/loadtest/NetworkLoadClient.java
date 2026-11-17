@@ -43,11 +43,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class NetworkLoadClient {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
-    private static final Duration CLIENT_WARMUP = Duration.ofSeconds(2);
 
     /** Configuración de una corrida. */
     public record Settings(String host, int gamePort, int healthPort, LoadSloGate.Thresholds thresholds,
-                           Duration measure, Duration warmup, Path out) {
+                           Duration measure, Duration warmup, Duration clientWarmup, Path out) {
         public static Settings fromEnvironment(Map<String, String> environment) {
             return new Settings(
                     environment.getOrDefault("MC2_SERVER_HOST", "localhost"),
@@ -56,6 +55,7 @@ public final class NetworkLoadClient {
                     LoadSloGate.Thresholds.fromEnvironment(environment),
                     Duration.ofSeconds(seconds(environment, "MC2_LOAD_SECONDS", 30)),
                     Duration.ofSeconds(seconds(environment, "MC2_LOAD_WARMUP_SECONDS", 30)),
+                    Duration.ofSeconds(seconds(environment, "MC2_LOAD_CLIENT_WARMUP_SECONDS", 30)),
                     Path.of(environment.getOrDefault("MC2_LOAD_OUT", "target/load-results/slo")));
         }
 
@@ -127,7 +127,7 @@ public final class NetworkLoadClient {
         // Calentamiento del generador de carga: se descartan las muestras de la conexión y del JIT del cliente,
         // que no son tiempo del servidor. La ventana medida (y la lectura inicial de /metrics) empieza después.
         if (!clients.isEmpty()) {
-            Thread.sleep(CLIENT_WARMUP.toMillis());
+            Thread.sleep(settings.clientWarmup().toMillis());
             clients.forEach(SessionClient::discardSamples);
         }
         PrometheusSnapshot before = scrape(settings, networkErrors);
