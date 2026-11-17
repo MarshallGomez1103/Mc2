@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "review": "Propuesta técnica de Jasub para revisión cruzada e integración por Ethian. No certifica producción.",
+  "decisions": {
+    "front:10038-1": {
+      "riskcode": 2,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal para la demostración local: falta CSP y el riesgo de inyección es real. El front solo se publica en loopback y sirve recursos estáticos de noVNC; esto reduce exposición, sin eliminar ataques desde un navegador hostil. Ethian debe definir CSP compatible y probar noVNC antes de ampliar exposición.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10020-1": {
+      "riskcode": 2,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal del riesgo real de clickjacking para la demostración controlada en el equipo del despliegue. El binding solo loopback no elimina ataques de un sitio visitado por el operador. Ethian debe añadir frame-ancestors y/o X-Frame-Options y comprobar la interfaz antes de exposición externa.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:90004-2": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de falta de COEP en el noVNC local. No se certifica aislamiento entre orígenes; una política require-corp puede afectar recursos y requiere prueba del front. Ethian debe evaluar y configurar la política al endurecer el servicio. La aceptación exige publicación HTTP solo en loopback.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:90004-3": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de falta de COOP en noVNC local. El operador usa una interfaz de demostración sin cuentas de negocio; persiste riesgo entre ventanas y orígenes. Ethian debe probar same-origin con el flujo real. Esta aceptación no permite abrir el front fuera de loopback.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:90004-1": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de falta de CORP en los recursos noVNC de demostración. Son recursos estáticos, pero no se garantiza aislamiento de recursos frente a otros orígenes. Ethian debe probar same-origin y documentar compatibilidad. Publicación HTTP restringida a loopback como condición verificable.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10063-1": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de falta de Permissions-Policy en el front local. El cliente no requiere cámara, micrófono ni geolocalización; Ethian debe restringir capacidades sin romper los controles/portapapeles de noVNC. La aceptación solo cubre la interfaz publicada en loopback y requiere revisión cruzada.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10036-2": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de divulgación de versión WebSockify/Python en el front local. Es información útil para reconocimiento, no evidencia de explotación ni sustituto del escaneo de paquetes. Ethian debe generalizar la cabecera Server y actualizar la imagen. Solo se admite publicación HTTP en loopback.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10021": {
+      "riskcode": 1,
+      "decision": "risk_accepted",
+      "reason": "Aceptación temporal de ausencia de nosniff en recursos estáticos noVNC del front local. El riesgo de interpretación MIME es real; Ethian debe añadir X-Content-Type-Options y verificar tipos de JS/CSS/SVG y funcionamiento. La condición de publicación exclusiva en loopback se comprueba en Docker.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10027": {
+      "riskcode": 0,
+      "decision": "false_positive",
+      "reason": "Se revisaron las evidencias del reporte: son comentarios del código/HTML estático de noVNC sobre la interfaz y parámetros admitidos; no son valores de credenciales reales ni datos de jugadores. Se conserva el hallazgo informativo completo y su evidencia. Cambios de contenido o exposición requieren revisar esta clasificación.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10109": {
+      "riskcode": 0,
+      "decision": "risk_accepted",
+      "reason": "Observación informativa aceptada: ZAP reconoce una aplicación JavaScript moderna, que es el cliente noVNC esperado. No es una vulnerabilidad por sí misma ni demuestra que su JavaScript esté libre de fallos. El informe se conserva y esta decisión no cubre reglas nuevas ni hallazgos de mayor severidad.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "front:10049-3": {
+      "riskcode": 0,
+      "decision": "risk_accepted",
+      "reason": "Observación informativa aceptada para los recursos estáticos de noVNC servidos en loopback. La caché de JS, CSS e imágenes es deliberada; no se usa como política para datos de jugadores ni endpoints administrativos. Ethian debe revisar caché si añade contenido personalizado, autenticación o exposición diferente.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#front-11-grupos-del-primer-informe",
+      "requires_loopback": true
+    },
+    "server:10049-1": {
+      "riskcode": 0,
+      "decision": "risk_accepted",
+      "reason": "Observación informativa esperada: Cache-Control no-store impide almacenar respuestas de salud/métricas y errores. No es una vulnerabilidad que requiera habilitar caché. Se conserva la evidencia; esta decisión solo cubre HTTP del servidor publicado en loopback.",
+      "reference": "Minecraft2/docs/evidencias/fase-f/README.md#server-5-grupos-del-primer-informe",
+      "requires_loopback": true
+    }
+  }
+}
