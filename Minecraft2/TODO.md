@@ -122,8 +122,8 @@ Rama: `c3/ethian`. Criterios que alimenta: Contenerización (5), Despliegue cont
 ### Entrega continua
 
 - [ ] **C3-06.1 / C3-06.2** `.github/workflows/cd.yml` (previsto): imagen a GHCR con SHA y versión semántica con tag, despliegue automático desde `main` con Compose en un runner autohospedado restringido al job de `main` con Environment, nunca código de pull requests. Archivos: `scripts/deploy.sh`. Evidencia: ejecución de Actions y paquete publicado.
-- [ ] **C3-06.3 / C3-06.4** Secretos en GitHub Secrets o Environments; readiness, humo y carga en ese orden con salida distinta de cero si fallan; URL o mecanismo verificable. Evidencia: ejecución de Actions.
-- [ ] **C3-06.5** Reversión al tag o SHA anterior con verificación posterior. Archivos: `scripts/rollback.sh`. Evidencia: una ejecución real documentada en `Minecraft2/docs/devops.md`.
+- [x] **C3-06.3 / C3-06.4** Secretos en GitHub Secrets o Environments; readiness, humo y carga en ese orden con salida distinta de cero si fallan; URL o mecanismo verificable. Evidencia: ejecución de Actions. Hecho: sin secretos propios (GHCR con el `GITHUB_TOKEN` del job, Environment `produccion`); `desplegar` hace readiness, humo y carga en ese orden y sale con código 1 si alguno falla ([44005663312, intento 1](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312): carga incumplida → job fallido; [intento 2](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312/attempts/2): todo en verde). Mecanismo de acceso en `devops.md` §6.
+- [x] **C3-06.5** Reversión al tag o SHA anterior con verificación posterior. Archivos: `scripts/rollback.sh`. Evidencia: una ejecución real documentada en `Minecraft2/docs/devops.md`. Hecho: reversión automática `9d44297` → `6401c84` con humo correcto en la ejecución [44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312) (intento 1), registrada en `devops.md` §7.
 - [ ] **C3-06.6 a C3-06.8** Tags semánticos, `CHANGELOG.md` (previsto) o Releases, tag `v1.0.0` y JAR del cliente en GitHub Releases; verificar la descarga y la conexión al servidor desplegado.
 
 ### Documentación de despliegue
