@@ -1,0 +1,7 @@
+# Clúster local de un nodo para el adicional de Kubernetes: kind create cluster --name mc2 --config k8s/kind.yaml
+# La CNI por defecto (kindnet) aplica NetworkPolicy en versiones recientes de kind; el job «kubernetes» de
+# .github/workflows/adicionales.yml lo comprueba con un pod sin permiso, que debe ser rechazado.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane

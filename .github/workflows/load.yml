@@ -1,0 +1,89 @@
+# Carga larga bajo demanda (C3-04.6): el mismo script y los mismos umbrales que la carga corta de cd.yml,
+# con repeticiones de 300 s contra una etiqueta ya publicada en GHCR. No corre en cada push.
+name: load
+
+on:
+  workflow_dispatch:
+    inputs:
+      etiqueta:
+        description: 'Etiqueta publicada a cargar (SHA de 40 caracteres o vX.Y.Z)'
+        required: true
+        type: string
+      segundos:
+        description: 'Duración de cada repetición en segundos'
+        required: false
+        default: '300'
+        type: string
+      zombis:
+        description: 'Población de zombis (MC2_LOAD_ZOMBIES)'
+        required: false
+        default: '80'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-despliegue
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  carga-larga:
+    runs-on: ${{ vars.MC2_DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment:
+      name: produccion
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    env:
+      ETIQUETA: ${{ inputs.etiqueta }}
+      MC2_LOAD_ZOMBIES: ${{ inputs.zombis }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: Minecraft2/pom.xml
+      - name: Iniciar sesión en GHCR
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Credenciales en un directorio del job: en un runner autohospedado no se toca el almacén de
+          # credenciales del equipo y el runner las borra al terminar el job.
+          export DOCKER_CONFIG="$RUNNER_TEMP/docker-config"
+          mkdir -p "$DOCKER_CONFIG"
+          echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
+          docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
+          echo "MC2_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - name: Maven disponible en el runner (lo usa perf/run-slo.sh)
+        run: mvn -v
+      - name: Desplegar la etiqueta con la población de carga
+        run: scripts/deploy.sh "$ETIQUETA"
+      - name: Carga larga (3 repeticiones)
+        env:
+          MC2_IMAGE_TAG: ${{ inputs.etiqueta }}
+          MC2_LOAD_SECONDS: ${{ inputs.segundos }}
+          MC2_LOAD_OUT: ${{ runner.temp }}/carga
+        run: cd Minecraft2 && perf/run-slo.sh larga
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: carga-larga-${{ inputs.etiqueta }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/carga/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Volver a la población de juego
+        if: always()
+        env:
+          MC2_LOAD_ZOMBIES: '0'
+        run: scripts/deploy.sh "$ETIQUETA" || true

@@ -1,0 +1,47 @@
+# RBAC mínimo para quien despliega (justificación en k8s/README.md): una cuenta de servicio limitada al espacio
+# de nombres mc2, que puede actualizar los recursos de la aplicación y leer su estado, pero no Secrets,
+# ni crear pods sueltos, ni ejecutar comandos dentro de ellos, ni tocar otros espacios de nombres.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mc2-desplegador
+  namespace: mc2
+  labels:
+    app.kubernetes.io/part-of: minecraft2
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mc2-desplegador
+  namespace: mc2
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "persistentvolumeclaims", "serviceaccounts"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mc2-desplegador
+  namespace: mc2
+subjects:
+  - kind: ServiceAccount
+    name: mc2-desplegador
+    namespace: mc2
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mc2-desplegador

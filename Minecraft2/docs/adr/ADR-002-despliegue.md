@@ -2,13 +2,13 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | **Propuesto; acordado de palabra con el profesor, confirmación escrita pendiente.** El alcance de la sección 5 debe confirmarse por escrito antes de depender de él. |
-| Fecha | Previsto — responsable: Persona 1: fecha de aprobación |
+| Estado | **Aceptado por el equipo e implementado.** El alcance de la sección 5 se acordó de palabra con el profesor; no hay una confirmación escrita registrada. SLO-RED-01 (p95 ≤ 100 ms) lo fijó el equipo. |
+| Fecha | 2026-11-16 (implementación integrada en `main` y primera medición contra el servidor real) |
 | Responsable | Persona 3, con Persona 1 |
 | Corrección | C3-00 del [plan del Corte 3](../../README.md#corte-3) |
 | Decisión anterior que revisa | [ADR-001](ADR-001-estilo-recuperacion.md), sección 6 «Cuándo revisar esta decisión» |
 
-> Este ADR es un esqueleto con la decisión propuesta. Las afirmaciones sobre rendimiento, costo y esfuerzo que no tienen una medición se marcan como tales. Los elementos «Previsto — responsable: Persona N» se completan con la evidencia real y el marcador se retira antes de la entrega.
+> Las afirmaciones sobre rendimiento, costo y esfuerzo que no tienen una medición se marcan como tales. La evidencia de ejecución está en la sección 7 y en [devops.md](../devops.md).
 
 ## 1. Contexto
 
@@ -73,7 +73,7 @@ Se contenedoriza solo la aplicación actual (la consola del Corte 2 que ya empaq
 | D1 Servidor desplegable | Cumple. | Cumple. | Cumple. | No: no hay componente de servidor. Exigiría el acuerdo explícito del profesor. |
 | D2 SLO | Conserva SLO-CARGA-01 y añade la medición front → servidor (SLO-RED-01, propuesta). El primero se mide hoy dentro de la JVM; medirlo contra el servidor es una adaptación del protocolo por documentar y confirmar. | Igual que A. | Igual que A, con un cliente que habría que escribir de nuevo. | Se conserva tal cual, pero solo dentro de la JVM: no es «contra el entorno desplegado». |
 | D3 Cambio de dominio | Alto: `World` pasa de un `Player` a varios y los servicios reciben el jugador explícito; paquete nuevo de red. Mantener mínimo: sin cuentas ni chat. | Igual que A: el multijugador y la red son los mismos. | Igual que A, más una reescritura del cliente. | Ninguno. |
-| D4 Verificable por un revisor | Sí: el revisor juega desde el navegador con `docker compose up`. Rendimiento del OpenGL por software: sin medir. | Parcial: el revisor ve el servidor y el humo, pero no juega. | Sí, pero con un cliente nuevo que hay que construir y probar. | Parcial: solo consola. |
+| D4 Verificable por un revisor | Sí: el revisor juega desde el navegador con `docker compose up`. Prueba de viabilidad del 15-11-2026: jugable con OpenGL por software (Mesa llvmpipe), 50 FPS en el HUD con un mundo pequeño y radio de render 1 (sección 7). | Parcial: el revisor ve el servidor y el humo, pero no juega. | Sí, pero con un cliente nuevo que hay que construir y probar. | Parcial: solo consola. |
 | D5 Objetivo HTTP | `/health`, `/metrics` y la interfaz noVNC son objetivos HTTP reales. | `/health` y `/metrics`. Sin interfaz que escanear. | Sí. | Ninguno. |
 | D6 Proporción | Media: la mayor parte del trabajo es el servidor y su protocolo; el front es el cliente existente más una imagen con Xvfb y noVNC. El riesgo del front está en el OpenGL por software (se prueba antes de depender de él). | Menor que A en el front; igual en el servidor. | Alta: cliente nuevo completo. | Mínima. |
 | D7 Riesgo operativo | Dos imágenes y un runner. | Una imagen de servidor y un runner. | Igual que A y más superficie web. | Una imagen. |
@@ -97,8 +97,8 @@ Contrato de despliegue que fija la decisión (los nombres no cambian sin avisar 
 | --- | --- |
 | Servicios de Compose | `mc2-server` y `mc2-front` |
 | Puertos | 7777 (TCP, protocolo v1), 8080 (HTTP: `/health` y `/metrics`) y 6080 (noVNC) |
-| SLO | SLO-CARGA-01 conservado y SLO-RED-01 (propuesta: p95 ≤ 50 ms, 0 errores) |
-| Entornos | Pull request: Compose efímero en un runner hospedado, con humo y carga corta. `main`: publicación en GHCR con SHA y versión, despliegue con Compose en el runner autohospedado, humo y carga, y reversión por la etiqueta anterior. |
+| SLO | SLO-CARGA-01 conservado y SLO-RED-01 (p95 ≤ 100 ms, 0 errores) |
+| Entornos | Pull request: Compose efímero en un runner hospedado, con humo y carga corta. `main`: publicación en GHCR con SHA y versión, despliegue con Compose en el runner del job `desplegar` (autohospedado si la variable `MC2_DEPLOY_RUNNER` lo indica; si no, uno hospedado efímero), humo y carga, y reversión por la etiqueta anterior. Detalle en [devops.md](../devops.md#6-despliegue). |
 
 Todo el alcance depende de la confirmación del profesor. Si el profesor decide otra modalidad, se revisa este ADR.
 
@@ -114,11 +114,11 @@ Todo el alcance depende de la confirmación del profesor. Si el profesor decide 
 ### Sacrificios y riesgos aceptados
 
 - **Cambio de dominio.** `World` admite varios `Player` y los servicios de aplicación reciben el jugador de forma explícita (hoy `GameSession`, `EnemyUpdateService`, `PistolService` y `PlayerControlService` consultan el único jugador del mundo). Esto convive con el enunciado («no se piden funcionalidades de negocio nuevas»): se mantiene mínimo, sin cuentas ni chat, y se documenta aquí como un cambio de arquitectura permitido por el enunciado.
-- **Paquete nuevo de red.** Aparece una frontera nueva (`network`) que las reglas de arquitectura deben proteger. Previsto — responsable: Persona 2.
-- **Revisión de ADR-001.** El [ADR-001](ADR-001-estilo-recuperacion.md#cuándo-revisar-esta-decisión) previó reevaluar la opción de puertos y adaptadores si aparecía entrada de red o multijugador. Si `WorldStorage` se traslada a `application` como puerto de salida es una decisión abierta que este ADR no resuelve. Previsto — responsable: Persona 1.
-- **Costo del OpenGL por software.** El front dibuja con renderizado por software en un contenedor sin GPU. El rendimiento no se ha medido; se comprueba en una prueba de viabilidad antes de depender de él. Previsto — responsable: Persona 3.
+- **Paquete nuevo de red.** Aparece una frontera nueva (`network`) que las reglas de arquitectura deben proteger. La Persona 2 la protege con reglas nuevas de `ArchitectureBoundaryTest` (el paquete `network` no puede depender de presentación, arranque ni gráficos, y el núcleo no puede depender de `network`), registradas en el ADR-004.
+- **Revisión de ADR-001.** El [ADR-001](ADR-001-estilo-recuperacion.md#cuándo-revisar-esta-decisión) previó reevaluar la opción de puertos y adaptadores si aparecía entrada de red o multijugador. Si `WorldStorage` se traslada a `application` como puerto de salida es una decisión abierta que este ADR no resuelve; el ADR-004 la deja como posible evolución y conserva las capas con reglas ampliadas.
+- **Costo del OpenGL por software.** El front dibuja con renderizado por software en un contenedor sin GPU. La prueba de viabilidad (sección 7) confirmó que el cliente arranca y se juega desde el navegador; el costo es CPU del anfitrión (llvmpipe usa todos los núcleos) y la cifra de 50 FPS es de un solo equipo, un mundo pequeño y radio 1, no una medición de carga. Si en el equipo del despliegue resulta lenta, el humo y la carga no dependen del front (opción B).
 - **Runner autohospedado.** Agrega un componente que debe asegurarse (amenaza A8) y que depende de la disponibilidad de un equipo del grupo.
-- **SLO doble.** Se mantienen dos mediciones. SLO-RED-01 es una propuesta no medida. La medición de SLO-CARGA-01 contra el servidor cambia de lugar respecto al Corte 2 y debe documentarse. Previsto — responsable: Persona 3.
+- **SLO doble.** Se mantienen dos mediciones. SLO-CARGA-01 se mide ahora contra el servidor desplegado leyendo el histograma `mc2_tick_duration_seconds` de `/metrics`; el umbral no cambia, cambia el lugar de la medición ([devops.md](../devops.md#umbrales-del-slo-en-el-despliegue)). Contra el servidor real (entorno efímero del pull request #2, [ejecución 43996138039](https://github.com/MarshallGomez1103/Mc2/actions/runs/43996138039)) SLO-RED-01 dio un p95 de 52,2 a 53,4 ms y SLO-CARGA-01 un p95 del tick de 3,7 a 12,5 ms, ambos dentro del umbral. Contra un doble que emite el estado a 20 Hz, el p95 de SLO-RED-01 fue 52,4 ms, porque la espera hasta el siguiente tick consume casi todo un umbral de 50 ms. El equipo fijó el umbral en 100 ms (dos periodos de tick a 20 Hz) en lugar de medir solo el trayecto de red o emitir el estado más a menudo.
 - **Sin autenticación de jugador.** El protocolo y noVNC no autentican a quien se conecta; el alcance excluye cuentas ([seguridad.md](../seguridad.md#21-autenticación-y-autorización)).
 - **Multijugador solo en la misma red.** No se prueba ni se afirma nada fuera de ella.
 
@@ -131,5 +131,5 @@ Se reevaluará si el profesor confirma otra modalidad, si el front gráfico con 
 - Contexto previo: [ADR-001](ADR-001-estilo-recuperacion.md), [arquitectura](../arquitectura.md) y [carga del Corte 2](../recuperacion-c2/carga.md).
 - Vista de despliegue: [arquitectura §8](../arquitectura.md#8-vista-de-despliegue).
 - Pipeline y reversión: [devops.md](../devops.md). Amenazas del despliegue: [seguridad.md](../seguridad.md).
-- Evidencia de la viabilidad del front (OpenGL por software en el contenedor): Previsto — responsable: Persona 3.
-- Confirmación del profesor: Previsto — responsable: Persona 1.
+- Viabilidad del front (OpenGL por software en el contenedor), 15-11-2026, commit 4d09fd8 de la rama c3/ethian: la imagen `mc2-front` arranca saludable, sin root (uid 10001) y con sistema de archivos de solo lectura; el registro del cliente informa `GL_RENDERER: llvmpipe (LLVM 20.1.2, 256 bits)` y `GL_VERSION: 4.5 (Compatibility Profile) Mesa 25.2.8`; desde `http://localhost:6080/vnc.html` se creó un mundo pequeño y se jugó con teclado y ratón a 50 FPS según el HUD ([captura](../evidencias/c3-front-novnc.jpg)). Equipo: Intel Core i5-10300H (8 hilos), 15,8 GB de RAM, Windows 11 con Docker Desktop 29.9.2 (motor Linux en WSL 2). Hallazgo durante la prueba: con `tmpfs` sin `exec` LibGDX no puede cargar sus bibliotecas nativas desde `/tmp`; Compose monta `/tmp` con `exec` y el healthcheck del front exige que el proceso del juego esté vivo.
+- Confirmación del profesor: el alcance se acordó de palabra; a la fecha de entrega no hay una confirmación escrita registrada. SLO-RED-01 lo definió el equipo el 16-11-2026.

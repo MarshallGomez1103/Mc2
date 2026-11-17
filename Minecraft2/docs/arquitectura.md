@@ -107,53 +107,62 @@ PIT conserva su selección original y se comprobó nuevamente; [resultado de mut
 
 ## 8. Vista de despliegue
 
-Previsto — responsable: Persona 3 (con Persona 1). **Toda esta vista es prevista**: los contenedores `mc2-server` y `mc2-front`, el Compose, los workflows y el runner todavía no existen. Debe corresponder a lo desplegado, de modo que se contrasta con `docker-compose.yml`, `.github/workflows/cd.yml` y los Dockerfiles antes de la entrega, y se corrige donde difiera. Hoy existe solo el [`Dockerfile`](../Dockerfile) de la aplicación de consola del Corte 2. La decisión que motiva esta vista es el [ADR-002](adr/ADR-002-despliegue.md), pendiente de confirmación con el profesor.
-
-Es la vista física del modelo 4+1 (equivalente a un C4 de despliegue) y responde a la pregunta de quien opera el sistema: qué corre dónde y cómo se comunica.
+Es la vista física del modelo 4+1 (equivalente a un C4 de despliegue): qué corre dónde, cómo se comunica, dónde están los datos y qué límites de confianza cruza cada flujo. Se corresponde con [`docker-compose.yml`](../../docker-compose.yml), los Dockerfiles ([servidor](../Dockerfile) y [front](../Dockerfile.front)) y [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml); si uno de ellos cambia, esta vista se actualiza en el mismo pull request. La decisión que la motiva es el [ADR-002](adr/ADR-002-despliegue.md).
 
 ```mermaid
 flowchart LR
-    subgraph red["Red local del equipo (previsto)"]
+    subgraph lan["Red local del equipo"]
         browser["Navegador del jugador"]
         client["Cliente de escritorio<br/>JAR de Releases, Java 17"]
 
-        subgraph host["Equipo anfitrión: Docker Compose y runner autohospedado (previsto)"]
-            front["mc2-front<br/>LibGDX, Xvfb y noVNC<br/>puerto 6080"]
-            server["mc2-server<br/>JAR headless<br/>TCP 7777, HTTP 8080<br/>/health y /metrics"]
-            vol[("Volumen de mundos<br/>JSON v1")]
-            obs["Prometheus y Grafana<br/>opcional (previsto)"]
+        subgraph host["Equipo anfitrión: Docker Engine + Compose (proyecto mc2)"]
+            subgraph net["Red de Compose mc2_default"]
+                front["mc2-front<br/>Xvfb + Mesa llvmpipe<br/>x11vnc (solo 127.0.0.1:5900)<br/>websockify/noVNC :6080"]
+                server["mc2-server<br/>JAR headless<br/>TCP :7777 protocolo v1<br/>HTTP :8080 /health /metrics"]
+            end
+            vol[("Volumen mc2-worlds<br/>/data/worlds, JSON v1")]
+            vfront[("Volumen mc2-front-data<br/>preferencias del cliente")]
+            runner["Runner de GitHub Actions<br/>job desplegar (solo main y tags)"]
         end
     end
 
-    subgraph gh["GitHub (previsto)"]
-        actions["GitHub Actions<br/>ci.yml, cd.yml, load.yml"]
-        ghcr["GitHub Container Registry<br/>imágenes con SHA y versión"]
-        rel["GitHub Releases<br/>JAR del cliente"]
+    subgraph gh["GitHub"]
+        actions["Actions<br/>ci.yml → cd.yml, load.yml"]
+        ghcr["GHCR<br/>mc2-server, mc2-front<br/>etiquetas SHA y vX.Y.Z"]
+        rel["Releases<br/>JAR del cliente + SHA-256"]
     end
 
-    k8s["Kubernetes en kind<br/>opcional (previsto)"]
-
-    browser -->|"HTTP y WebSocket, 6080"| front
-    front -->|"TCP 7777, protocolo v1"| server
-    client -->|"TCP 7777, protocolo v1"| server
+    browser -->|"HTTP/WebSocket 127.0.0.1:6080"| front
+    front -->|"TCP mc2-server:7777"| server
+    client -->|"TCP <anfitrión>:7777"| server
     server -->|"lee y escribe"| vol
-    obs -->|"HTTP 8080 /metrics"| server
-    actions -->|"publica imágenes"| ghcr
-    actions -->|"publica el cliente"| rel
-    actions -->|"despliega en main"| host
-    ghcr -->|"descarga las imágenes"| host
-    rel -->|"descarga el JAR"| client
-    actions -.->|"manifiestos de k8s/"| k8s
+    front --> vfront
+    actions -->|"docker push (GITHUB_TOKEN)"| ghcr
+    actions -->|"asigna el job"| runner
+    runner -->|"scripts/deploy.sh: pull + up --wait + humo"| net
+    ghcr -->|"docker pull"| runner
+    actions -->|"gh release create"| rel
+    rel -->|"descarga"| client
 ```
 
-| Contenedor o nodo | Responsabilidad | Tecnología | Puertos | Estado |
+| Nodo o contenedor | Responsabilidad | Imagen y tecnología | Puertos publicados en el anfitrión | Datos |
 | --- | --- | --- | --- | --- |
-| `mc2-server` | Sesión autoritativa del juego con tick fijo, varios jugadores, `/health` y `/metrics`. | Java 17, `ServerSocket` y `com.sun.net.httpserver` | 7777 (TCP) y 8080 (HTTP) | Previsto — responsable: Persona 2 (servidor) y Persona 3 (imagen) |
-| `mc2-front` | Cliente gráfico accesible desde el navegador. | LibGDX, Xvfb y noVNC | 6080 | Previsto — responsable: Persona 3 |
-| Cliente de escritorio | Mismo cliente fuera de Docker, publicado como JAR. | Java 17 y LibGDX | Conecta al 7777 | Previsto — responsable: Persona 3 |
-| Runner autohospedado | Ejecuta el job de despliegue de `main` y levanta los servicios con Compose. | GitHub Actions runner y Docker Compose | — | Previsto — responsable: Persona 3 |
-| GitHub Container Registry | Guarda las imágenes etiquetadas con SHA y versión. | GitHub Packages | — | Previsto — responsable: Persona 3 |
-| Prometheus y Grafana | Métricas del servidor y tablero del SLO. | Prometheus y Grafana | — | Opcional, bonificación: Previsto — responsable: Persona 3 |
-| Kubernetes | Despliegue alternativo con manifiestos de `k8s/`. | Kubernetes en kind | — | Opcional, bonificación: Previsto — responsable: Persona 3 |
+| `mc2-server` | Sesión autoritativa del juego con tick fijo, varios jugadores, `/health` y `/metrics`. | `ghcr.io/marshallgomez1103/mc2-server:<SHA o vX.Y.Z>`, base `eclipse-temurin:17.0.20.1_1-jre-noble`, usuario `app` (uid 10001). | `7777` en todas las interfaces (multijugador en la red local); `127.0.0.1:8080`. | Volumen `mc2-worlds` en `/data/worlds`. |
+| `mc2-front` | Cliente LibGDX en un escritorio virtual, visible en el navegador. | `ghcr.io/marshallgomez1103/mc2-front:<SHA o vX.Y.Z>`, misma base, Xvfb, x11vnc, noVNC y Mesa; usuario `app`. | `127.0.0.1:6080`. El VNC (5900) no sale del contenedor. | Volumen `mc2-front-data` en `/data`. |
+| Cliente de escritorio | El mismo JAR fuera de Docker, para jugar desde otro equipo de la red. | JAR de GitHub Releases con su suma SHA-256. | — | Local del jugador. |
+| Runner del job `desplegar` | Descarga las imágenes y ejecuta `scripts/deploy.sh`, la carga y, si falla, `scripts/rollback.sh`. | Runner de GitHub Actions: el de la variable `MC2_DEPLOY_RUNNER` (equipo del grupo) o, sin ella, un runner hospedado efímero. | — | Estado de despliegue en `~/.mc2-deploy` (última versión buena e historial). |
+| GHCR y Releases | Registro de imágenes y artefactos versionados. | GitHub Packages y GitHub Releases. | — | Imágenes por SHA y versión; JAR por versión. |
 
-El front y los clientes de escritorio se comunican con el servidor por el mismo protocolo TCP; el navegador solo habla con el front. Los mundos se guardan en un volumen del servidor, no en el front. Cada detalle de ejecución (variables, orden de arranque, reversión) está en la [guía de implementación](implementacion.md) y en [devops.md](devops.md). Los riesgos de esta topología (sin autenticación en 7777 y 6080, runner autohospedado) están en [seguridad.md](seguridad.md#2-modelo-de-amenazas-stride).
+**Orden de arranque.** `mc2-front` solo arranca cuando el healthcheck de `mc2-server` (`GET /health` → 200) está en verde (`depends_on: condition: service_healthy`). El healthcheck del front exige a la vez que el proceso del juego esté vivo y que noVNC responda. `docker compose up --wait` y `scripts/deploy.sh` no siguen hasta que ambos están saludables (readiness con límite de 180 s).
+
+**Límites de confianza.**
+
+| Límite | Flujo que lo cruza | Control en el despliegue |
+| --- | --- | --- |
+| Red local → anfitrión | Clientes al puerto 7777 (protocolo v1, sin autenticación). | Único puerto abierto a la red; el servidor valida los mensajes (protocolo, persona 2). Amenazas en [seguridad.md](seguridad.md#2-modelo-de-amenazas-stride). |
+| Anfitrión → contenedores | Navegador al 6080 (noVNC sin contraseña) y operador al 8080. | Publicados solo en `127.0.0.1`: desde otro equipo no son alcanzables. |
+| Contenedor → anfitrión | Un proceso comprometido dentro de un contenedor. | Usuario sin privilegios, `read_only: true`, `cap_drop: ALL`, `no-new-privileges`; solo `/tmp`, `/home/app` y los volúmenes son escribibles. |
+| GitHub → anfitrión | El runner ejecuta código del repositorio. | El job `desplegar` solo corre para `main` (después de `ci.yml` en verde), tags y la reversión manual, con el Environment `produccion`; el código de un pull request corre en un runner hospedado efímero, nunca en el del grupo. |
+| Registro → anfitrión | Imágenes descargadas. | Se despliega por SHA o versión, nunca `latest`; el escaneo de la imagen está en `ci.yml`. |
+
+El multijugador en la red local tiene dos caminos hacia el mismo servidor: el JAR de Releases contra el puerto 7777, o el front compartido. Para compartir el front con otros equipos de la red hay que publicar el 6080 en la IP del anfitrión en lugar de `127.0.0.1`; por defecto no se hace porque noVNC no pide contraseña, y ese cambio se registra en seguridad.md antes de aplicarlo. Los detalles de operación (variables, despliegue, reversión) están en [devops.md](devops.md).
