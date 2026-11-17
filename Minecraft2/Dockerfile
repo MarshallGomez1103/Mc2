@@ -1,6 +1,7 @@
 # Imagen de mc2-server: el JAR en modo servidor headless (protocolo v1 en 7777/TCP, /health y /metrics en 8080).
 # Construcción desde la raíz del repositorio: docker build -f Minecraft2/Dockerfile Minecraft2
-FROM maven:3.9.16-eclipse-temurin-17-noble AS build
+# Bases fijadas por versión y resumen (digest); Dependabot propone las actualizaciones.
+FROM maven:3.9.16-eclipse-temurin-17-noble@sha256:1a352420f7aba21f5ad08df31bab55f74c013fb491f1ae8ab1dd7ff9ed698584 AS build
 WORKDIR /build
 
 COPY pom.xml .
@@ -12,7 +13,7 @@ COPY test ./test
 RUN mvn -B -ntp -DskipTests -DskipUnitTests=true -Djacoco.skip=true package \
     && cp target/minecraft2-*.jar /build/app.jar
 
-FROM eclipse-temurin:17.0.20.1_1-jre-noble
+FROM eclipse-temurin:17.0.21_9-jre-noble@sha256:042c05a77eb915684fc8c92cfbbef4fd6f8c24ca7d934d1a7db3543453aaa077
 WORKDIR /app
 
 ARG MC2_VERSION=dev
@@ -23,7 +24,11 @@ LABEL org.opencontainers.image.title="mc2-server" \
       org.opencontainers.image.version="${MC2_VERSION}" \
       org.opencontainers.image.revision="${MC2_REVISION}"
 
-RUN useradd --system --uid 10001 --create-home app \
+# Parches de seguridad de Ubuntu publicados después de la imagen base (hallazgos IMG de seguridad.md).
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --system --uid 10001 --create-home app \
     && mkdir -p /data/worlds \
     && chown -R app:app /data
 
