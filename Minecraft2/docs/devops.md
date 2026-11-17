@@ -97,6 +97,8 @@ Ejecuciones de la carga contra el entorno desplegado (se llena solo con ejecucio
 | 2026-11-16 | [44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312), intento 1, job `desplegar` (runner autohospedado `mc2-wsl`) | `9d44297` | 46,572 / 85,000 / 45,742 ms | 84,599 / 164,145 / 153,427 ms | Incumple SLO-CARGA-01 en las tres repeticiones y SLO-RED-01 en dos; el job revirtió a `6401c84` (sección 7). |
 | 2026-11-16 | [44005663312, intento 2](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312/attempts/2), job `desplegar` (runner hospedado de GitHub) | `9d44297` | 14,819 / 7,160 / 11,028 ms | 60,828 / 54,907 / 57,815 ms | Cumple: 3 clientes, mínimo de 80 zombis, 0 ticks fallidos, 0 de déficit y 0 errores de red. |
 | 2026-11-16 | [43996138039](https://github.com/MarshallGomez1103/Mc2/actions/runs/43996138039), job `entorno-efimero` (pull request #2, runner hospedado) | Imágenes construidas desde `12a3f6c` | 12,459 / 3,909 / 3,716 ms (601–602 ticks) | 53,411 / 52,203 / 52,496 ms (≈1 800 muestras) | Cumple: 3 clientes, mínimo de 80 zombis, 0 ticks fallidos, 0 de déficit y 0 errores de red. Humo correcto antes de la carga. |
+| 2026-11-16 | [44010178347](https://github.com/MarshallGomez1103/Mc2/actions/runs/44010178347), `load.yml` (carga larga, 3 × 300 s, runner hospedado) | `9d44297` | 17,175 / 17,043 / 16,647 ms (≈6 000 ticks) | 59,294 / 66,346 / 65,939 ms (≈18 000 muestras) | Incumple SLO-CARGA-01 por poco en las repeticiones 1 y 2 (17,2 y 17,0 ms frente a 16,67 ms); SLO-RED-01 se cumple; 0 ticks fallidos, 0 de déficit y 0 errores de red. Con carga sostenida de 5 minutos el tick queda en el límite del presupuesto de 60 FPS en un runner de 4 vCPU que también ejecuta el front con OpenGL por software. El umbral no se cambia. |
+| 2026-11-16 | [44012999859](https://github.com/MarshallGomez1103/Mc2/actions/runs/44012999859), job `desplegar` del tag (runner hospedado) | `v1.0.0` | 10,492 / 3,776 / 6,072 ms | 52,153 / 52,275 / 54,390 ms | Cumple: 3 clientes, mínimo de 80 zombis, 0 ticks fallidos, 0 de déficit y 0 errores de red. |
 
 ## 3. Requisitos del pipeline
 
@@ -163,6 +165,7 @@ Versiones publicadas (se llena con las realmente publicadas):
 
 | Versión | Fecha | Commit | Imágenes en GHCR | Release |
 | --- | --- | --- | --- | --- |
+| `v1.0.0` | 2026-11-16 | `9823228` | `ghcr.io/marshallgomez1103/mc2-server:v1.0.0` y `mc2-front:v1.0.0`, reetiquetadas desde la imagen ya verificada de `9823228` ([44012999859](https://github.com/MarshallGomez1103/Mc2/actions/runs/44012999859)) | [v1.0.0](https://github.com/MarshallGomez1103/Mc2/releases/tag/v1.0.0): `minecraft2-v1.0.0.jar` y su `.sha256`, notas de `CHANGELOG.md` |
 
 ## 6. Despliegue
 
@@ -185,6 +188,8 @@ Despliegues ejecutados (se llena solo con ejecuciones reales):
 | 2026-11-16 | [44003697043](https://github.com/MarshallGomez1103/Mc2/actions/runs/44003697043) | `6401c84` | `mc2-wsl` (autohospedado) | Correcto | Incumple; sin versión anterior a la cual revertir (primer despliegue) |
 | 2026-11-16 | [44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312), intento 1 | `9d44297` | `mc2-wsl` (autohospedado) | Correcto | Incumple; reversión automática a `6401c84` verificada |
 | 2026-11-16 | [44005663312, intento 2](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312/attempts/2) | `9d44297` | Hospedado de GitHub (`ubuntu-latest`) | Correcto | Cumple; después vuelve a 0 zombis |
+| 2026-11-16 | [44011740257](https://github.com/MarshallGomez1103/Mc2/actions/runs/44011740257) | `9823228` (bases de imagen nuevas) | Hospedado de GitHub | Correcto | Cumple |
+| 2026-11-16 | [44012999859](https://github.com/MarshallGomez1103/Mc2/actions/runs/44012999859) (tag) | `v1.0.0` | Hospedado de GitHub | Correcto | Cumple; después se publica la Release |
 
 ## 7. Reversión
 
