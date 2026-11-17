@@ -2,136 +2,198 @@
 
 Esta guía es para el equipo técnico que va a poner en marcha y operar Minecraft2 en su propia infraestructura. Supone que conoce Docker y Git, pero no el proyecto, y que no puede consultar al grupo que lo construyó. Los pasos están en esta guía; para ampliar un tema se enlazan [devops.md](devops.md) y [seguridad.md](seguridad.md).
 
-> **Estado del documento: esqueleto.** Contiene la estructura de las nueve partes y los comandos previstos del contrato (`cp .env.example .env`, `docker compose up`), que se comprueban cuando existan `.env.example` y `docker-compose.yml`. Cada paso marcado «Previsto — responsable: Persona N» se escribe con el comando exacto y el resultado observado al seguirlo desde una máquina limpia, y el marcador se retira antes de la entrega. Los nombres de servicios, variables y puertos son los del contrato del proyecto y deben coincidir con `docker-compose.yml`, `.env.example` y los workflows.
+> **Alcance de la verificación.** Cada comando existe en un archivo del repositorio (se indica cuál). El despliegue desde el registro, la prueba de humo y la reversión automática se observaron en GitHub Actions ([ejecución 44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312)) y el levantado con Compose, en el entorno efímero de los pull requests ([ejecución 43996138039](https://github.com/MarshallGomez1103/Mc2/actions/runs/43996138039)). Los pasos de las secciones 5 a 7 no se repitieron desde cero en una máquina limpia ajena al grupo; donde no hay medición se escribe «no medido» o «no ejecutado».
 
-Responsable: Persona 1, con Persona 3 (despliegue, variables y operación).
-
-Convención de los comandos: los valores que cambian se escriben entre `<` y `>` (por ejemplo, `<cuenta-github>`). Los comandos se ejecutan desde la raíz del repositorio.
+Convención de los comandos: los valores que cambian se escriben entre `<` y `>` (por ejemplo, `<cuenta-github>`). Los comandos se ejecutan desde la raíz del repositorio, salvo que se indique otra carpeta.
 
 ## 1. Qué se va a implementar
 
-Minecraft2 es un juego voxel en Java 17. En su forma desplegada se compone de dos servicios que se levantan con Docker Compose:
+Minecraft2 es un juego voxel en Java 17. En su forma desplegada se compone de dos servicios que se levantan con Docker Compose ([`docker-compose.yml`](../../docker-compose.yml)):
 
-| Servicio | Qué es | Puertos |
-| --- | --- | --- |
-| `mc2-server` | Servidor headless del juego: recibe la entrada de los jugadores por TCP (protocolo de líneas JSON) y publica `/health` y `/metrics` por HTTP. | 7777 (TCP) y 8080 (HTTP) |
-| `mc2-front` | Cliente gráfico dentro de un contenedor, jugable desde el navegador mediante noVNC. | 6080 (HTTP) |
+| Servicio | Qué es | Puertos (dentro del contenedor) | Publicado en el equipo anfitrión |
+| --- | --- | --- | --- |
+| `mc2-server` | Servidor headless del juego: recibe la entrada de los jugadores por TCP (protocolo v1, una línea JSON por mensaje) y publica `/health` y `/metrics` por HTTP. Admite hasta ocho conexiones ([servidor.md](servidor.md)). | 7777 (TCP) y 8080 (HTTP) | 7777 en todas las interfaces de red; 8080 solo en `127.0.0.1` |
+| `mc2-front` | Cliente gráfico dentro de un contenedor (pantalla virtual, OpenGL por software y noVNC), jugable desde el navegador. | 6080 (HTTP y WebSocket) | 6080 solo en `127.0.0.1` |
 
-Además, el cliente de escritorio se publica como un JAR en GitHub Releases para conectarse al servidor desde un equipo con Java. Varios jugadores comparten el mismo mundo dentro de la misma red.
+Además, el cliente de escritorio se publica como un JAR en GitHub Releases (`minecraft2-vX.Y.Z.jar` y su suma `.sha256`) para conectarse al servidor desde otro equipo con Java 17.
 
-La vista de despliegue que muestra dónde corre cada contenedor y cómo se comunican está en [arquitectura §8](arquitectura.md#8-vista-de-despliegue). Los servicios, los puertos y el comportamiento descritos aquí dependen de la implementación del Corte 3: Previsto — responsable: Persona 3.
+Consecuencia de los puertos publicados: el navegador solo llega al front desde el propio equipo anfitrión (`http://localhost:6080/vnc.html`). Los jugadores de otros equipos de la red local se conectan con el JAR de escritorio a `<IP del anfitrión>:7777`; todos comparten el mundo del servidor. Para mostrar el front desde otro equipo de la red durante una demostración se publica noVNC en todas las interfaces con `MC2_FRONT_BIND=0.0.0.0` solo mientras dure la demostración (noVNC no pide contraseña); la alternativa es conectar el JAR de escritorio a `<IP del anfitrión>:7777`.
+
+La vista de despliegue, con los nodos y las comunicaciones, está en [arquitectura §8](arquitectura.md#8-vista-de-despliegue). El proceso de entrega que publica y despliega las imágenes está en [devops §6](devops.md#6-despliegue).
 
 ## 2. Requisitos previos
 
 | Requisito | Detalle |
 | --- | --- |
-| Cuentas y servicios | Una cuenta de GitHub con acceso al repositorio; GitHub Container Registry para descargar las imágenes. Cuenta y permisos exactos: Previsto — responsable: Persona 3 |
-| Software | Docker Engine y Docker Compose v2, y Git. Versiones mínimas probadas: Previsto — responsable: Persona 3. Para el cliente de escritorio: Java 17 (JRE) y un equipo con OpenGL. |
-| Recursos mínimos | CPU, memoria y disco para los dos servicios: Previsto — responsable: Persona 3, a partir de la ejecución real |
-| Puertos | 7777 (TCP), 8080 (HTTP) y 6080 (HTTP) libres en la máquina anfitriona. |
-| Dominio y certificado HTTPS | Previsto — responsable: Persona 3: se indica si aplican. El proyecto se ejecuta en la red local. |
-| Red | Los jugadores deben estar en la misma red que la máquina anfitriona. |
+| Cuentas y servicios | Una cuenta de GitHub con acceso al repositorio. Las imágenes se descargan de GitHub Container Registry (`ghcr.io`). Si los paquetes no son públicos, hace falta `docker login ghcr.io` con una cuenta con permiso de lectura de paquetes. Según el responsable del despliegue, a la fecha de redacción los paquetes `mc2-server` y `mc2-front` están privados (no se comprobó con la API de GitHub): no se descargan sin iniciar sesión. Para hacerlos públicos, el propietario abre su perfil de GitHub → Packages → cada paquete → Package settings → Change visibility → Public. |
+| Software del equipo anfitrión | Docker Engine y Docker Compose v2 (`docker compose`), y Git. Los scripts de despliegue usan además `bash`, `curl` y `timeout`. El repositorio usa `docker compose up --wait` y `--wait-timeout` y la condición `depends_on: condition: service_healthy`, que exigen una versión reciente de Compose v2; la versión mínima exacta no se determinó. Versión con la que se probó el front: Docker Desktop 29.9.2 con motor Linux en WSL 2 ([ADR-002 §7](adr/ADR-002-despliegue.md#7-evidencia-y-enlaces)). |
+| Software adicional (solo si se carga o se construye el JAR) | JDK 17 y Maven 3.9 en el `PATH`: `Minecraft2/perf/run-slo.sh` ejecuta `mvn test-compile` cuando faltan las clases de prueba. Maven debe usar Java 17 (`mvn -version`); comprobar solo `java -version` no basta ([servidor.md](servidor.md#arranque)). |
+| Software del cliente de escritorio | Java 17 (JRE) y un equipo con OpenGL. |
+| Recursos mínimos (estimación) | 4 vCPU y 4 GiB de RAM libres, con 8 GiB como margen si se construye en el mismo equipo. Base: los manifiestos de [`k8s/`](../../k8s/README.md) piden y limitan recursos por servicio (servidor: 250m de CPU y 512 MiB, con límite de 2 CPU y 1 GiB; front: 500m y 768 MiB, con límite de 2 CPU y 1,5 GiB, más 256 MiB de `/dev/shm`); la suma de los límites es 4 CPU y 2,5 GiB. El front dibuja con Mesa llvmpipe y usa todos los núcleos disponibles (prueba en un Intel Core i5-10300H de 8 hilos y 15,8 GB de RAM). Disco: el tamaño de las imágenes y de los mundos no se ha medido (`docker images` y `docker system df`). |
+| Puertos | 7777 (TCP), 8080 (HTTP) y 6080 (HTTP) libres en el equipo anfitrión. Si 7777 u 8080 están ocupados se cambia el valor de `MC2_SERVER_PORT` o `MC2_HEALTH_PORT` (sección 4); el 6080 no tiene variable. Con la observabilidad opcional también 9090 y 3000, solo en `127.0.0.1`. |
+| Dominio y certificado HTTPS | No aplican en el entorno del proyecto: ni el protocolo del juego ni noVNC usan TLS ([seguridad.md](seguridad.md#21-autenticación-y-autorización)). Qué hacer en producción: sección 9. |
+| Red | Los jugadores con el JAR de escritorio deben alcanzar el puerto 7777 del anfitrión (misma red local; el cortafuegos del anfitrión puede requerir una regla de entrada para ese puerto). No se prueba ni se afirma nada fuera de la red local. |
+| Equipo del despliegue automático | Solo si se despliega con GitHub Actions: un runner autohospedado con lo anterior (Docker, Compose, `bash`, `curl`, `timeout`, Maven, Git) y conexión de salida a `github.com` y `ghcr.io`. En la prueba del proyecto se usó un equipo del grupo (Ubuntu sobre WSL 2 con Docker Desktop) registrado con la etiqueta `mc2-deploy`: el despliegue, el humo y la reversión funcionaron, pero la carga de 80 zombis incumplió el SLO, atribuido a que el cliente gráfico, con OpenGL por software, comparte el hardware (p95 del tick de 45,7 a 85,0 ms y p95 de ida y vuelta de 84,6 a 164,1 ms; ejecución 44005663312, primer intento). Por eso la entrega despliega con el runner hospedado de GitHub, sin definir `MC2_DEPLOY_RUNNER`. |
 
 ## 3. Costos estimados
 
-Previsto — responsable: Persona 3 (con Persona 1). Se escriben cifras solo con el plan y el proveedor realmente usados; no se estiman sin respaldo.
+Todas las cifras de esta sección son **estimaciones** y no hay ninguna medición ni cotización detrás. Los precios de un proveedor cambian: deben consultarse en su página de precios o en su calculadora el día de la compra. Donde no hay base, se dice «no medido».
 
-| Componente | Costo mensual con el plan usado en el proyecto | Costo mensual recomendado para el volumen real del negocio |
+**Supuestos comunes (estimación).** Hasta 8 jugadores simultáneos por servidor (capacidad del código, [servidor.md](servidor.md#arranque)); un solo servidor y un front; recursos por servicio según los límites de [`k8s/`](../../k8s/README.md), es decir, unos 4 vCPU y 2,5 GiB en total, a los que se suman el sistema y Docker. Cada front adicional (un jugador más en el navegador) añade hasta 2 vCPU y 1,5 GiB por esos mismos límites; un jugador con el JAR de escritorio solo carga al servidor.
+
+**Escenario 1 — runner y anfitrión en un equipo del grupo (plan propuesto del proyecto, [ADR-002](adr/ADR-002-despliegue.md#5-decisión), opción E1).** Supuestos: el equipo ya existe (la prueba de viabilidad del front se hizo en un Intel Core i5-10300H de 8 hilos y 15,8 GB de RAM; el mismo equipo hizo de runner en la prueba del despliegue), la conexión a internet ya existe, el repositorio es público y el servicio se enciende solo para despliegues y demostraciones. El despliegue final de la entrega corrió en el runner hospedado de GitHub, que es efímero; el equipo del grupo es el anfitrión persistente que supone este escenario.
+
+**Escenario 2 — una máquina virtual en la nube (recomendado para el volumen real).** Supuestos: una máquina virtual Linux de 4 vCPU y 8 GiB de RAM con 40 a 60 GB de disco, encendida las 730 horas del mes, con Docker Compose y un runner autohospedado en la misma máquina; el puerto 7777 abierto a internet y los puertos 6080 y 8080 accesibles solo desde la propia máquina (por ejemplo, con un túnel SSH). Este escenario queda fuera del alcance «ejecución local» del ADR-002 y exige que el proveedor admita tráfico TCP entrante en el 7777 (no verificado con ningún proveedor).
+
+| Componente | Escenario 1: equipo del grupo (plan usado en el proyecto) | Escenario 2: máquina virtual en la nube (recomendado para el volumen real) |
 | --- | --- | --- |
-| Máquina anfitriona y runner autohospedado | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| Registro de imágenes (GitHub Container Registry) | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| Ejecución de los workflows (GitHub Actions) | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
+| Máquina anfitriona y runner autohospedado | Cuota del proveedor: ninguna; el equipo ya existe y no se amortiza. Electricidad: no medida. Cota superior de la CPU: unos 45 W de potencia de diseño térmico del procesador (dato del fabricante, no comprobado aquí) × 730 h ≈ 33 kWh al mes encendido siempre; con 2 h por semana (supuesto de demostraciones) ≈ 0,4 kWh al mes. Costo = kWh × la tarifa de la factura local. Disponibilidad: solo mientras el equipo esté encendido. | Estimación de 15 a 125 USD al mes por 4 vCPU y 8 GiB bajo demanda. Base: orden de magnitud de precios de lista públicos, desde los servidores virtuales económicos (extremo bajo) hasta las máquinas de uso general de los grandes proveedores (extremo alto). No se consultó ningún proveedor al redactar esta guía. Almacenamiento, dirección IPv4 y transferencia de salida pueden facturarse aparte: consultar la calculadora del proveedor. Solo servidor, con los jugadores usando el JAR de escritorio y sin front: 2 vCPU y 4 GiB, del orden de la mitad de esa cifra (estimación proporcional a los recursos). |
+| Registro de imágenes (GitHub Container Registry) | Repositorio público: sin cargo según las condiciones de GitHub conocidas, sin verificarlas en línea para esta guía; los paquetes privados cuentan contra la cuota del plan: comprobarlo en la página de precios de GitHub Packages. Tamaño de las imágenes: no medido. | Igual. Si el repositorio o los paquetes fueran privados, se aplican la cuota incluida en el plan y la tarifa de almacenamiento y transferencia vigentes: consultar a GitHub. |
+| Ejecución de los workflows (GitHub Actions) | Repositorio público: los runners hospedados de GitHub y los autohospedados no consumen minutos facturables según las condiciones conocidas, sin verificarlas en línea: comprobar la página de precios y facturación de Actions antes de contar con ello. Duración máxima por ejecución según los `timeout-minutes` de [`cd.yml`](../../.github/workflows/cd.yml): 25 min el entorno efímero y la publicación y 30 min el despliegue. Las duraciones reales constan en cada ejecución de Actions (tabla de [devops §3](devops.md#3-requisitos-del-pipeline)). | Igual. En un repositorio privado los minutos de los runners hospedados cuentan contra la cuota del plan; los de un runner autohospedado en la máquina virtual, según las condiciones vigentes: consultar a GitHub. |
+
+**Resumen (estimación).** El escenario 1 no añade cuota mensual; su costo es la electricidad del equipo y su disponibilidad. El escenario 2 añade del orden de decenas de dólares al mes por una disponibilidad continua, a cambio de abrir un puerto sin autenticación a internet (sección 9). Las cifras se reemplazan por medidas reales (`docker stats`, `docker images`, vatímetro) y por el precio del proveedor elegido antes de decidir.
 
 ## 4. Configuración
 
-Previsto: toda la configuración será por variables de entorno; ninguna contraseña, token o cadena de conexión está en el código ni en la imagen. `.env.example` incluye todas las variables con valores de ejemplo; el archivo `.env` real no se versiona.
+Toda la configuración es por variables de entorno; ninguna contraseña, token o cadena de conexión está en el código ni en la imagen. [`.env.example`](../../.env.example) incluye todas las variables con valores de ejemplo y no contiene secretos; el `.env` real no se versiona. Compose toma los valores de `.env` y, por prioridad, de las variables exportadas en la terminal.
 
-| Nombre | Para qué sirve | Valor de ejemplo | Obligatoria | Dónde se configura | Cómo generar |
+| Nombre | Para qué sirve | Valor de ejemplo (`.env.example`) | Obligatoria | Dónde se configura | Cómo generar |
 | --- | --- | --- | --- | --- | --- |
-| `MC2_SERVER_HOST` | Nombre o dirección con la que `mc2-front` y los clientes encuentran el servidor. | `mc2-server` | Previsto — responsable: Persona 3 | `.env` | Es el nombre del servicio en Compose; para un cliente fuera de Docker, la dirección de la máquina anfitriona. |
-| `MC2_SERVER_PORT` | Puerto TCP del protocolo del juego. | `7777` | Previsto — responsable: Persona 3 | `.env` | Cualquier puerto libre; debe coincidir con el publicado en Compose. |
-| `MC2_HEALTH_PORT` | Puerto HTTP de `/health` y `/metrics` del servidor. | `8080` | Previsto — responsable: Persona 3 | `.env` | Cualquier puerto libre; lo usan el healthcheck y la prueba de humo. |
-| `MC2_TICK_HZ` | Frecuencia del tick del servidor, en ticks por segundo. | `20` | Previsto — responsable: Persona 3 | `.env` | Se deja el valor de ejemplo; cambiarlo altera el comportamiento del juego. |
-| `MC2_LOAD_ZOMBIES` | Población de zombis del perfil de carga. `0` desactiva el perfil. | `0` (`80` para la prueba de carga) | Previsto — responsable: Persona 3 | `.env` o variable del workflow de carga | `0` en operación normal; `80` solo para la prueba de carga. |
-| `MC2_PLAYER_NAME` | Nombre del jugador que presenta el cliente. | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | `.env` | Texto libre. |
-| `MC2_SKIN_ID` | Apariencia del jugador. | `0` | Previsto — responsable: Persona 3 | `.env` | Número entero de 0 a 2. |
-| `MC2_WORLD_DIR` | Directorio, dentro del contenedor del servidor, donde se guardan los mundos. | `/data/worlds` | Previsto — responsable: Persona 3 | `.env` y volumen de Compose | Debe coincidir con el volumen persistente. |
-| `MC2_IMAGE_TAG` | Etiqueta de las imágenes que se despliegan (SHA del commit o versión). Nunca `latest`. | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | `.env` o variable del Environment de despliegue | Se toma de una versión publicada en el registro (ver la sección 7). |
+| `MC2_SERVER_HOST` | Nombre o dirección con la que `mc2-front` y los clientes encuentran el servidor. Un valor no vacío activa el modo cliente remoto ([cliente-red.md](cliente-red.md#conectar)). | `mc2-server` | No: Compose usa `mc2-server` | `.env`; en el cliente de escritorio, variable de la terminal | Es el nombre del servicio en Compose; para un cliente fuera de Docker, la IP o el nombre del anfitrión. |
+| `MC2_SERVER_PORT` | En el anfitrión: puerto publicado del juego. Dentro de los contenedores el servidor escucha siempre en 7777 y el front se conecta a 7777. En un cliente de escritorio: puerto de destino. | `7777` | No: por defecto 7777 | `.env`; variable de la terminal en el cliente | Cualquier puerto libre del anfitrión. Cambiarlo solo cambia el puerto de fuera. |
+| `MC2_HEALTH_PORT` | Puerto del anfitrión (solo `127.0.0.1`) para `/health` y `/metrics`; lo usan `scripts/deploy.sh` y `perf/run-slo.sh`. Dentro del contenedor siempre es 8080. | `8080` | No: por defecto 8080 | `.env` | Cualquier puerto libre y distinto del anterior. |
+| `MC2_TICK_HZ` | Frecuencia del tick del servidor, en ticks por segundo. | `20` | No: por defecto 20 | `.env` | Entero de 20 a 120; otro valor se rechaza ([servidor.md](servidor.md#configuración)). Se deja el valor de ejemplo: cambiarlo altera el comportamiento del juego. |
+| `MC2_LOAD_ZOMBIES` | Población de zombis del perfil de carga. `0` es la partida normal persistente. | `0` (`80` para la prueba de carga) | No: por defecto 0 | `.env`; `cd.yml` y `load.yml` la fijan a 80 durante el despliegue y la carga (sección 7) | `0` en operación normal; entero de 1 a 320 solo para la carga. Ese escenario es transitorio y no se guarda sobre la partida normal. |
+| `MC2_WORLD_DIR` | Directorio, dentro del contenedor del servidor, donde se guardan los mundos. | `/data/worlds` | No: por defecto `/data/worlds` | `.env` | Compose monta el volumen `mc2-worlds` en `/data/worlds` y el sistema de archivos del contenedor es de solo lectura: cambiar el valor sin cambiar también el montaje dejaría los mundos fuera del volumen (inferido de `docker-compose.yml`; no probado). Se deja el valor de ejemplo. |
+| `MC2_PLAYER_NAME` | Nombre del jugador que presenta el front. | `jugador-ejemplo` (si la variable falta, Compose usa `jugador`) | No | `.env` | Texto no vacío de hasta 32 unidades UTF-16, sin caracteres de control ([servidor.md](servidor.md#mensajes-y-secuencias)). |
+| `MC2_SKIN_ID` | Apariencia del jugador del front. | `0` | No: por defecto 0 | `.env` | Entero de 0 a 2; un valor ausente o inválido se toma como 0. |
+| `MC2_FRONT_BIND` | Dirección donde se publica noVNC (6080). `127.0.0.1` lo deja solo en el equipo anfitrión; `0.0.0.0` lo abre a la red local para una demostración. noVNC no pide contraseña ([seguridad.md](seguridad.md)). | `127.0.0.1` | No: por defecto `127.0.0.1` | `.env` | `127.0.0.1` salvo durante una demostración desde otro equipo. |
+| `MC2_IMAGE_TAG` | Etiqueta de las imágenes que se ejecutan. `local` construye desde el código; el despliegue usa el SHA de 40 caracteres del commit o la versión `vX.Y.Z`. Nunca `latest`: `scripts/deploy.sh` rechaza cualquier otra etiqueta. | `local` | No: por defecto `local` | `.env`; `scripts/deploy.sh` y `cd.yml` la fijan al desplegar | SHA o versión de una imagen ya publicada en el registro (sección 7). |
+| `MC2_REGISTRY` | Prefijo del registro de las imágenes. | `ghcr.io/marshallgomez1103` | No: ese es el valor por defecto | `.env`; `cd.yml` la fija a `ghcr.io/<propietario del repositorio en minúsculas>` | Es el registro del repositorio en GitHub Container Registry. |
 
-Secretos de despliegue (GitHub Secrets o Environments): Previsto — responsable: Persona 3. Se listan con nombre, uso y forma de generarlos cuando el despliegue los defina; hoy no hay ninguno definido.
+Variables que solo usan los scripts del despliegue y de la carga (no están en `.env.example`):
+
+| Nombre | Para qué sirve | Por defecto | Dónde se usa |
+| --- | --- | --- | --- |
+| `MC2_READY_TIMEOUT` | Segundos de espera de los healthchecks tras `up`. | `180` | `scripts/deploy.sh` |
+| `MC2_DEPLOY_STATE` | Carpeta con la última versión buena y el historial de despliegues. | `~/.mc2-deploy` | `scripts/deploy.sh`, `scripts/rollback.sh` |
+| `MC2_LOAD_CLIENTS`, `MC2_LOAD_REPETITIONS`, `MC2_LOAD_SECONDS`, `MC2_LOAD_WARMUP_SECONDS` | Clientes, repeticiones, duración de cada repetición y calentamiento de la carga. | `3`, `3`, `30` (corta) o `300` (larga), `60` | `Minecraft2/perf/run-slo.sh` |
+| `MC2_LOAD_OUT` | Carpeta de resultados de la carga. | `target/load-results/slo-<modo>-<fecha>` (en `Minecraft2/`) | `Minecraft2/perf/run-slo.sh` |
+| `MC2_SLO_TICK_P95_MS`, `MC2_SLO_RTT_P95_MS` | Umbrales de la carga, para romperlos a propósito. | `16.67` y `100` | `Minecraft2/perf/run-slo.sh` |
+
+Variable de repositorio de GitHub (Settings → Secrets and variables → Actions → Variables): `MC2_DEPLOY_RUNNER` (opcional) fija la etiqueta del runner que ejecuta el despliegue, por ejemplo `self-hosted`; sin ella `cd.yml` usa un runner hospedado efímero, que verifica el despliegue pero no queda encendido después. En la entrega no está definida: el despliegue corre en el runner hospedado de GitHub. Se definió `mc2-deploy` durante la prueba con el equipo del grupo y se retiró porque ese equipo no cumple el SLO de carga (sección 8).
+
+Secretos de despliegue: no hay ninguno. El despliegue inicia sesión en el registro con el `GITHUB_TOKEN` efímero de cada job ([devops §6](devops.md#6-despliegue)). El Environment `produccion` lo referencian los jobs `desplegar`, `revertir` y `carga-larga`; existe y no tiene reglas de protección (sin aprobadores obligatorios), según la API de GitHub.
 
 ## 5. Instalación paso a paso
 
-Cada paso termina con su resultado esperado. Los comandos del contrato son previstos hasta que existan `.env.example` y `docker-compose.yml`; todos se escriben con el comando exacto al verificarlos.
+Cada paso termina con su resultado esperado, tomado del texto de los scripts y de los registros de las ejecuciones de Actions citados.
 
-1. **Preparar el entorno.** Instalar Docker, Docker Compose v2 y Git. Resultado esperado: versiones disponibles con `docker --version` y `docker compose version`. Previsto — responsable: Persona 3: versiones mínimas.
-2. **Obtener el repositorio.** `git clone <url-del-repositorio>` y entrar en el directorio clonado. Resultado esperado: el directorio contiene `docker-compose.yml` y `.env.example`. Previsto — responsable: Persona 3.
+1. **Preparar el entorno.** Instalar Docker, Docker Compose v2 y Git. Resultado esperado: versiones disponibles con `docker --version`, `docker compose version` y `git --version`. Versiones mínimas: sección 2.
+2. **Obtener el repositorio.** `git clone <url-del-repositorio>` y entrar en el directorio clonado. Resultado esperado: el directorio contiene `docker-compose.yml` y `.env.example`.
 3. **Crear el archivo de configuración.**
 
    ```bash
    cp .env.example .env
    ```
 
-   Resultado esperado: existe `.env` con todas las variables de la sección 4. Revisar sus valores; los de ejemplo sirven para una instalación local.
-4. **Configurar el repositorio y sus secretos** (solo si se va a desplegar con GitHub Actions): registrar el runner autohospedado, crear el Environment y cargar sus secretos. Previsto — responsable: Persona 3 (con capturas de la consola web, si ayudan).
-5. **Levantar el sistema.**
+   Resultado esperado: existe `.env` con todas las variables de la sección 4. Los valores de ejemplo sirven para una instalación local.
+4. **Configurar el repositorio y el runner** (solo si se va a desplegar con GitHub Actions). En GitHub: Settings → Actions → Runners → New self-hosted runner, y seguir los comandos que muestra la página con un token temporal (no están en el repositorio); Settings → Environments → `produccion`; Settings → Secrets and variables → Actions → Variables → `MC2_DEPLOY_RUNNER`. Resultado esperado: el runner aparece como `Idle` y el job `desplegar` lo toma al desplegar. En la prueba del proyecto el runner se registró con la etiqueta `mc2-deploy`, en Ubuntu sobre WSL 2.
+5. **Levantar el sistema.** Hay dos formas.
+   - **Construyendo desde el código** (comando de cabecera de `docker-compose.yml`):
 
-   ```bash
-   docker compose up
-   ```
+     ```bash
+     docker compose up --build --wait
+     ```
 
-   Resultado esperado: los servicios `mc2-server` y `mc2-front` llegan al estado saludable y `mc2-front` se inicia después de `mc2-server`. Salida concreta: Previsto — responsable: Persona 3.
-6. **Primer despliegue por el pipeline** (solo si se usa el despliegue automático): fusionar a `main` y comprobar la ejecución en Actions. Previsto — responsable: Persona 3.
-7. **Cargar los datos iniciales.** Previsto — responsable: Persona 3: confirmar si hay datos iniciales. Los mundos se guardan en el directorio `MC2_WORLD_DIR`.
+     Resultado esperado: `mc2-server` y `mc2-front` llegan al estado saludable y `mc2-front` se inicia después de `mc2-server` (`depends_on: condition: service_healthy`). La primera construcción descarga las dependencias de Maven y las imágenes base; su duración no se ha medido.
+   - **Desde el registro, como lo hace el pipeline** (con una etiqueta ya publicada; si los paquetes son privados, antes `docker login ghcr.io -u <usuario>` con un token con permiso `read:packages`, porque el script solo hace `docker compose pull`):
+
+     ```bash
+     scripts/deploy.sh <sha-de-40-caracteres|vX.Y.Z>
+     ```
+
+     Resultado esperado: el script informa `==> Desplegando <registro>/mc2-{server,front}:<etiqueta>`, `==> Prueba de humo` y `==> Humo correcto: <etiqueta> desplegado`, y sale con código 0. Si la readiness o el humo fallan, imprime el estado y los registros de los servicios y sale con código distinto de cero.
+
+   Para detener el sistema sin perder los mundos: `docker compose down`. No usar `docker compose down -v` en el equipo de producción: `-v` borra los volúmenes, es decir, los mundos (el pipeline lo usa solo en el entorno efímero de los pull requests).
+6. **Primer despliegue por el pipeline** (solo si se usa el despliegue automático). Fusionar a `main`; cuando `ci.yml` termina en verde, `cd.yml` publica las imágenes con el SHA como etiqueta (job `publicar`) y las despliega (job `desplegar`). Resultado esperado: en Actions, la ejecución de `cd` con `publicar` y `desplegar` en verde y, en el resumen, `Desplegado: <etiqueta>`. Durante la carga el servidor usa `MC2_LOAD_ZOMBIES=80`; al terminar con éxito, el job vuelve a desplegar la misma etiqueta con `MC2_LOAD_ZOMBIES=0` (partida normal).
+7. **Cargar los datos iniciales.** No hay datos iniciales: el servidor crea o carga su mundo (`server.json`) en el directorio `MC2_WORLD_DIR` y lo guarda al cerrarse de forma ordenada ([servidor.md](servidor.md#salud-métricas-y-carga)).
 8. **Crear la cuenta de administración.** No aplica: el sistema no tiene cuentas ni roles ([seguridad §2.1](seguridad.md#21-autenticación-y-autorización)).
-9. **Instalar y conectar el cliente de escritorio** (opcional, para jugar sin el navegador):
-   1. Descargar el JAR del cliente desde la página de Releases del repositorio, en `https://github.com/<cuenta-github>/<repositorio>/releases`. Previsto — responsable: Persona 3: nombre del archivo.
+9. **Instalar y conectar el cliente de escritorio** (opcional, para jugar sin el navegador o desde otro equipo):
+   1. Descargar de la página de Releases del repositorio, en `https://github.com/<cuenta-github>/<repositorio>/releases`, el archivo `minecraft2-vX.Y.Z.jar` y su `minecraft2-vX.Y.Z.jar.sha256`, y comprobar la suma con `sha256sum -c minecraft2-vX.Y.Z.jar.sha256` (el archivo lo genera `cd.yml` con `sha256sum`). Las versiones publicadas se ven en esa misma página.
    2. Instalar Java 17 si no está presente.
-   3. Ejecutar el cliente apuntando al servidor, con `MC2_SERVER_HOST` y `MC2_SERVER_PORT`. Comando exacto: Previsto — responsable: Persona 3.
-   4. Resultado esperado: el cliente se conecta y aparece el jugador en el mundo compartido. Previsto — responsable: Persona 3.
+   3. Ejecutar el cliente apuntando al servidor, con las variables de la sección 4:
+
+      ```bash
+      MC2_SERVER_HOST=<IP-del-anfitrión> MC2_PLAYER_NAME=<nombre> MC2_SKIN_ID=1 java -jar minecraft2-vX.Y.Z.jar
+      ```
+
+      En PowerShell: `$env:MC2_SERVER_HOST="<IP-del-anfitrión>"; java -jar minecraft2-vX.Y.Z.jar`. Un `MC2_SERVER_HOST` no vacío activa el modo remoto; sin él, `java -Dmc2.client=true -jar minecraft2-vX.Y.Z.jar` se conecta a `127.0.0.1:7777` ([cliente-red.md](cliente-red.md#conectar)).
+   4. Resultado esperado: la pantalla informa el progreso de la carga del terreno y, al terminar, el jugador aparece en el mundo compartido; el HUD muestra el número de jugadores. Controles: WASD, ratón, espacio, shift, clic izquierdo y derecho, teclas 1 a 7, Q y R ([cliente-red.md](cliente-red.md#conectar)).
 
 ## 6. Verificación
 
-Cómo comprobar que la instalación quedó bien. Previsto — responsable: Persona 3: comandos exactos y resultado observado.
+Cómo comprobar que la instalación quedó bien. Los comandos se ejecutan en el equipo anfitrión.
 
-1. **Healthcheck.** El servidor responde en `http://<host>:8080/health`. Resultado esperado: Previsto — responsable: Persona 3.
-2. **Estado de los servicios.** `docker compose ps` muestra `mc2-server` y `mc2-front` saludables. Resultado esperado: Previsto — responsable: Persona 3.
-3. **Prueba de humo.** Comando del script de humo y resultado esperado: Previsto — responsable: Persona 3.
-4. **Recorrido corto por el flujo principal.** Abrir `http://<host>:6080` en el navegador, crear o cargar un mundo, moverse, y comprobar que un segundo jugador aparece. Previsto — responsable: Persona 3.
+1. **Healthcheck.** `curl -fsS http://localhost:8080/health`. Resultado esperado: HTTP 200 con `{"status":"ready"}` una vez que el servidor completó un tick; 503 mientras no está listo ([servidor.md](servidor.md#salud-métricas-y-carga)).
+2. **Estado de los servicios.** `docker compose ps`. Resultado esperado: `mc2-server` y `mc2-front` en estado `healthy`.
+3. **Prueba de humo.** `scripts/deploy.sh --humo`. Resultado esperado: `==> Humo correcto` y código 0. Comprueba, con un tiempo acotado, que `/health` responde 200; que `/metrics` expone `mc2_tick_duration_seconds`, `mc2_tick_failures_total`, `mc2_zombies_active`, `mc2_players_connected` y `mc2_population_deficit_ticks_total`; que el puerto de juego responde `welcome` a un `hello` en menos de 5 s; y que noVNC responde en el 6080. Observado en Actions: `==> Humo correcto: <sha> desplegado`.
+4. **Carga corta contra el entorno** (opcional; el servidor debe estar levantado con `MC2_LOAD_ZOMBIES=80`):
+
+   ```bash
+   cd Minecraft2 && perf/run-slo.sh corta
+   ```
+
+   Resultado esperado: tres repeticiones de 30 s con tres clientes, código 0 y la carpeta de resultados indicada al final (`manifest.txt`, `console.txt`, `results.csv`); umbrales de [devops](devops.md#umbrales-del-slo-en-el-despliegue). Tras una carga, volver a la partida normal (sección 7).
+5. **Recorrido corto por el flujo principal.** Abrir `http://localhost:6080/vnc.html` en el navegador del anfitrión, esperar a que termine la carga del terreno (en el modo remoto el mundo es el del servidor; no hay menú para crear o cargar uno), moverse con WASD y comprobar que un segundo jugador, conectado con el JAR de escritorio (paso 9 de la sección 5), aparece en el mundo y en el contador del HUD. Evidencia de un recorrido equivalente hecho en un entorno de prueba aislado, no en el despliegue final: [evidencias de fase C](evidencias/fase-c/README.md).
 
 ## 7. Operación
 
-Previsto — responsable: Persona 3 para cada procedimiento: comando exacto y resultado esperado.
+Cada procedimiento usa comandos que existen en el repositorio; los marcados como no definidos todavía son decisión del responsable del despliegue. La reversión automática se observó en Actions; el resto no se repitió desde una máquina limpia.
 
 | Tarea | Cómo se hace |
 | --- | --- |
-| Publicar una nueva versión | Previsto — responsable: Persona 3: crear el tag `vMAJOR.MINOR.PATCH`, esperar el pipeline y comprobar la imagen en el registro y la versión en Releases. |
-| Volver a la versión anterior | Previsto — responsable: Persona 3: procedimiento de [devops §7](devops.md#7-reversión), con la etiqueta previa en `MC2_IMAGE_TAG`. |
-| Copia de seguridad de los datos | Previsto — responsable: Persona 3: copia del volumen de `MC2_WORLD_DIR` con el servicio detenido. |
-| Restauración de los datos | Previsto — responsable: Persona 3: restaurar la copia en el volumen y verificar que el servidor lista los mundos. |
-| Cambio de un secreto | Previsto — responsable: Persona 3: actualizar el secreto en GitHub Secrets o en el Environment y volver a desplegar. |
-| Consultar los logs | `docker compose logs mc2-server` y `docker compose logs mc2-front`. Resultado esperado: Previsto — responsable: Persona 3. |
-| Reiniciar un servicio | `docker compose restart mc2-server`. Resultado esperado: Previsto — responsable: Persona 3. |
+| Publicar una nueva versión | Actualizar `CHANGELOG.md` con una sección `## [X.Y.Z]` en un pull request y fusionarlo. Con `main` en verde: `git tag v<X.Y.Z> <sha>` y `git push origin v<X.Y.Z>`. El pipeline reetiqueta la imagen ya verificada de ese SHA, la despliega con el mismo humo y la misma carga, y publica la Release con el JAR y su suma; sin la sección del `CHANGELOG.md`, la Release no se publica. Resultado esperado: las dos imágenes con la etiqueta `vX.Y.Z` en el registro y `minecraft2-vX.Y.Z.jar` en Releases ([devops §5](devops.md#5-versionado-semántico-y-versiones)). |
+| Volver a la versión anterior | En el anfitrión, `scripts/rollback.sh [etiqueta]`; sin argumento vuelve a la última versión buena registrada en `~/.mc2-deploy/ultima-buena`. Desde GitHub: Actions → `cd` → *Run workflow* con la etiqueta en `revertir_a`. Resultado esperado: `==> Reversión verificada: <etiqueta> en servicio`; pasó la misma readiness y el mismo humo que un despliegue ([devops §7](devops.md#7-reversión)). También ocurre sola: si falla la carga del despliegue, el job `desplegar` ejecuta `scripts/rollback.sh` con la versión anterior; se observó la reversión 9d44297 → 6401c84 con `==> Reversión verificada` ([ejecución 44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312), primer intento). |
+| Volver a la partida normal tras la carga | El job `desplegar` lo hace solo al terminar la carga con éxito: vuelve a ejecutar `scripts/deploy.sh <etiqueta>` con `MC2_LOAD_ZOMBIES=0`. A mano: `scripts/deploy.sh <etiqueta>` con `MC2_LOAD_ZOMBIES` sin definir en la terminal (el script usa 0 por defecto); `load.yml` hace lo mismo al terminar. |
+| Copia de seguridad de los datos | No hay un comando definido en el repositorio. El servidor guarda el mundo al cerrarse de forma ordenada (`docker compose stop mc2-server` o `docker compose down`); una terminación forzada no garantiza guardar el último estado. Los mundos están en el volumen `mc2_mc2-worlds` (proyecto `mc2`). Procedimiento propuesto, no ejecutado en el proyecto: detener el servidor y copiar el volumen con `docker run --rm -v mc2_mc2-worlds:/datos -v "$PWD":/copia alpine tar czf /copia/mundos.tgz -C /datos .`. |
+| Restauración de los datos | No hay un comando definido en el repositorio. Procedimiento propuesto, no ejecutado en el proyecto: con el servidor detenido, extraer la copia en el volumen con `docker run --rm -v mc2_mc2-worlds:/datos -v "$PWD":/copia alpine tar xzf /copia/mundos.tgz -C /datos`, volver a levantar el servicio y comprobar que carga el mundo y responde en `/health`. |
+| Cambio de un secreto | No aplica: el proyecto no tiene secretos; el registro se usa con el `GITHUB_TOKEN` efímero de cada ejecución. |
+| Consultar los logs | `docker compose logs mc2-server` y `docker compose logs mc2-front`. El servidor escribe en el error estándar los cierres de conexión (`Peer <id> read closed: …`, `Peer <id> output queue full`) y los fallos del tick. |
+| Reiniciar un servicio | `docker compose restart mc2-server`. Los clientes conectados reciben el fallo de conexión y deben reiniciarse (no hay reconexión automática); el cliente de `mc2-front` se vuelve a abrir solo 2 s después de cerrarse. |
+| Consultar el historial de despliegues | `cat ~/.mc2-deploy/historial.tsv` en el equipo del runner (despliegues y reversiones con fecha y etiqueta). |
+| Observabilidad (opcional) | `docker compose -f docker-compose.yml -f observabilidad/compose.yml up --build --wait`; Grafana en `http://localhost:3000` y Prometheus en `http://localhost:9090`, solo desde el anfitrión ([observabilidad/README.md](../../observabilidad/README.md)). |
+| Carga larga | Actions → `load` → *Run workflow* con la etiqueta, la duración y la población; al terminar vuelve a desplegar la etiqueta con `MC2_LOAD_ZOMBIES=0`. |
 
 ## 8. Solución de problemas
 
-Se documentan al menos cinco problemas con su síntoma, su causa y su solución, a partir de los que realmente aparezcan al instalar y operar. Los títulos son los problemas probables.
+Problemas que ya aparecieron al construir, desplegar y probar el sistema, con la fuente de cada uno.
 
 | Problema | Síntoma | Causa | Solución |
 | --- | --- | --- | --- |
-| El puerto 7777, 8080 o 6080 ya está en uso | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| `mc2-server` no llega al estado saludable | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| El navegador muestra pantalla negra o el juego va lento | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| El cliente de escritorio no se conecta al servidor | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| No se puede descargar la imagen del registro (permiso denegado o etiqueta inexistente) | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
-| Los mundos no se conservan al reiniciar | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 | Previsto — responsable: Persona 3 |
+| `mc2-server` no llega al estado saludable y falla con `GLFW_PLATFORM_UNAVAILABLE` | `docker compose up --wait` termina en un segundo con `dependency failed to start: container mc2-mc2-server-1 is unhealthy` y el registro del servidor muestra `[LWJGL] GLFW_PLATFORM_UNAVAILABLE error`; `mc2-front` no llega a arrancar. Fuente: [ejecución 43793688904](https://github.com/MarshallGomez1103/Mc2/actions/runs/43793688904), job `entorno-efimero`. | El JAR no entró en modo servidor y trató de abrir una ventana gráfica sin pantalla. El modo servidor lo decide `Minecraft2Application.main` solo si recibe `-Dmc2.server=true` y el código contiene `ServerBootstrap`; esa ejecución construyó un commit de la rama de contenedores anterior a la fusión del servidor, por lo que la bandera del `ENTRYPOINT` no tenía efecto. | Construir desde un commit que incluya el servidor (`main` lo incluye desde la fusión del pull request #6) y conservar `-Dmc2.server=true` en el `ENTRYPOINT` de [`Minecraft2/Dockerfile`](../Dockerfile). Comprobar con `docker compose logs mc2-server`: la salida debe informar los puertos efectivos y `capacity=8`. |
+| La construcción de la imagen repite las pruebas y puede fallar por cobertura | El job `imagen` falló junto a `build-pruebas` con «lines covered ratio is 0.92, but expected minimum is 0.99» en el pull request de demostración del umbral ([ejecución 43736947725](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736947725)). | El `Dockerfile` del Corte 2 ejecutaba `mvn package`, que corre las pruebas unitarias y el control de cobertura JaCoCo `unit-domain-check` (fase `test`). Además, `-DskipTests` no basta: el `pom.xml` liga `skipTests` de Surefire a la propiedad `skipUnitTests`. | Los Dockerfiles de `mc2-server` y `mc2-front` empaquetan con `mvn -B -ntp -DskipTests -DskipUnitTests=true -Djacoco.skip=true package`; las pruebas corren solo en `ci.yml` (corrección del commit `d02c750`). Con cobertura baja, la solución sigue siendo añadir pruebas en `domain/**`, no saltarse el control. |
+| La carga contra un servidor recién arrancado incumple el tick o el RTT | Con 80 zombis, algunas repeticiones de 30 s incumplieron el p95 del tick y, en frío, el de ida y vuelta; con el servidor ya calentado las tres repeticiones pasaron (tick p95 de 11,1 a 11,5 ms y RTT p95 de 47 a 59 ms con un cliente; con tres clientes, de 6,0 a 10,4 ms y de 30,0 a 54,9 ms). Fuente: [servidor.md](servidor.md#comprobación-de-integración-y-rendimiento-de-un-cliente) y [evidencias de fase C](evidencias/fase-c/README.md#carga-local-complementaria-de-tres-clientes). | No se estableció una causa única: el perfil JFR mostró búsquedas de rutas y pausas del recolector de basura. La población se llena de forma progresiva y el consumidor de carga volvía antes de calentar si la población ya existía. | `Minecraft2/perf/run-slo.sh` ya espera la población (`MC2_LOAD_WARMUP_SECONDS`, 60 s por defecto) y calienta cada cliente antes de medir (`MC2_LOAD_CLIENT_WARMUP_SECONDS`, 30 s). No usar umbrales distintos para pasar. |
+| El control de secretos falla en un pull request que no añade ninguna credencial | `secretos` falla con «Secrets gate FAILED (gitleaks rc=1)» también en `main` o en otro pull request ([ejecución 43736947725](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736947725), cuyo único cambio era `Minecraft2/pom.xml`). | El job descarga todas las ramas y escanea todas las referencias (`--log-opts=--all`): mientras otra rama con una credencial de demostración exista en el remoto, el control falla en todas. | Borrar del remoto la rama con la credencial y hacer las demostraciones una a una. Si la credencial fuera real, se revoca y rota primero: borrarla del código no la invalida porque queda en el historial. Fuente: [seguridad §5](seguridad.md#5-evidencia-pull-request-bloqueado). |
+| El front no arranca el juego o muestra una pantalla sin imagen | El proceso del cliente no queda vivo; la prueba de viabilidad del front encontró que LibGDX no podía cargar sus bibliotecas nativas desde `/tmp` ([ADR-002 §7](adr/ADR-002-despliegue.md#7-evidencia-y-enlaces)); el texto exacto del error no se conservó. | Un `tmpfs` sin la opción `exec` impide ejecutar las bibliotecas que LibGDX extrae en `/tmp`. | Compose monta `/tmp` con `exec` (`/tmp:exec,mode=1777`) en los dos servicios y el healthcheck de `mc2-front` exige que el proceso del juego esté vivo (`kill -0` sobre `/tmp/mc2-client.pid`) además de noVNC, de modo que un cliente caído aparece como no saludable. No quitar `exec` de esos montajes. |
+| La medición de RTT de red supera el umbral inicial de 50 ms | Contra un doble del servidor que emite el estado a 20 Hz, el p95 de entrada a estado fue 52,4 ms (medición local del 15-11-2026), por encima de 50 ms. Fuente: [ADR-002 §6](adr/ADR-002-despliegue.md#6-consecuencias). | A 20 Hz una entrada espera en promedio medio tick hasta el siguiente estado; esa espera sola deja el p95 cerca de 47,5 ms y no queda margen para la red ni el procesamiento. | El equipo fijó el umbral de SLO-RED-01 en 100 ms (dos periodos de tick). Contra el servidor real, en el entorno efímero del pull request #2, el p95 fue de 52,2 a 53,4 ms ([ejecución 43996138039](https://github.com/MarshallGomez1103/Mc2/actions/runs/43996138039)); en el equipo del grupo con el front gráfico fue de 84,6 a 164,1 ms (ver el problema siguiente) ([devops](devops.md#umbrales-del-slo-en-el-despliegue)). |
+| La carga del despliegue incumple el SLO en un equipo compartido | Con 80 zombis y tres clientes, el paso «Carga corta contra el entorno desplegado (SLO)» terminó con `INCUMPLE`: p95 del tick de 45,7 a 85,0 ms (umbral 16,67) y p95 de ida y vuelta de 84,6 a 164,1 ms (umbral 100); el job revirtió solo a la versión anterior. Fuente: [ejecución 44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312), primer intento. | El runner era un equipo del grupo donde `mc2-front` dibuja con OpenGL por software y consumía cerca de 260 % de CPU según el responsable del despliegue, de modo que el servidor compite por el procesador con el cliente gráfico. En una prueba manual del mismo responsable, sin registro en el repositorio, limitar el front a una CPU no lo resolvió (tick de 8 a 26 ms y ida y vuelta de 57 a 128 ms). | Desplegar con un runner con hardware dedicado: el runner hospedado de GitHub, que en el entorno efímero cumplió el SLO (tick p95 de 3,7 a 12,5 ms; ida y vuelta de 52 a 53 ms). No se bajó la población de zombis ni se relajaron los umbrales. En el segundo intento de la misma ejecución, en el runner hospedado, el despliegue cumplió: p95 del tick de 7,2 a 14,8 ms (umbral 16,67) y p95 de ida y vuelta de 54,9 a 60,8 ms (umbral 100), con tres clientes y 80 zombis ([ejecución 44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312), segundo intento). |
+| Un cliente muestra `FAILED - Server disconnected` | El cliente muestra el fallo en pantalla y deja de jugar. Fuente: [evidencias de fase C](evidencias/fase-c/README.md#incidentes-conservados-y-límites). | **No establecida.** El mensaje corresponde a un fin de conexión (`EOFException`) leído por el cliente; en una repetición posterior de más de cuatro minutos dos clientes gráficos no se desconectaron y no hubo cierre por lectura ni por cola de salida. | Reiniciar el cliente (no hay reconexión automática; el de `mc2-front` se reabre solo). Si se repite, buscar en `docker compose logs mc2-server` las líneas `Peer <id> read closed` u `output queue full` y guardar el registro. Este incidente no se da por resuelto. |
 
 ## 9. Recomendaciones para producción
 
-Qué debe cambiar el negocio respecto al entorno del proyecto. Previsto — responsable: Persona 1 (con Persona 3 y Persona 2):
+Qué debe cambiar el negocio respecto al entorno del proyecto:
 
-- **Credenciales y valores de ejemplo.** Reemplazar los valores de `.env.example` y los secretos del despliegue.
-- **HTTPS.** noVNC y el protocolo TCP no están cifrados en el entorno del proyecto: definir cómo protegerlos.
-- **Copias de seguridad programadas** del volumen de mundos.
-- **Tamaño de los recursos** según el número de jugadores real.
-- **Riesgos aceptados abiertos.** Los de [seguridad.md](seguridad.md#6-riesgos-aceptados) que sigan abiertos, con lo que haría falta para corregirlos.
+- **Credenciales y valores de ejemplo.** El proyecto no guarda secretos. Reemplazar los valores de ejemplo de `.env.example` que describan una instalación local (por ejemplo, `MC2_PLAYER_NAME`) y mantener `MC2_LOAD_ZOMBIES=0` en operación normal; el despliegue lo restablece al terminar la carga (sección 7).
+- **Autenticación y HTTPS.** El protocolo del juego (7777) y noVNC (6080) no cifran ni autentican a quien se conecta; el nombre del jugador es un dato de presentación ([seguridad.md](seguridad.md#21-autenticación-y-autorización)). noVNC y `/health` y `/metrics` solo están publicados en `127.0.0.1`: si se exponen, definir cómo se protegen (por ejemplo, un proxy con autenticación y TLS delante de noVNC y un túnel o red privada para el 7777). Qué se adopta: decisión del negocio.
+- **Copias de seguridad programadas** del volumen `mc2-worlds`, con el servicio detenido o cerrado de forma ordenada (sección 7), y prueba periódica de restauración.
+- **Tamaño de los recursos** según el número de jugadores real: el servidor admite ocho conexiones y cada front adicional añade hasta 2 vCPU y 1,5 GiB (sección 3). Medir con `docker stats` en operación real antes de dimensionar.
+- **Runner autohospedado.** Debe ser un equipo dedicado (en la prueba, un equipo compartido con el cliente gráfico incumplió el SLO de carga): ejecuta código del repositorio y solo debe atender el job de despliegue de `main`, los tags y la reversión manual, con el Environment `produccion` (hoy sin reglas de protección: añadir aprobadores obligatorios); los pull requests corren en runners hospedados ([seguridad.md](seguridad.md#2-modelo-de-amenazas-stride), amenaza A9).
+- **Riesgos aceptados abiertos.** Los registrados en [seguridad.md](seguridad.md#6-riesgos-aceptados-y-seguimiento) y [§4](seguridad.md#4-registro-de-hallazgos-y-decisiones) valen solo para una partida académica en red restringida; para producción hace falta:
+  - **R-AUTH** (sin autenticación ni cifrado en el 7777, `/health` y noVNC; el nombre es suplantable): autenticación de jugadores y TLS o una VPN, y no exponer los puertos a internet sin ellos.
+  - **R-DOS** (las ocho plazas pueden ocuparse con conexiones lentas o repetidas; el log no limita su ritmo): plazo absoluto por mensaje, cuota por origen, límite de ritmo del log y cortafuegos o VPN.
+  - **R-FILE** (el JSON del mundo no tiene tamaño máximo ni rechaza enlaces simbólicos): permisos restringidos sobre el volumen, copias de seguridad y un límite de tamaño con apertura sin seguir enlaces.
+  - **R-AUDIT** (no hay identidad autenticada ni auditoría inviolable de las acciones): logs centralizados con retención y autenticación de jugadores si se exige auditoría.
+  - **R-RUNNER** (el runner autohospedado ejecuta código del repositorio; el aislamiento de noVNC y del despliegue no se verificó de forma independiente): no declarar el entorno apto para producción sin demostrar un equipo dedicado que solo atienda el despliegue de código confiable, con permisos y puertos mínimos.
+  - **R-IMG** (el escaneo de imagen del commit 522bd4c reportó 59 hallazgos, 2 HIGH, 53 MEDIUM y 4 LOW, ninguno CRITICAL, aceptados de forma temporal por estar bajo el umbral del control): cada uno tiene su decisión y trabajo pendiente en el registro de la sección 4 de [seguridad.md](seguridad.md); actualizar las imágenes base antes de producción y no usar el registro para silenciar el control de imagen.
+  - **Rendimiento del front** con OpenGL por software: dimensionarlo con hardware dedicado (sección 8).

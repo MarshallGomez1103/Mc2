@@ -8,7 +8,7 @@ Videojuego voxel de escritorio desarrollado en Java 17, Maven y LibGDX por Eliot
 
 El [plan y checklist del Corte 3](Minecraft2/README.md#corte-3) reúne los requisitos del enunciado y la rúbrica, frentes para repartir entre el equipo, dependencias, entregables y evidencias de aceptación. Incluye Kubernetes, observabilidad y DAST; la bonificación conjunta está limitada a 10 puntos. La lista de comprobación por persona, el contrato común de nombres y el calendario están en el [TODO](Minecraft2/TODO.md).
 
-**Estado: Corte 3 en curso, con los frentes asignados a las tres personas del equipo.** `main` ya tiene el pipeline de integración continua en verde ([ejecución 43959899398](https://github.com/MarshallGomez1103/Mc2/actions/runs/43959899398), commit `fa52cbb`, fusión del pull request #6: cinco jobs correctos) y está protegida: pull request con una aprobación y cinco checks obligatorios, sin push directo. También tiene el servidor headless con protocolo v1, el cliente remoto y el multijugador de hasta ocho conexiones ([servidor](Minecraft2/docs/servidor.md), [cliente de red](Minecraft2/docs/cliente-red.md), [evidencia gráfica y de carga local](Minecraft2/docs/evidencias/fase-c/README.md)). Siguen previstos el despliegue (Compose, despliegue continuo, URL) y los contenedores definitivos. Fecha límite: lunes 16 de noviembre de 2026, 23:59; se evalúa el último commit de `main` anterior a esa hora y su pipeline debe terminar en verde. Los resultados del Corte 2 conservan su alcance histórico.
+**Estado: Corte 3 en curso, con los frentes asignados a las tres personas del equipo.** `main` ya tiene el pipeline de integración continua en verde ([ejecución 43959899398](https://github.com/MarshallGomez1103/Mc2/actions/runs/43959899398), commit `fa52cbb`, fusión del pull request #6: cinco jobs correctos) y está protegida: pull request con una aprobación y cinco checks obligatorios, sin push directo. También tiene el servidor headless con protocolo v1, el cliente remoto y el multijugador de hasta ocho conexiones ([servidor](Minecraft2/docs/servidor.md), [cliente de red](Minecraft2/docs/cliente-red.md), [evidencia gráfica y de carga local](Minecraft2/docs/evidencias/fase-c/README.md)). Tiene además los contenedores (servidor y front), el despliegue continuo con reversión y la carga contra el despliegue ([devops](Minecraft2/docs/devops.md), [implementación](Minecraft2/docs/implementacion.md)). Fecha límite: lunes 16 de noviembre de 2026, 23:59; se evalúa el último commit de `main` anterior a esa hora y su pipeline debe terminar en verde. Los resultados del Corte 2 conservan su alcance histórico.
 
 **Alcance acordado de palabra con el profesor (confirmación escrita pendiente).** El sistema se separa en dos contenedores: `mc2-server` (servidor del juego, sin interfaz gráfica) y `mc2-front` (cliente LibGDX accesible desde el navegador mediante noVNC). El SLO se verifica sobre la comunicación del front con el back, la ejecución es local y el multijugador funciona en la misma red compartiendo el contenedor del front. El cambio de arquitectura se registra en el [ADR-002](Minecraft2/docs/adr/ADR-002-despliegue.md). Se conserva el SLO-CARGA-01 del Corte 2 (su confirmación escrita sigue pendiente) y el equipo define el SLO-RED-01 para la comunicación front→back; sus umbrales están en [devops.md](Minecraft2/docs/devops.md#umbrales-del-slo-en-el-despliegue).
 
@@ -81,25 +81,25 @@ La rúbrica sugiere los documentos bajo `docs/` en la raíz del repositorio. Est
 | Artefacto de la rúbrica | Ruta real | Responsable | Estado |
 | --- | --- | --- | --- |
 | README (badge, URL, Compose, pipeline, trazabilidad) | [README.md](README.md) (raíz) | Thomas | Existe; el badge del pipeline está en la cabecera; la URL del despliegue está `previsto` |
-| Dockerfile | [Minecraft2/Dockerfile](Minecraft2/Dockerfile) (servidor) y `Minecraft2/Dockerfile.front` | Ethian | Existe (imagen del juego en modo consola); se ajusta al servidor; el del front está `previsto` |
+| Dockerfile | [Minecraft2/Dockerfile](Minecraft2/Dockerfile) (servidor) y `Minecraft2/Dockerfile.front` | Ethian | Existen los dos: el del servidor (modo consola) y el del front (noVNC) |
 | .dockerignore | [Minecraft2/.dockerignore](Minecraft2/.dockerignore) | Ethian | Existe |
-| docker-compose.yml | `docker-compose.yml` (raíz, contexto `./Minecraft2`) | Ethian | `previsto` |
-| .env.example | `.env.example` (raíz) | Ethian | `previsto` |
+| docker-compose.yml | `docker-compose.yml` (raíz, contexto `./Minecraft2`) | Ethian | Existe |
+| .env.example | `.env.example` (raíz) | Ethian | Existe |
 | Workflow de integración continua | [.github/workflows/ci.yml](.github/workflows/ci.yml) | Thomas | Existe y está activo en `main` (cinco jobs) |
-| Workflows de despliegue y carga | `.github/workflows/cd.yml`, `.github/workflows/load.yml` | Ethian | `previsto` |
+| Workflows de despliegue y carga | `.github/workflows/cd.yml`, `.github/workflows/load.yml` | Ethian | Existe |
 | Dependabot | [.github/dependabot.yml](.github/dependabot.yml) | Thomas | Existe y está en `main` ([pull request #3](https://github.com/MarshallGomez1103/Mc2/pull/3)) |
-| CHANGELOG.md | `CHANGELOG.md` (raíz) | Ethian | `previsto` |
-| docs/devops.md | [Minecraft2/docs/devops.md](Minecraft2/docs/devops.md) | Ethian, con Thomas | Existe (parcial): la parte de integración continua está documentada con ejecuciones reales; despliegue, carga y reversión están `previsto` |
+| CHANGELOG.md | `CHANGELOG.md` (raíz) | Ethian | Existe |
+| docs/devops.md | [Minecraft2/docs/devops.md](Minecraft2/docs/devops.md) | Ethian, con Thomas | Existe: integración continua, despliegue, carga y reversión documentados con ejecuciones reales |
 | docs/seguridad.md | [Minecraft2/docs/seguridad.md](Minecraft2/docs/seguridad.md) | Jasub, con Thomas | Existe (parcial): los cuatro controles corren en el pipeline y hay dos demostraciones de bloqueo; el resto se completa con ejecuciones reales |
 | docs/evolucion.md | [Minecraft2/docs/evolucion.md](Minecraft2/docs/evolucion.md) | Thomas | Existe en parte: Cortes 1 y 2 y pendientes del Corte 2 redactados; lo del Corte 3 que depende del despliegue sigue `previsto` |
-| docs/implementacion.md | [Minecraft2/docs/implementacion.md](Minecraft2/docs/implementacion.md) | Thomas | Existe como esqueleto; los pasos dependen de Compose y de `.env.example` (`previsto`) |
-| Vista de despliegue | sección nueva de [Minecraft2/docs/arquitectura.md](Minecraft2/docs/arquitectura.md) | Ethian | El archivo existe; la sección está `previsto` |
+| docs/implementacion.md | [Minecraft2/docs/implementacion.md](Minecraft2/docs/implementacion.md) | Thomas | Completa: nueve partes, dos escenarios de costos y problemas reales; los pasos no se repitieron desde una máquina limpia ajena al grupo |
+| Vista de despliegue | sección nueva de [Minecraft2/docs/arquitectura.md](Minecraft2/docs/arquitectura.md) | Ethian | Existe (sección 8) |
 | docs/pruebas.md | [Minecraft2/docs/pruebas.md](Minecraft2/docs/pruebas.md) | Jasub | Existe; incluye las secciones del servidor (fase B) y del cliente y el multijugador (fase C) |
 | ADR de despliegue (ADR-002) | [Minecraft2/docs/adr/ADR-002-despliegue.md](Minecraft2/docs/adr/ADR-002-despliegue.md) | Ethian, con Thomas | Existe como propuesta; el equipo define el SLO-RED-01 y el alcance sigue pendiente de confirmación escrita con el profesor |
 | ADR de seguridad (ADR-003) | [Minecraft2/docs/adr/ADR-003-seguridad.md](Minecraft2/docs/adr/ADR-003-seguridad.md) | Jasub, con Thomas | Existe como propuesta; las herramientas se confirman al probarlas |
 | ADR del Corte 2 (antecedente) | [Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md](Minecraft2/docs/adr/ADR-001-estilo-recuperacion.md) | — | Existe |
-| k8s/ (bonificación) | `k8s/` | Ethian | `previsto` |
-| observabilidad/ (bonificación) | `observabilidad/` | Ethian | `previsto` |
+| k8s/ (bonificación) | `k8s/` | Ethian | Existe |
+| observabilidad/ (bonificación) | `observabilidad/` | Ethian | Existe |
 | perf/ | [Minecraft2/perf/](Minecraft2/perf/README.md) | Ethian | Existe (Corte 2); se amplía con el SLO desplegado |
 
 ## Recuperación del Corte 2
@@ -141,7 +141,7 @@ La separación de capas añade contratos y coordinación; no acelera A\* por sí
 | `sast` | CodeQL para Java con compilación manual y [`scripts/umbral-sast.sh`](scripts/umbral-sast.sh) | Hallazgo alto o crítico (`security-severity` ≥ 7,0) sin excepción registrada, o ningún archivo Java extraído |
 | `sca` | Trivy sobre las dependencias de `pom.xml` ([`scripts/sca.sh`](scripts/sca.sh)) | Vulnerabilidad HIGH o CRITICAL con corrección disponible |
 | `secretos` | Gitleaks sobre todo el historial ([`scripts/secretos.sh`](scripts/secretos.sh)) | Cualquier hallazgo: el umbral es cero |
-| `imagen` | Construye `Minecraft2/Dockerfile` como `mc2-server:ci` y escanea la imagen ([`scripts/escaneo-imagen.sh`](scripts/escaneo-imagen.sh)) | Vulnerabilidad CRITICAL con corrección disponible; el `docker build` repite las pruebas unitarias y el umbral de cobertura, que también pueden detenerlo |
+| `imagen` | Construye `Minecraft2/Dockerfile` como `mc2-server:ci` y escanea la imagen ([`scripts/escaneo-imagen.sh`](scripts/escaneo-imagen.sh)) | Vulnerabilidad CRITICAL con corrección disponible; el `docker build` solo empaqueta el JAR: las pruebas y el umbral de cobertura los verifica `build-pruebas` |
 
 **Versiones fijadas.** JDK 17 (Temurin, `actions/setup-java` v6.2.0), Trivy 0.76.2 y Gitleaks 8.30.1 (descarga con verificación SHA-256 en cada ejecución) y `github/codeql-action` v4.39.3, sin fijar por separado el paquete de CodeQL. Las acciones de GitHub están fijadas por SHA de commit. El runner es `ubuntu-latest`.
 
@@ -156,7 +156,7 @@ La separación de capas añade contratos y coordinación; no acelera A\* por sí
 
 **Demostraciones que faltan.** Una dependencia vulnerable para `sca`, un hallazgo alto para `sast`, una imagen con una vulnerabilidad crítica para `imagen` y una infracción intencional de `ArchitectureBoundaryTest`.
 
-**Previsto.** El despliegue (Compose, despliegue continuo, reversión y URL pública) no existe todavía en `main`: `cd.yml`, `load.yml` y `docker-compose.yml` son de la persona 3.
+**Despliegue.** Compose, despliegue continuo, carga y reversión están en `main`. En la [ejecución 44005663312](https://github.com/MarshallGomez1103/Mc2/actions/runs/44005663312) el primer intento, en un equipo del grupo, incumplió el SLO de carga y revirtió solo a la versión anterior; el segundo, en el runner hospedado de GitHub, lo cumplió. Detalles en [devops.md](Minecraft2/docs/devops.md) y [implementacion.md](Minecraft2/docs/implementacion.md).
 
 ## Compilar y jugar
 
