@@ -180,6 +180,8 @@ jobs:
           [[ -n "$anterior" && "$anterior" != "$ETIQUETA" ]] || anterior="$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${MC2_SHA}^" 2>/dev/null || true)"
           echo "anterior=${anterior}" >> "$GITHUB_OUTPUT"
           echo "Versión anterior: ${anterior:-ninguna}"
+      - name: Maven disponible en el runner (lo usa perf/run-slo.sh)
+        run: mvn -v
       - name: Desplegar, readiness y humo
         env:
           MC2_LOAD_ZOMBIES: '80'
@@ -198,6 +200,12 @@ jobs:
           path: ${{ runner.temp }}/carga/
           if-no-files-found: warn
           retention-days: 30
+      # La carga corre con 80 zombis; el entorno que queda encendido vuelve a la población de juego.
+      - name: Volver a la población de juego
+        if: success()
+        env:
+          MC2_LOAD_ZOMBIES: '0'
+        run: scripts/deploy.sh "$ETIQUETA"
       - name: Revertir a la versión anterior
         if: failure() && steps.anterior.outputs.anterior != ''
         env:

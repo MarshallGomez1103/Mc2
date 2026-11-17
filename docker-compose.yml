@@ -54,8 +54,9 @@ services:
       MC2_SKIN_ID: ${MC2_SKIN_ID:-0}
       MC2_WORLD_DIR: ${MC2_WORLD_DIR:-/data/worlds}
     ports:
-      # noVNC sin contraseña: solo en el equipo anfitrión (ver seguridad.md).
-      - "127.0.0.1:6080:6080"
+      # noVNC sin contraseña: por defecto solo en el equipo anfitrión. MC2_FRONT_BIND=0.0.0.0 lo abre a la red
+      # local para una demostración (ver seguridad.md); el despliegue de cd.yml usa el valor por defecto.
+      - "${MC2_FRONT_BIND:-127.0.0.1}:6080:6080"
     volumes:
       - mc2-front-data:/data
     tmpfs:

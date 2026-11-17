@@ -64,6 +64,8 @@ jobs:
           echo "DOCKER_CONFIG=$DOCKER_CONFIG" >> "$GITHUB_ENV"
           docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$TOKEN"
           echo "MC2_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - name: Maven disponible en el runner (lo usa perf/run-slo.sh)
+        run: mvn -v
       - name: Desplegar la etiqueta con la población de carga
         run: scripts/deploy.sh "$ETIQUETA"
       - name: Carga larga (3 repeticiones)
