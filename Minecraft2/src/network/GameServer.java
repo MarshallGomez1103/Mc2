@@ -208,7 +208,8 @@ public final class GameServer implements AutoCloseable {
                     if (!inputs.offer(input)) throw new IOException("Input queue full");
                 }
             } catch (IOException failure) {
-                System.err.println("Peer " + playerId + " read closed: " + failure.getClass().getSimpleName() + " " + failure.getMessage());
+                // Parser diagnostics can contain attacker-controlled field names and newlines.
+                System.err.println("Peer " + playerId + " read closed: " + failure.getClass().getSimpleName());
                 // Invalid, idle, disconnected or overloaded peer: close only this connection.
             } finally { close(); }
         }

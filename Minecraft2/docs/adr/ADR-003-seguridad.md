@@ -2,122 +2,64 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | **Propuesto.** Las herramientas se confirman al probarlas sobre el repositorio real, antes de convertirlas en bloqueantes. |
-| Fecha | Previsto — responsable: Persona 2: fecha de aprobación |
-| Responsable | Persona 2, con Persona 1 (cableado en los workflows) y Persona 3 (imagen y runner) |
-| Corrección | C3-05 del [plan del Corte 3](../../README.md#corte-3) |
-| Relacionado | [ADR-002](ADR-002-despliegue.md), [seguridad.md](../seguridad.md), [devops.md](../devops.md) |
-
-> Este ADR es un esqueleto con la decisión propuesta. No contiene resultados de ejecuciones: el costo en tiempo de cada herramienta y los hallazgos se agregan cuando existan. Los elementos «Previsto — responsable: Persona N» se completan y el marcador se retira antes de la entrega.
+| Estado | Implementado y comprobado; revisión cruzada de Thomas/Ethian pendiente. No equivale a aceptación de producción. |
+| Fecha | 2026-11-16 |
+| Responsable | Jasub (Persona2); Thomas mantiene scripts/ci.yml; Ethian integra imagen/despliegue/runner. |
+| Alcance | C3-05: controles bloqueantes, amenazas y tratamiento de hallazgos. |
+| Relacionado | [ADR-001](ADR-001-estilo-recuperacion.md), [ADR-002](ADR-002-despliegue.md), [ADR-004](ADR-004-frontera-red.md), [seguridad](../seguridad.md), [devops](../devops.md). |
 
 ## 1. Contexto
 
-El enunciado del Corte 3 exige cuatro controles de seguridad que detengan el pipeline cuando superan un umbral: análisis estático (SAST), análisis de dependencias (SCA), detección de secretos y escaneo de la imagen. Cada grupo puede endurecer los umbrales, no relajarlos, y debe incorporar un paso que aplique el umbral cuando una herramienta solo reporta. Los hallazgos se registran con una decisión y se demuestra, con un pull request bloqueado, que los controles funcionan.
+Java17/Maven, cliente LibGDX, servidor TCP JSON-lines y HTTP operativo, persistencia JSON local. El enunciado exige cuatro gates que fallen al superar umbral, no solo reportes, y un PR inseguro cerrado sin fusionar. Los scripts/workflow ya están implementados por Thomas; E los revisa y registra evidencia, sin sustituirlos ni cambiar sus umbrales.
 
-El sistema tiene estas características que condicionan la elección:
+La autenticación de jugadores no existe: name/skin son presentación. La autorización sí limita cada conexión al ID asignado por el servidor. Se conserva ese alcance de partida académica en red restringida; R-AUTH en seguridad.md explica por qué no es apto para exposición pública y qué hace falta para producción. CI/CD usa identidades y permisos GitHub diferentes de las del juego. ZAP corresponde a F, no se declara ejecutado.
 
-- Código propio en Java 17 con Maven y sin servidor web de terceros ([ADR-001](ADR-001-estilo-recuperacion.md#1-contexto)); con el Corte 3 se añaden un servidor TCP/HTTP, una imagen de contenedor y un runner autohospedado ([ADR-002](ADR-002-despliegue.md)).
-- El repositorio tiene historial del Corte 1 y del Corte 2 que debe revisarse completo: la rúbrica califica como Insuficiente un secreto real en el repositorio o su historial.
-- El pipeline de integración debe durar menos de 10 minutos, de modo que el costo en tiempo de cada control importa.
-- Las amenazas candidatas están en [seguridad.md](../seguridad.md#2-modelo-de-amenazas-stride).
+## 2. Alternativas consideradas
 
-## 2. Criterios de decisión
-
-| # | Criterio | Pregunta concreta |
+| Área | Elegida y razón | Alternativas y costo que se evita |
 | --- | --- | --- |
-| S1 | Bloqueo | ¿Puede fallar el job, o se puede añadir un paso que lea el resultado y lo haga fallar? |
-| S2 | Umbral | ¿Permite expresar el umbral del enunciado sin relajarlo? |
-| S3 | Ajuste al sistema | ¿Analiza Java 17 con Maven, el historial de Git y una imagen Docker? |
-| S4 | Costo en tiempo | ¿Cabe en el presupuesto de 10 minutos con caché? Se mide con ejecuciones reales. |
-| S5 | Costo de operación | ¿Requiere cuentas, tokens o servicios externos adicionales? |
-| S6 | Mantenimiento | ¿Cuántos falsos positivos y actualizaciones de versión exige? |
+| SAST | CodeQL Java, compilación manual y SARIF como artefacto; integración existente con GitHub. Script propio aplica umbral numérico porque publicar SARIF no garantiza fallo. | Semgrep reduce configuración/tiempo, pero exige validar reglas Java y mantenerlas. SonarCloud añade cuenta/token y servicio externo. No se comparó experimentalmente su tiempo. |
+| SCA | Trivy fs sobre Maven, reporte completo y segundo comando bloqueante. Una herramienta también sirve para imagen. | Dependency-Check añade otra base/proceso; no se midió. dependency-review-action solo revisa cambios y no reemplaza escaneo del árbol vigente. Dependabot semanal ayuda mantenimiento, no sustituye SCA. |
+| Secretos | Gitleaks git, referencias descargadas completas y redactado de valores. No verifica credenciales contra servicios externos. | TruffleHog con verificación puede enviar valores a servicios externos; no se necesita para demostrar este gate. |
+| Imagen | Trivy image del tar exportado de Docker; evita montar docker.sock en un contenedor de escaneo. | Grype añade otra herramienta/base. No se afirma inferioridad de detección; se prioriza reutilización de Trivy y configuración existente. |
+| Runner | CI en GitHub-hosted; CD debe reservar runner autohospedado a despliegue confiable main/tags y Environment. | Ejecutar PR en el host aumenta superficie. SSH desde GitHub implica exponer host/llave; efímero añade mantenimiento. La configuración real CD debe validarse con Ethian al integrar #2. |
 
-## 3. Opciones consideradas
+## 3. Decisión implementada y umbrales
 
-### 3.1 SAST
-
-| Opción | Costos y limitaciones |
-| --- | --- |
-| **CodeQL** (propuesta) | Se integra con GitHub y publica en la pestaña Security. Solo reporta: exige un paso que lea el SARIF y falle por umbral. Puede requerir compilar el proyecto y suma tiempo al pipeline; el costo no está medido. |
-| Semgrep | Reglas más ligeras y fáciles de ajustar. La cobertura de reglas de Java debe comprobarse y cada regla propia es mantenimiento del equipo. Alternativa si CodeQL no cabe en el tiempo. |
-| SonarCloud | Panel completo de calidad, pero requiere una cuenta y un token externos (S5) y su gate depende de un servicio de terceros. |
-
-### 3.2 SCA
-
-| Opción | Costos y limitaciones |
-| --- | --- |
-| **Trivy en modo sistema de archivos** (propuesta) | Una sola herramienta sirve para dependencias, imagen y archivos de configuración; usa código de salida por umbral. Su base de datos de vulnerabilidades se descarga en cada ejecución salvo que se almacene en caché. |
-| OWASP Dependency-Check | Específica de dependencias. Su base de datos es pesada y puede alargar el pipeline; no está medido. |
-| `dependency-review-action` | Revisa solo las dependencias que cambia un pull request, no el árbol completo. No cubre un cambio que ya llegó a `main`. |
-
-Dependabot se usa para mantener las dependencias y las acciones actualizadas, pero no sustituye el control SCA.
-
-### 3.3 Detección de secretos
-
-| Opción | Costos y limitaciones |
-| --- | --- |
-| **Gitleaks con el historial completo** (propuesta) | Código de salida por hallazgo y soporte de historial (checkout sin recorte). Una coincidencia en un commit antiguo no se corrige borrando el archivo: si es un secreto real debe rotarse. Puede generar falsos positivos que se registran. |
-| TruffleHog | Verifica algunos secretos contra el servicio de origen, lo que implica enviar el valor al exterior (S5); sin esa verificación, el volumen de coincidencias por revisar aumenta. |
-
-### 3.4 Escaneo de la imagen
-
-| Opción | Costos y limitaciones |
-| --- | --- |
-| **Trivy sobre la imagen** (propuesta) | Misma herramienta que el SCA, y por tanto una sola versión que mantener. Las vulnerabilidades de la imagen base sin corrección no deben bloquear (umbral: solo las críticas con corrección disponible). |
-| Grype | Alternativa equivalente. Añadiría una segunda herramienta y una segunda base de datos de vulnerabilidades. |
-
-### 3.5 Manejo del runner autohospedado
-
-| Opción | Costos y limitaciones |
-| --- | --- |
-| **Runner autohospedado solo para el job de despliegue de `main` o de tags, con un Environment** (propuesta) | Cumple «ejecución local» ([ADR-002](ADR-002-despliegue.md)). El equipo del runner ejecuta código del repositorio: queda como riesgo residual (A8). Los pull requests no corren en él. |
-| Despliegue por SSH desde un runner hospedado | El runner hospedado queda aislado, pero hay que exponer un equipo del grupo a Internet y guardar una llave SSH como secreto. Es más superficie de ataque. |
-| Runner efímero en un contenedor | Reduce la persistencia en el equipo anfitrión. Añade configuración y mantenimiento que el plazo del corte no permite asumir de entrada. |
-
-## 4. Decisión
-
-Se propone:
-
-| Control | Umbral mínimo (enunciado) | Umbral adoptado | Herramienta propuesta |
+| Control | Herramienta fijada | Gate obligatorio | Evidencia de aplicación |
 | --- | --- | --- | --- |
-| SAST | Ningún hallazgo alto o crítico sin tratar. | Igual al mínimo. | CodeQL (alternativa: Semgrep). Previsto — responsable: Persona 2 |
-| SCA | Ninguna vulnerabilidad alta o crítica con corrección disponible. | Igual al mínimo. | Trivy en modo sistema de archivos. Previsto — responsable: Persona 2 |
-| Secretos | Cero secretos, incluido el historial. | Igual al mínimo. | Gitleaks con historial completo. Previsto — responsable: Persona 2 |
-| Imagen | Ninguna vulnerabilidad crítica con corrección disponible. | Igual al mínimo. | Trivy sobre la imagen. Previsto — responsable: Persona 2 |
+| sast | codeql-action v4.39.3, CLI2.27.4 según configuración | Ningún resultado con security-severity>=7.0 sin tratamiento documentado; script umbral-sast.sh lee SARIF. | Compilación real, guardia de archivos Java extraídos, SARIF con runs obligatorio. Cinco fixtures locales del script real comprueban 6.9/7.0/9.5/sin-runs/vacío. |
+| sca | Trivy0.76.2 fs | HIGH/CRITICAL con corrección bloquean: --ignore-unfixed --severity HIGH,CRITICAL --exit-code1. | Reporte completo; guardia rechaza escaneo sin resultado pom; scanner/descarga fallidos también fallan el job. |
+| secretos | Gitleaks8.30.1 git | Cero hallazgos en historial de todas las referencias descargadas: --log-opts=--all --exit-code1 --redact. | checkout fetch-depth0; rechaza clon superficial/sin commits; PR5 realmente bloqueado y cerrado sin merge. |
+| imagen | Trivy0.76.2 image | CRITICAL con corrección bloquean: --ignore-unfixed --severity CRITICAL --exit-code1. | Construcción Docker y export; reporte de todas severidades antes del gate. HIGH de SO no supera este umbral, se registra igualmente. |
 
-Reglas de la decisión:
+Los umbrales son los mínimos del enunciado; no se relajan ni se crean excepciones en E. «Con corrección» aplica a SCA/imagen, no a secretos. Los reportes completos conservan también hallazgos que no bloquean. SAST requiere revisión de excepciones por par regla-archivo y mención documental; hoy no hay excepciones. Este mecanismo es amplio y puede ocultar futuros resultados del mismo par: no es una aprobación automática de seguridad.
 
-- **Umbrales.** Son los mínimos del enunciado y no se relajan. Endurecerlos (por ejemplo, incluir las altas de la imagen o no limitar el SAST a hallazgos sin tratar) se evalúa con los resultados reales de las primeras ejecuciones y, si se hace, se registra en este ADR. Previsto — responsable: Persona 2.
-- **Paso de aplicación del umbral.** Cuando una herramienta solo reporta (CodeQL con SARIF), un paso del workflow lee el resultado y falla si hay un hallazgo por encima del umbral. Previsto — responsable: Persona 1.
-- **Excepciones.** Una regla desactivada o un hallazgo descartado se registra con su justificación en el [registro de hallazgos](../seguridad.md#4-registro-de-hallazgos). No hay excepciones sin registro.
-- **Versiones.** Las herramientas y las acciones del pipeline se fijan a una versión o a un SHA (no a una etiqueta móvil) y se actualizan con Dependabot. Previsto — responsable: Persona 1.
-- **Prueba previa al bloqueo.** El escaneo de secretos sobre el historial completo y el de la imagen base se ejecutan primero en modo informativo para conocer el estado inicial y tratar lo que aparezca. Después se activan como bloqueantes. Previsto — responsable: Persona 2.
-- **Runner.** Opción de la sección 3.5 propuesta, con los controles descritos en [seguridad.md](../seguridad.md) (A8).
+No se introduce fase informativa ni se apagan controles: ya son bloqueantes. Sin reporte/descarga o con error de herramienta, no se presume éxito. Un HTTP429 de Maven Central interrumpió SCA en D antes del escaneo; se conservó y reintentó solo ese job, sin modificar umbrales.
 
-## 5. Consecuencias
+## 4. Versiones, permisos y cadena de entrega
 
-### Ganancias
+Acciones por SHA completo: checkout v7.0.1, setup-java v6.2.0, upload-artifact v7.0.2 y CodeQL v4.39.3. Trivy/Gitleaks se descargan en directorio temporal y se comprueba SHA256; el checksum de SCA/Gitleaks viene de la misma release, por lo que no equivale a verificación independiente de firma. La imagen fija tags de Maven/Temurin, todavía sin digest. Dependabot ya configura revisión semanal de Maven, acciones y Docker; las actualizaciones requieren revisión, no se fusionan automáticamente.
 
-- Los cuatro controles detienen el pipeline con los umbrales del enunciado y cada excepción deja un registro.
-- Trivy cubre SCA e imagen con una sola herramienta y una sola versión que mantener.
-- Cada cambio pasa por los mismos controles, sin importar quién lo escribió.
+ci.yml: contents:read, sin pull_request_target, GitHub-hosted, checkout persist-credentials:false. No se usa token/secret de despliegue para escanear PR. Cada job tiene timeout10/15min y concurrencia que cancela la ejecución vieja del mismo PR. Se conservan artefactos14d; secretos redactados7d, publicados solo si falla, con metadatos de commit todavía visibles. El runner ubuntu-latest no fija SO exacto; las bases de vulnerabilidades también cambian.
 
-### Sacrificios y riesgos aceptados
+El equipo del runner, MC2_DEPLOY_RUNNER, permisos del Environment y exposición de puertos finales no se certifican en E. Ethian debe confirmarlos y Thomas revisarlos al integrar; no es una mitigación demostrada por el CI hospedado.
 
-- **Tiempo.** Cada control suma tiempo al pipeline y la meta es menos de 10 minutos con caché. El costo real de cada herramienta no está medido; se mide y se registra. Si el presupuesto no alcanza, se evalúa Semgrep como alternativa del SAST o ejecutar un control en paralelo. Previsto — responsable: Persona 1.
-- **Falsos positivos.** Los controles pueden bloquear un cambio legítimo; cada caso exige un registro y una decisión explícita.
-- **Mantenimiento.** Versiones fijas y Dependabot implican revisar actualizaciones de las herramientas y de las acciones.
-- **Gitleaks sobre el historial.** Puede señalar elementos de commits antiguos. Un secreto real debe rotarse; borrar el archivo no es suficiente. Reescribir el historial no se plantea sin una decisión explícita del equipo.
-- **Runner autohospedado.** Queda un riesgo residual: un equipo del grupo ejecuta código del repositorio. Se mitiga, no se elimina.
-- **Alcance.** Los cuatro controles no cubren el protocolo TCP propio (7777): su validación se verifica con pruebas del servidor, no con estas herramientas.
-- **Sin análisis dinámico en el mínimo.** DAST con OWASP ZAP es una bonificación; si se hace, se rige por el mismo tratamiento de hallazgos.
+## 5. Consecuencias, costos y límites
 
-### Cuándo revisar esta decisión
+- Los cuatro gates producen fallo por umbral y no se limitan a adjuntar un reporte. El PR5 demuestra un bloqueo real de seguridad; no hace falta contaminar otra rama con una credencial falsa para repetirlo.
+- CodeQL/Trivy no reemplazan las pruebas del protocolo. E reproduce una inyección de log, la corrige y comprueba rechazo de identidad falsa/líneas enormes, límite8 pares, continuidad de un dueño y métricas sin nombres.
+- Un timeout SO_TIMEOUT es por lectura inactiva, no plazo absoluto: el goteo lento ocupa plazas. No hay cuotas por origen/rate limit de logs ni autenticación/TLS. Se registran con trabajo pendiente; no se promete resistencia completa a DoS.
+- Persistencia confía en el operador del volumen: nombres filtrados y server fijo no limitan bytes ni symlinks. La autorización de red no evita sabotaje local con escritura.
+- Cinco checks verdes no significan cero CVE: imagen de D presenta59 resultados (2HIGH/53MEDIUM/4LOW), todos registrados. CeroCRITICAL con corrección cumple el mínimo; actualizar imagen sigue siendo trabajo de Ethian, no excepción del scanner.
+- La prueba SARIF es sintética y local, no una vulnerabilidad real generada por CodeQL. No se demostraron negativos reales de SCA/imagen. La obligación de al menos un PR inseguro bloqueado está satisfecha por #5; no atribuir fallos de cobertura a vulnerabilidades de imagen.
 
-Se reevaluará si el tiempo del pipeline supera el presupuesto, si una herramienta deja de mantenerse o si aparece una fuente de falsos positivos que haga inviable el bloqueo.
+Costo observado en [Actions43978487608](https://github.com/MarshallGomez1103/Mc2/actions/runs/43978487608), última ejecución disponible por job: sast100s, sca33s (reintento), secretos7s, imagen94s y build-pruebas44s. Corren en paralelo: no sumar como tiempo total del pipeline; esos tiempos no son una promesa con caché fría. El presupuesto/timeout y las descargas deben revisarse si producen fallos repetidos.
 
-## 6. Evidencia y enlaces
+Revisar decisión cuando haya exposición externa, cuentas/roles, nuevos endpoints/dependencias, otros lenguajes, errores de herramientas frecuentes o un cambio del riesgo de base/runner. Las aceptaciones técnicas del prototipo requieren revisión cruzada y no permiten saltarse un gate obligatorio.
 
-- [Modelo de amenazas, controles y registro de hallazgos](../seguridad.md) y [pipeline](../devops.md).
-- Configuración de los workflows (`.github/workflows/ci.yml`) y reportes publicados como artefactos: Previsto — responsable: Persona 1 y Persona 2.
-- Pull request bloqueado: Previsto — responsable: Persona 2.
+## 6. Evidencia y fuentes
+
+- [Modelo, controles, registro individual y PR negativo](../seguridad.md), [evidencia E](../evidencias/fase-e/README.md), ci.yml y scripts/*.sh actuales.
+- [PR5 cerrado sin merge](https://github.com/MarshallGomez1103/Mc2/pull/5), [Actions43736948906](https://github.com/MarshallGomez1103/Mc2/actions/runs/43736948906): secretos falla por una credencial inventada, demás checks pasan. Se verifican metadatos, log y reporte redactado; no se copia el valor.
+- [GitHub: SARIF y security-severity](https://docs.github.com/en/code-security/reference/code-scanning/sarif-files/sarif-support), [Trivy: filtrado de resultados](https://trivy.dev/latest/docs/configuration/filtering/), [Gitleaks: git, log-opts y redact](https://github.com/gitleaks/gitleaks). Las versiones efectivamente usadas se comprueban en scripts/logs, no se infieren de documentación latest.

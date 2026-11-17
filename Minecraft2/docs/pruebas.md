@@ -1,6 +1,64 @@
-# Pruebas — candidato integrado de recuperación del Corte 2
+# Pruebas y verificación de Minecraft2
 
-## Versión y alcance
+## Corte 3 — seguridad E (2026-11-16)
+
+`mvn -B -ntp clean verify`, Java17.0.8.7 Windows, final16/11/2026 21:02:05 UTC−05:00: **279 unitarias +164 integración**, cero fallos/errores/omitidas; dominio935/1006 (92,94 %), gate>=70 % activo. Se conservan los resultados D/B/C como históricos. GameServerIT pasa de5 a8 casos; arquitectura22 y humo JAR4 siguen activos, sin cambios de selección POM.
+
+Prueba roja antes de corregir E-LOG: un cliente con campo JSON duplicado y salto de línea podía inyectar texto en el log mediante el mensaje de la excepción. [Corrección acbff1c](https://github.com/MarshallGomez1103/Mc2/commit/acbff1ccb72d35735d246e28b562df2bbfecf665) conserva cierre/ID/clase sin contenido controlado por el cliente. Los otros casos nuevos verifican recuperación del dueño después de ataques, privacidad de métricas y rechazo del noveno conectado. No son pruebas de DoS distribuido, cuota por origen ni plazo absoluto de lectura.
+
+[Seguridad/STRIDE y registro](seguridad.md), [ADR003](adr/ADR-003-seguridad.md) y [evidencia E](evidencias/fase-e/README.md) enlazan escaneos, cinco fixtures del script SARIF y el PR5 negativo ya existente. No se modifica ni se sustituye el workflow de Thomas. Los comandos completos/enfocados del apartado D siguiente siguen aplicando; para enfocar GameServerIT se usa `mvn -B -ntp verify "-DskipUnitTests=true" "-Dit.test=GameServerIT" "-Djacoco.skip=true"` (parcial, no aceptación global).
+
+
+## Corte 3 — verificación actual de D (2026-11-16)
+
+Base funcional `fa52cbb` (PR #6 fusionado), rebasada sobre `e618961` para conservar la documentación de #14. D amplía las reglas de [ADR-001](adr/ADR-001-estilo-recuperacion.md) mediante [ADR-004](adr/ADR-004-frontera-red.md) y el humo público del JAR. Los apartados inferiores conservan resultados históricos de C2/B/C; no se deben usar como conteos de la cabecera actual.
+
+### Comandos y selección real
+
+Con Maven usando JDK 17 (`mvn -version`), desde `Minecraft2/`:
+
+```sh
+# Aceptación completa: unitarias, gate de dominio, empaquetado, integración y reportes.
+mvn -B -ntp clean verify
+
+# Solo reglas: omite JaCoCo intencionalmente; no es aceptación global.
+mvn -B -ntp test "-Dtest=ArchitectureBoundaryTest" "-Djacoco.skip=true"
+
+# Solo humo del JAR recién empaquetado: sin unitarias ni gate global de cobertura.
+mvn -B -ntp clean verify "-DskipUnitTests=true" "-Dit.test=GameFlowSmokeIT" "-Djacoco.skip=true"
+```
+
+En PowerShell se mantienen las comillas de los argumentos Maven con puntos. Los comandos enfocados no sustituyen el verify completo. Maven ejecuta package antes de integration-test; el humo usa `target/minecraft2-0.1.0-SNAPSHOT.jar`, no `original-*.jar` ni clases de test como servidor.
+
+| Clase | Ejecutor y fase | Qué verifica |
+| --- | --- | --- |
+| ArchitectureBoundaryTest | Surefire, test | 22 casos: fronteras de domain/application/network/persistence, dependencia permitida de WorldStorage, controles/fixtures y fuente real no vacía. No son 22 reglas arquitectónicas distintas. |
+| GameFlowSmokeIT | Failsafe, integration-test + verify | Cuatro escenarios del JAR: tres de consola y uno de servidor headless con HTTP/TCP reales. |
+| GameServerIT, NetworkClientIT, MultiplayerServerIT | Failsafe | Salud/métricas, protocolo, población, cancelación, aislamiento, terreno compartido y ciclo multijugador. |
+| Test heredados de aplicación/persistencia seleccionados por el POM | Failsafe según integration.test.patterns | Integración con mundo/archivos/servicios reales; el sufijo Test no determina por sí solo la categoría. |
+
+Se comprobó el XML de Surefire con 22 casos de arquitectura y el de Failsafe con los cuatro de GameFlowSmokeIT. No aparece GameFlowSmokeIT en Surefire ni ArchitectureBoundaryTest en Failsafe. El POM y ci.yml ya hacen esta selección y no se modifican en D.
+
+### Resultado local completo
+
+JDK 17.0.8.7, Windows, `mvn -B -ntp clean verify`, repetido después del rebase y finalizado 2026-11-16 18:14:36 UTC−05:00: **279 unitarias y 161 integración**, cero fallos, errores u omitidas. Dominio: 935/1006 líneas = **92,94 %**, gate ≥70 % activo. No se suman coberturas de unitarias e integración.
+
+El humo imprime `D_JAR_SMOKE sha256=…` en su salida y el XML, vinculando la ejecución al JAR recién construido. Crea el mundo mediante la consola pública y arranca otro proceso con `-Dmc2.server=true -Djava.awt.headless=true`; obtiene sus puertos efímeros del banner, espera salud real y conecta dos pares TCP. Verifica acción aplicada, ack independiente, bajas, métrica de conectados y reingreso sin jugador fantasma. Nunca instancia GameServer/GameSession dentro del JVM de prueba. La captura del hijo usa un pipe y se cierra antes de borrar temporales de Windows. La parada del proceso no se presenta como prueba universal de guardado ante terminación forzada.
+
+### Ensayo negativo de arquitectura y restauración
+
+Se añadieron temporalmente dos clases Java compilables: `domain.world.ArchitectureViolationProbe` con dependencia de `network.ProtocolCodec`, y `network.GraphicsViolationProbe` con dependencia de `com.badlogic.gdx.Gdx`. La compilación terminó y Surefire falló por **dos infracciones de arquitectura entre 22 casos**, salida Maven 1. Se conservaron ambas fuentes, log y XML antes de retirarlas.
+
+Después se eliminaron las clases de infracción y se ejecutó `clean verify` completo. Se comprobó además que el JAR final no contiene ninguna de esas clases. El código de entrega no las incorpora. Las copias del ensayo se guardan fuera de src/ y del repositorio operativo.
+
+### Gate en Actions y límites
+
+El job `build-pruebas` de [.github/workflows/ci.yml](../../.github/workflows/ci.yml) ejecuta `mvn verify` con bash y pipefail. Un fallo de Surefire o de Failsafe llega al exit code del job. Comprueba explícitamente que arquitectura tenga XML/casos y que JaCoCo ejecutó el gate. Publica Surefire/Failsafe/site como artefacto `reportes-pruebas`, incluso si falla una prueba. [Actions correcto](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976250231), commit `d4ad1d1`: cinco checks aprobados, 279 unitarias +161 integración, sin fallos/errores/omitidas. Los XML descargados confirman arquitectura 22 y humo 4. [Ensayo de arquitectura](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976266242): 279 unitarias, dos fallos exactos en las fronteras prohibidas. [Ensayo de integración](https://github.com/MarshallGomez1103/Mc2/actions/runs/43976623068): 279 unitarias aprobadas y 162 integración con un único fallo deliberado en IntegrationGateProbeIT; el humo real conserva cuatro casos aprobados. Ambos ensayos bloquean build-pruebas. Fuentes incorrectas fuera del PR; metadatos, logs y ZIP comprobados en [evidencia D](evidencias/fase-d/README.md).
+
+Las reglas escanean fuentes y no todo el bytecode/reflexión; las dependencias JSON/almacenamiento del adaptador y WorldStorage en persistence se declaran en ADR-004. La cobertura del proceso hijo JAR no se añade automáticamente al JaCoCo del JVM de Failsafe. El humo no abre GPU, no prueba noVNC ni sustituye humo/carga después de desplegar en main. Los resultados gráficos y carga calentada de C conservan sus condiciones y su incidente de desconexión no explicado. Los ensayos de arquitectura/integración de D no sustituyen el PR negativo de seguridad de la fase E.
+
+
+## Versión y alcance — registro histórico del Corte 2
 
 Se integraron Thomas (`e730e9c`), Jasub (`b7c95a3`, rama jasub/final-a) y Ethian (`d186d46`). El [manifiesto integrado](recuperacion-c2/evidencias/integracion/manifest.json) identifica la base, las fuentes exactas mediante hashes y el JAR usado por el flujo público.
 
