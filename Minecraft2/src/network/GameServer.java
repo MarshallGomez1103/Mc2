@@ -57,6 +57,7 @@ public final class GameServer implements AutoCloseable {
             http.createContext("/health", e -> respond(e, ready() ? 200 : 503, "application/json",
                     ready() ? "{\"status\":\"ready\"}" : "{\"status\":\"unavailable\"}"));
             http.createContext("/metrics", e -> respond(e, 200, "text/plain; version=0.0.4", metrics.render()));
+            http.createContext("/", e -> respond(e, 404, "text/plain", "Not found"));
             acceptor = threads("mc2-accept").newThread(this::accept);
             http.start();
             ticks.scheduleAtFixedRate(this::advance, 0, 1_000_000_000L / config.tickHz(), TimeUnit.NANOSECONDS);
@@ -155,6 +156,11 @@ public final class GameServer implements AutoCloseable {
             exchange.getResponseHeaders().set("Content-Type", contentType + "; charset=utf-8");
             exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
             exchange.getResponseHeaders().set("Cache-Control", "no-store");
+            exchange.getResponseHeaders().set("Content-Security-Policy",
+                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+            exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
+            exchange.getResponseHeaders().set("Cross-Origin-Resource-Policy", "same-origin");
+            exchange.getResponseHeaders().set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
             exchange.sendResponseHeaders(status, bytes.length);
             exchange.getResponseBody().write(bytes);
         }

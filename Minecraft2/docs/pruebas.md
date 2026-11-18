@@ -1,5 +1,14 @@
 # Pruebas y verificación de Minecraft2
 
+## Corte 3 — baseline HTTP F (2026-11-16)
+
+Base main9d44297, corrección HTTPb7765f5. `mvn -B -ntp clean verify` con Java17.0.8.7 en Windows finalizó22:53:30 UTC−05:00: **312unitarias+169integración**, sin fallos/errores/omitidas; dominio935/1006=92,94 %, gate>=70 % activo; reportes13 preservados fuera de target. GameServerIT añade comprobación de cabeceras y códigos en health,metrics,raíz,robots y sitemap. La ejecución11 se interrumpió al pausar; no se presenta como aprobación. Los conteos exactos están en el XML y registro FASE_F_ESTADO.md del espacio de trabajo.
+
+Se ejecutaron16casos Python del gate: `python3 -m unittest discover -s Minecraft2/security/zap -v`. Cubren alerta nueva, severidad cambiada, rechazo de altos aun con aceptación, binding no loopback, reportes malformados, alertRef separado del pluginid y política condicional inválida. Estos tests no forman parte de Surefire/Failsafe; el fragmento CD los ejecuta expresamente.
+
+Dos corridas ZAP2.17.0 por digest en Compose aislado: primera con política vacía bloquea; segunda confirma server solo1INFO y front2Medium/6Low/3INFO. Gate local0 con la propuesta de12decisiones explícitas y loopback verificado; baseline original0server y2front se conservan. Las alertas del front no están corregidas ni se atribuye aprobación del equipo. [Registro](seguridad.md#7-análisis-dinámico-fase-f-preparación-local), [evidencia F](evidencias/fase-f/README.md), [fragmento para Ethian](fragmentos/zap-cd.yml). No hay ejecución ZAP Actions aún; F04 sigue pendiente de integración.
+
+
 ## Corte 3 — seguridad E (2026-11-16)
 
 `mvn -B -ntp clean verify`, Java17.0.8.7 Windows, final16/11/2026 21:02:05 UTC−05:00: **279 unitarias +164 integración**, cero fallos/errores/omitidas; dominio935/1006 (92,94 %), gate>=70 % activo. Se conservan los resultados D/B/C como históricos. GameServerIT pasa de5 a8 casos; arquitectura22 y humo JAR4 siguen activos, sin cambios de selección POM.

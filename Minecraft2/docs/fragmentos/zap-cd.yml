@@ -1,0 +1,31 @@
+# Fragmento de Persona 2 para que Ethian lo incorpore en .github/workflows/cd.yml.
+# Copiar ambos pasos, sin cambios, en cada uno de estos puntos:
+#   1. job desplegar: tras «Desplegar, readiness y humo», antes de «Carga corta contra el entorno desplegado».
+#   2. job entorno-efimero: tras «Prueba de humo», antes de «Carga corta con el SLO».
+# Cada copia pertenece al job existente; no crear un workflow independiente.
+# Requiere Minecraft2/security/zap/ y revisión de policy.json junto a seguridad.md.
+# MC2_SHA ya existe globalmente; Compose usa proyecto mc2 y los dos servicios deben estar healthy.
+# El fallo ZAP falla el job. El paso always() publica lo que exista; en desplegar, failure() conserva
+# la reversión existente. El baseline se ejecuta antes de carga: no convierte en verde un SLO fallido.
+# La primera ejecución real de ZAP en Actions sigue pendiente de integración de Ethian.
+
+      - name: ZAP baseline HTTP y tratamiento bloqueante
+        env:
+          MC2_ZAP_OUT: ${{ runner.temp }}/zap-${{ env.MC2_SHA }}
+        run: |
+          mkdir -p "$MC2_ZAP_OUT"
+          python3 -m unittest discover -s Minecraft2/security/zap -v 2>&1 | tee "$MC2_ZAP_OUT/tests.log"
+          imagen=$(python3 -c "import runpy; print(runpy.run_path('Minecraft2/security/zap/scan.py')['IMAGE'])")
+          docker pull "$imagen" 2>&1 | tee "$MC2_ZAP_OUT/image-pull.log"
+          python3 Minecraft2/security/zap/scan.py \
+            --project mc2 --revision "$MC2_SHA" --out "$MC2_ZAP_OUT" \
+            2>&1 | tee "$MC2_ZAP_OUT/runner.log"
+
+      - name: Publicar reportes ZAP incluso ante fallo
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2, igual que cd.yml actual
+        with:
+          name: zap-${{ env.MC2_SHA }}
+          path: ${{ runner.temp }}/zap-${{ env.MC2_SHA }}/
+          if-no-files-found: warn
+          retention-days: 30
